@@ -2,9 +2,7 @@ import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 
-const LayoutWithHeader: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div>
     <Header />
     <main>{children}</main>
@@ -12,4 +10,4 @@ const LayoutWithHeader: React.FC<{ children: React.ReactNode }> = ({
   </div>
 );
 
-export default LayoutWithHeader;
+export default Layout;

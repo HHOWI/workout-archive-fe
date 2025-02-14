@@ -1,12 +1,41 @@
-import { createBrowserRouter } from "react-router-dom";
-import LayoutWithHeader from "./components/LayoutWithHeader";
-import LayoutWithoutHeader from "./components/LayoutWithoutHeader";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
+import { useSelector } from "react-redux";
+import { RootState } from "./store/store";
+
+const RootElement = () => {
+  const { isLoggedIn } = useSelector((state: RootState) => state.auth);
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <HomePage />;
+}
+
+const LoginElement = () => {
+  const { isLoggedIn } = useSelector((state: RootState) => state.auth);
+
+  if (isLoggedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <LoginPage />;
+}
+
+
 
 const router = createBrowserRouter([
+
   {
     path: "/",
-    children: [{ index: true, element: <LoginPage /> }],
+    element:<Layout />
+    children: [{ index: true, element: <RootElement /> }],
+  },
+  {
+    path: "/login",
+    children: [{ index: true, element: <LoginElement /> }],
   },
 ]);
 
