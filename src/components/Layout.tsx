@@ -1,11 +1,14 @@
 import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import { Outlet } from "react-router-dom"; // Outlet 추가
 
-const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const Layout: React.FC = () => (
   <div>
     <Header />
-    <main>{children}</main>
+    <main>
+      <Outlet />
+    </main>
     <Footer />
   </div>
 );

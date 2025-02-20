@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import { useSelector } from "react-redux";
 import { RootState } from "./store/store";
+import HomePage from "./pages/HomePage";
 
 const RootElement = () => {
   const { isLoggedIn } = useSelector((state: RootState) => state.auth);
@@ -12,7 +13,7 @@ const RootElement = () => {
   }
 
   return <HomePage />;
-}
+};
 
 const LoginElement = () => {
   const { isLoggedIn } = useSelector((state: RootState) => state.auth);
@@ -22,15 +23,12 @@ const LoginElement = () => {
   }
 
   return <LoginPage />;
-}
-
-
+};
 
 const router = createBrowserRouter([
-
   {
     path: "/",
-    element:<Layout />
+    element: <Layout />,
     children: [{ index: true, element: <RootElement /> }],
   },
   {
