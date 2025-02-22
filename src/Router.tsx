@@ -1,39 +1,39 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
-import { useSelector } from "react-redux";
-import { RootState } from "./store/store";
 import HomePage from "./pages/HomePage";
-
-const RootElement = () => {
-  const { isLoggedIn } = useSelector((state: RootState) => state.auth);
-
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <HomePage />;
-};
-
-const LoginElement = () => {
-  const { isLoggedIn } = useSelector((state: RootState) => state.auth);
-
-  if (isLoggedIn) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <LoginPage />;
-};
+import ProtectedRoute from "./components/ProtectedRoute";
+import LoginGuard from "./components/LoginGuard";
+import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
+import ErrorPage from "./pages/ErrorPage";
+import RegisterSuccessPage from "./pages/RegisterSuccessPage";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
-    children: [{ index: true, element: <RootElement /> }],
-  },
-  {
-    path: "/login",
-    children: [{ index: true, element: <LoginElement /> }],
+    errorElement: <ErrorPage />, // 전역 오류 처리
+    children: [
+      // 공용
+      { index: true, element: <HomePage /> },
+      // 로그인 전용
+      {
+        element: <ProtectedRoute />,
+        children: [{ path: "profile", element: <ProfilePage /> }],
+      },
+      // 비로그인 전용
+      {
+        element: <LoginGuard />,
+        children: [
+          { path: "login", element: <LoginPage /> },
+          { path: "register", element: <RegisterPage /> },
+          { path: "register-success", element: <RegisterSuccessPage /> },
+          { path: "verify-email", element: <EmailVerificationPage /> },
+        ],
+      },
+    ],
   },
 ]);
 
