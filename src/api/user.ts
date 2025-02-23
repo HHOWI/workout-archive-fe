@@ -30,5 +30,7 @@ export const registerUser = async (userData: {
 };
 
 export const verifyEmail = async (token: string) => {
-  return await instance.get("/verify-email", { params: { token } });
+  return await instance.get("/verify-email", {
+    params: { token },
+  });
 };

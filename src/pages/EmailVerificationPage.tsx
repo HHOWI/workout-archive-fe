@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
 import { verifyEmail } from "../api/user";
@@ -46,33 +46,32 @@ const EmailVerificationPage: React.FC = () => {
     "verifying"
   );
   const [message, setMessage] = useState("이메일 인증을 진행중입니다...");
+  const isRequestSent = useRef(false);
 
   useEffect(() => {
+    const token = searchParams.get("token");
+
+    // 1. 토큰 없거나 이미 요청한 경우 중단
+    if (!token || isRequestSent.current) return;
+
+    // 2. 요청 플래그 설정
+    isRequestSent.current = true;
+
     const verifyToken = async () => {
       try {
-        const token = searchParams.get("token");
-
-        if (!token) {
-          setStatus("error");
-          setMessage("유효하지 않은 인증 토큰입니다.");
-          return;
-        }
-
-        const response = await verifyEmail(token);
-
+        await verifyEmail(token);
         setStatus("success");
         setMessage("이메일 인증이 완료되었습니다.");
       } catch (error: any) {
         setStatus("error");
         setMessage(
-          error.response?.data?.message ||
-            "이메일 인증에 실패했습니다. 다시 시도해주세요."
+          error.response?.data?.message || "이메일 인증에 실패했습니다."
         );
       }
     };
 
     verifyToken();
-  }, [searchParams]);
+  }, [searchParams.get("token")]);
 
   return (
     <Container>
