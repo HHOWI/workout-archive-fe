@@ -16,7 +16,7 @@ const ProfileHeader = styled.div`
   gap: 30px;
 `;
 
-const DEFAULT_PROFILE_IMAGE = "/images/default-profile.png"; // 기본 프로필 이미지 경로
+const DEFAULT_PROFILE_IMAGE = "/images/default-user.png"; // 기본 프로필 이미지 경로
 
 const ProfileImage = styled.div<{ url: string }>`
   width: 150px;
@@ -160,10 +160,11 @@ const ProfilePage: React.FC = () => {
       formData.append("image", file);
 
       const response = await updateProfileImage(formData);
-      setProfileImage(response.data.imageUrl);
+      const imageUrl = response.data.imageUrl;
 
-      // Redux 상태 업데이트 로직 추가 필요
+      setProfileImage(imageUrl);
     } catch (error) {
+      console.error("프로필 이미지 업로드 에러:", error);
       alert("프로필 이미지 업로드에 실패했습니다.");
     }
   };

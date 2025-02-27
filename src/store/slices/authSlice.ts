@@ -1,41 +1,26 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-interface User {
-  userSeq: number;
-  profileImageUrl?: string;
-}
+import { UserDTO } from "../../dtos/UserDTO";
 
 interface AuthState {
-  user: User | null;
-  token: string | null;
-  isLoggedIn: boolean;
+  userInfo: UserDTO | null;
 }
 
 const initialState: AuthState = {
-  user: null,
-  token: null,
-  isLoggedIn: false,
+  userInfo: null,
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    loginSuccess(
-      state,
-      action: PayloadAction<{ token: string; userSeq: number }>
-    ) {
-      state.token = action.payload.token;
-      state.user = { userSeq: action.payload.userSeq };
-      state.isLoggedIn = true;
+    setUserInfo(state, action: PayloadAction<UserDTO>) {
+      state.userInfo = action.payload;
     },
-    logout(state) {
-      state.token = null;
-      state.user = null;
-      state.isLoggedIn = false;
+    clearUserInfo(state) {
+      state.userInfo = null;
     },
   },
 });
 
-export const { loginSuccess, logout } = authSlice.actions;
+export const { setUserInfo, clearUserInfo } = authSlice.actions;
 export default authSlice.reducer;

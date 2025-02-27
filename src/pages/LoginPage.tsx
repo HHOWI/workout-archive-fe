@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/user";
 import { useDispatch } from "react-redux";
-import { loginSuccess } from "../store/slices/authSlice";
+import { setUserInfo } from "../store/slices/authSlice";
 import styled from "@emotion/styled";
+import { UserDTO } from "../dtos/UserDTO";
 
 // 스타일 컴포넌트 정의
 const Container = styled.div`
@@ -96,7 +97,7 @@ const LoginFooter = styled.div`
 `;
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [userDTO, setUserDTO] = useState<UserDTO>({
     userId: "",
     userPw: "",
   });
@@ -108,7 +109,7 @@ const LoginPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setUserDTO((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -120,13 +121,8 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await loginUser(formData.userId, formData.userPw);
-      const { token, userSeq } = response.data as {
-        token: string;
-        userSeq: number;
-      };
-
-      dispatch(loginSuccess({ token, userSeq }));
+      const response = await loginUser(userDTO);
+      dispatch(setUserInfo(response.data));
       navigate("/");
     } catch (err: any) {
       setError(
@@ -149,7 +145,7 @@ const LoginPage: React.FC = () => {
               id="userId"
               name="userId"
               type="text"
-              value={formData.userId}
+              value={userDTO.userId}
               onChange={handleChange}
               placeholder="아이디를 입력하세요"
               required
@@ -161,7 +157,7 @@ const LoginPage: React.FC = () => {
               id="userPw"
               name="userPw"
               type="password"
-              value={formData.userPw}
+              value={userDTO.userPw}
               onChange={handleChange}
               placeholder="비밀번호를 입력하세요"
               required

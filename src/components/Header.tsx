@@ -2,7 +2,8 @@ import React from "react";
 import styled from "@emotion/styled";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../store/slices/authSlice";
+import { clearUserInfo } from "../store/slices/authSlice";
+import { logoutUser } from "../api/user";
 
 const HeaderContainer = styled.header`
   background-color: white;
@@ -68,12 +69,16 @@ const UserButton = styled.button`
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((state: any) => state.auth.token);
-  const userNickname = useSelector((state: any) => state.auth.userNickname);
+  const userInfo = useSelector((state: any) => state.auth.userInfo);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      dispatch(clearUserInfo());
+      navigate("/");
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+    }
   };
 
   return (
@@ -84,10 +89,10 @@ const Header: React.FC = () => {
           <NavLink onClick={() => navigate("/workout")}>운동 기록</NavLink>
           <NavLink onClick={() => navigate("/statistics")}>통계</NavLink>
           <NavLink onClick={() => navigate("/community")}>커뮤니티</NavLink>
-          {isAuthenticated ? (
+          {userInfo ? (
             <UserMenu>
               <NavLink onClick={() => navigate("/profile")}>
-                {userNickname || "프로필"}
+                {userInfo.userNickname || "프로필"}
               </NavLink>
               <UserButton onClick={handleLogout}>로그아웃</UserButton>
             </UserMenu>

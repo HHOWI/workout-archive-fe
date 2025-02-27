@@ -1,11 +1,11 @@
-import { useSelector } from "react-redux";
 import { Navigate, Outlet } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
 const LoginGuard = () => {
-  const { isLoggedIn } = useSelector((state: RootState) => state.auth);
+  const userInfo = useSelector((state: RootState) => state.auth.userInfo);
 
-  return isLoggedIn ? <Navigate to="/" replace /> : <Outlet />;
+  return userInfo ? <Navigate to="/" replace /> : <Outlet />;
 };
 
 export default LoginGuard;
