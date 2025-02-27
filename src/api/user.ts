@@ -34,3 +34,11 @@ export const verifyEmail = async (token: string) => {
     params: { token },
   });
 };
+
+export const updateProfileImage = async (formData: FormData) => {
+  return await instance.post("/profile-image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

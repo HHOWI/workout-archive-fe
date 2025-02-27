@@ -133,23 +133,45 @@ const RegisterPage: React.FC = () => {
     userPwConfirm: "",
   });
 
+  const [isIdValid, setIsIdValid] = useState(false);
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isNicknameValid, setIsNicknameValid] = useState(false);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (name === "userPw") {
-      const isValidPassword = value.length >= 8;
-      setValidations((prev) => ({
-        ...prev,
-        userPw: isValidPassword,
-        userPwConfirm: isValidPassword && value === formData.userPwConfirm,
-      }));
+    if (name === "userId") {
+      // 입력값을 소문자로 변환
+      const lowerValue = value.toLowerCase();
+      setFormData((prev) => ({ ...prev, [name]: lowerValue }));
+
+      const userIdRegex = /^[a-z][a-z0-9]{5,19}$/;
+      const isValid = userIdRegex.test(lowerValue);
+      setIsIdValid(isValid);
+      setValidations((prev) => ({ ...prev, userId: false }));
       setMessages((prev) => ({
         ...prev,
-        userPw: isValidPassword ? "" : "비밀번호는 8자 이상이어야 합니다.",
+        userId: isValid
+          ? "중복 확인이 필요합니다."
+          : "아이디는 영문 소문자로 시작하고 영문 소문자와 숫자를 포함하여 6~20자여야 합니다.",
+      }));
+    } else if (name === "userPw") {
+      const isValid = value.length >= 8 && value.length <= 20;
+      setValidations((prev) => ({ ...prev, userPw: isValid }));
+      setMessages((prev) => ({
+        ...prev,
+        userPw: isValid
+          ? "사용 가능한 비밀번호입니다."
+          : "비밀번호는 8~20자 사이여야 합니다.",
       }));
 
+      // 비밀번호 확인 필드가 비어있지 않은 경우 일치 여부 검사
       if (formData.userPwConfirm) {
+        setValidations((prev) => ({
+          ...prev,
+          userPwConfirm: value === formData.userPwConfirm,
+        }));
         setMessages((prev) => ({
           ...prev,
           userPwConfirm:
@@ -158,17 +180,37 @@ const RegisterPage: React.FC = () => {
               : "비밀번호가 일치하지 않습니다.",
         }));
       }
-    }
-
-    if (name === "userPwConfirm") {
+    } else if (name === "userPwConfirm") {
       const isMatch = value === formData.userPw;
       setValidations((prev) => ({
         ...prev,
-        userPwConfirm: isMatch,
+        userPwConfirm: isMatch && validations.userPw,
       }));
       setMessages((prev) => ({
         ...prev,
         userPwConfirm: isMatch ? "" : "비밀번호가 일치하지 않습니다.",
+      }));
+    } else if (name === "userEmail") {
+      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+      const isValid = emailRegex.test(value);
+      setIsEmailValid(isValid);
+      setValidations((prev) => ({ ...prev, userEmail: false }));
+      setMessages((prev) => ({
+        ...prev,
+        userEmail: isValid
+          ? "중복 확인이 필요합니다."
+          : "올바른 이메일 형식이 아닙니다.",
+      }));
+    } else if (name === "userNickname") {
+      const nicknameRegex = /^[가-힣a-zA-Z0-9._-]{2,10}$/;
+      const isValid = nicknameRegex.test(value);
+      setIsNicknameValid(isValid);
+      setValidations((prev) => ({ ...prev, userNickname: false }));
+      setMessages((prev) => ({
+        ...prev,
+        userNickname: isValid
+          ? "중복 확인이 필요합니다."
+          : "닉네임은 2~10자의 한글, 영문, 숫자와 특수문자(_-.)만 사용 가능합니다.",
       }));
     }
   };
@@ -246,7 +288,7 @@ const RegisterPage: React.FC = () => {
               <CheckButton
                 type="button"
                 onClick={() => handleCheck("userId")}
-                disabled={!formData.userId}
+                disabled={!isIdValid || !formData.userId}
               >
                 중복확인
               </CheckButton>
@@ -305,7 +347,7 @@ const RegisterPage: React.FC = () => {
               <CheckButton
                 type="button"
                 onClick={() => handleCheck("userEmail")}
-                disabled={!formData.userEmail}
+                disabled={!isEmailValid || !formData.userEmail}
               >
                 중복확인
               </CheckButton>
@@ -328,7 +370,7 @@ const RegisterPage: React.FC = () => {
               <CheckButton
                 type="button"
                 onClick={() => handleCheck("userNickname")}
-                disabled={!formData.userNickname}
+                disabled={!isNicknameValid || !formData.userNickname}
               >
                 중복확인
               </CheckButton>

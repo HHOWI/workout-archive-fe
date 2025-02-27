@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
 import WorkoutOfTheDay from "../components/WorkoutOfTheDay";
+import { updateProfileImage } from "../api/user";
 
 const Container = styled.div`
   max-width: 935px;
@@ -15,18 +16,30 @@ const ProfileHeader = styled.div`
   gap: 30px;
 `;
 
-const ProfileImage = styled.div`
+const DEFAULT_PROFILE_IMAGE = "/images/default-profile.png"; // 기본 프로필 이미지 경로
+
+const ProfileImage = styled.div<{ url: string }>`
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background-color: #dbdbdb;
-  flex-shrink: 0;
+  background-image: url(${(props) => props.url});
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  position: relative;
 
-  img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
+  &:hover::after {
+    content: "수정하기";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 5px;
+    text-align: center;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
   }
 `;
 
@@ -110,9 +123,50 @@ const MemoContent = styled.p`
   line-height: 1.5;
 `;
 
+const HiddenInput = styled.input`
+  display: none;
+`;
+
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"workout" | "memo">("workout");
   const user = useSelector((state: any) => state.auth.user);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileImage, setProfileImage] = useState(
+    user.profileImageUrl || DEFAULT_PROFILE_IMAGE
+  );
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 파일 크기 체크 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("파일 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+
+    // 이미지 파일 타입 체크
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await updateProfileImage(formData);
+      setProfileImage(response.data.imageUrl);
+
+      // Redux 상태 업데이트 로직 추가 필요
+    } catch (error) {
+      alert("프로필 이미지 업로드에 실패했습니다.");
+    }
+  };
 
   const memoData = [
     {
@@ -134,12 +188,13 @@ const ProfilePage: React.FC = () => {
   return (
     <Container>
       <ProfileHeader>
-        <ProfileImage>
-          <img
-            src={user?.profileImage || "/default-profile.png"}
-            alt="프로필"
-          />
-        </ProfileImage>
+        <ProfileImage url={profileImage} onClick={handleImageClick} />
+        <HiddenInput
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+        />
         <ProfileInfo>
           <Username>{user?.nickname || "사용자"}</Username>
           <div>
