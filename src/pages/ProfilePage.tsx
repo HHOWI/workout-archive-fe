@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "@emotion/styled";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import WorkoutOfTheDay from "../components/WorkoutOfTheDay";
 import { updateProfileImage } from "../api/user";
+import { updateProfileImg } from "../store/slices/authSlice";
 
 const Container = styled.div`
   max-width: 935px;
@@ -15,8 +16,6 @@ const ProfileHeader = styled.div`
   margin-bottom: 44px;
   gap: 30px;
 `;
-
-const DEFAULT_PROFILE_IMAGE = "/images/default-user.png"; // 기본 프로필 이미지 경로
 
 const ProfileImage = styled.div<{ url: string }>`
   width: 150px;
@@ -129,15 +128,22 @@ const HiddenInput = styled.input`
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"workout" | "memo">("workout");
-  const user = useSelector((state: any) => state.auth.user);
+  const user = useSelector((state: any) => state.auth.userInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState(
-    user.profileImageUrl || DEFAULT_PROFILE_IMAGE
+    `${process.env.REACT_APP_API_URL}${user.userProfileImg}`
   );
+  const dispatch = useDispatch();
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
   };
+
+  useEffect(() => {
+    if (user.userProfileImg) {
+      setProfileImage(`${process.env.REACT_APP_API_URL}${user.userProfileImg}`);
+    }
+  }, [user]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,8 +167,7 @@ const ProfilePage: React.FC = () => {
 
       const response = await updateProfileImage(formData);
       const imageUrl = response.data.imageUrl;
-
-      setProfileImage(imageUrl);
+      await dispatch(updateProfileImg(imageUrl));
     } catch (error) {
       console.error("프로필 이미지 업로드 에러:", error);
       alert("프로필 이미지 업로드에 실패했습니다.");

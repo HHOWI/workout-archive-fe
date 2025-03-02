@@ -6,7 +6,6 @@ import { setUserInfo } from "../store/slices/authSlice";
 import styled from "@emotion/styled";
 import { UserDTO } from "../dtos/UserDTO";
 
-// 스타일 컴포넌트 정의
 const Container = styled.div`
   display: flex;
   justify-content: center;
