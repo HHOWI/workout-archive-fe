@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
-import { verifyEmail } from "../api/user";
+import { verifyEmail } from "../api/register";
 
 const Container = styled.div`
   display: flex;

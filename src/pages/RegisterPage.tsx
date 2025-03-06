@@ -6,7 +6,7 @@ import {
   checkUserEmail,
   checkUserNickname,
   registerUser,
-} from "../api/user";
+} from "../api/register";
 
 const Container = styled.div`
   display: flex;
@@ -232,11 +232,11 @@ const RegisterPage: React.FC = () => {
           break;
       }
 
-      const { duplicated } = response.data;
-      setValidations((prev) => ({ ...prev, [field]: !duplicated }));
+      const { isDuplicated } = response.data;
+      setValidations((prev) => ({ ...prev, [field]: !isDuplicated }));
       setMessages((prev) => ({
         ...prev,
-        [field]: duplicated ? "이미 사용중입니다." : "사용 가능합니다.",
+        [field]: isDuplicated ? "이미 사용중입니다." : "사용 가능합니다.",
       }));
     } catch (error) {
       setMessages((prev) => ({

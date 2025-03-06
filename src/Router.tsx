@@ -9,7 +9,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ErrorPage from "./pages/ErrorPage";
 import RegisterSuccessPage from "./pages/RegisterSuccessPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
-
+import WorkoutRecordPage from "./pages/WorkoutRecordPage";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -21,7 +21,10 @@ const router = createBrowserRouter([
       // 로그인 전용
       {
         element: <ProtectedRoute />,
-        children: [{ path: "profile", element: <ProfilePage /> }],
+        children: [
+          { path: "profile", element: <ProfilePage /> },
+          { path: "workout-record", element: <WorkoutRecordPage /> },
+        ],
       },
       // 비로그인 전용
       {

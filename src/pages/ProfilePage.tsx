@@ -202,7 +202,7 @@ const ProfilePage: React.FC = () => {
           onChange={handleImageChange}
         />
         <ProfileInfo>
-          <Username>{user?.nickname || "사용자"}</Username>
+          <Username>{user?.userNickname || "사용자"}</Username>
           <div>
             <p>총 운동 기록: 156회</p>
             <p>연속 운동일수: 23일</p>
