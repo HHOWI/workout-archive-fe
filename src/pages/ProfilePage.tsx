@@ -128,10 +128,10 @@ const HiddenInput = styled.input`
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"workout" | "memo">("workout");
-  const user = useSelector((state: any) => state.auth.userInfo);
+  const userInfo = useSelector((state: any) => state.auth.userInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState(
-    `${process.env.REACT_APP_API_URL}${user.userProfileImg}`
+    `${process.env.REACT_APP_API_URL}${userInfo?.userProfileImg || ""}`
   );
   const dispatch = useDispatch();
 
@@ -140,10 +140,12 @@ const ProfilePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user.userProfileImg) {
-      setProfileImage(`${process.env.REACT_APP_API_URL}${user.userProfileImg}`);
+    if (userInfo?.userProfileImg) {
+      setProfileImage(
+        `${process.env.REACT_APP_API_URL}${userInfo.userProfileImg}`
+      );
     }
-  }, [user]);
+  }, [userInfo]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +169,7 @@ const ProfilePage: React.FC = () => {
 
       const response = await updateProfileImage(formData);
       const imageUrl = response.data.imageUrl;
-      await dispatch(updateProfileImg(imageUrl));
+      dispatch(updateProfileImg(imageUrl));
     } catch (error) {
       console.error("프로필 이미지 업로드 에러:", error);
       alert("프로필 이미지 업로드에 실패했습니다.");
@@ -202,7 +204,7 @@ const ProfilePage: React.FC = () => {
           onChange={handleImageChange}
         />
         <ProfileInfo>
-          <Username>{user?.userNickname || "사용자"}</Username>
+          <Username>{userInfo?.userNickname || "사용자"}</Username>
           <div>
             <p>총 운동 기록: 156회</p>
             <p>연속 운동일수: 23일</p>

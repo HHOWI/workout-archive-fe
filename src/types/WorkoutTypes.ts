@@ -17,6 +17,17 @@ export interface ExerciseRecord {
   sets: RecordDetail[];
 }
 
+export interface WorkoutPlace {
+  workoutPlaceSeq: number;
+  kakaoPlaceId?: string;
+  placeName: string;
+  addressName?: string;
+  roadAddressName?: string;
+  x?: number | string;
+  y?: number | string;
+  placeAddress?: string;
+}
+
 export interface WorkoutOfTheDay {
   date: string;
   location: string;

@@ -71,7 +71,7 @@ const EmailVerificationPage: React.FC = () => {
     };
 
     verifyToken();
-  }, [searchParams.get("token")]);
+  }, [searchParams]);
 
   return (
     <Container>
