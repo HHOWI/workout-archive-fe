@@ -5,6 +5,7 @@ import reportWebVitals from "./reportWebVitals";
 import { Provider } from "react-redux";
 import { store, persistor } from "./store/store";
 import { PersistGate } from "redux-persist/integration/react";
+import "./api/axiosConfig"; // Axios 인터셉터 초기화
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

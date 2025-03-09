@@ -15,6 +15,7 @@ export interface RecordDetail {
 export interface ExerciseRecord {
   exercise: Exercise;
   sets: RecordDetail[];
+  setCount?: number;
 }
 
 export interface WorkoutPlace {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import styled from "@emotion/styled";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -8,8 +8,8 @@ import ExerciseSetForm from "../components/ExerciseSetForm";
 import {
   Exercise,
   ExerciseRecord,
-  WorkoutOfTheDay,
   WorkoutPlace,
+  RecordDetail,
 } from "../types/WorkoutTypes";
 import { saveWorkoutRecord } from "../api/workout";
 import KakaoMapPlaceSelector from "../components/KakaoMapPlaceSelector";
@@ -108,10 +108,30 @@ const ModalContent = styled.div`
   background: white;
   padding: 20px;
   border-radius: 8px;
-  width: 80%;
-  max-width: 800px;
-  max-height: 80vh;
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
   overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+  /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #999;
+  }
 `;
 
 const ModalHeader = styled.div`
@@ -119,17 +139,27 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
+  font-size: 1.5rem;
+  color: #333;
 `;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 24px;
   cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #333;
+  }
 `;
 
 const LocationDisplay = styled.div`
@@ -188,12 +218,108 @@ const SelectLocationButton = styled.button`
   }
 `;
 
+const PhotoUploadContainer = styled.div`
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+`;
+
+const PhotoUploadHeader = styled.div`
+  margin-bottom: 15px;
+`;
+
+const PhotoPreviewContainer = styled.div`
+  width: 100%;
+  height: 200px;
+  border: 1px dashed #aaa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  overflow: hidden;
+  position: relative;
+`;
+
+const PhotoPreview = styled.img`
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+`;
+
+const PhotoUploadInput = styled.input`
+  display: none;
+`;
+
+const PhotoUploadButton = styled.button`
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+  margin-right: 10px;
+
+  &:hover {
+    background: #357ac5;
+  }
+
+  &:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+  }
+`;
+
+const RemovePhotoButton = styled.button`
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+
+  &:hover {
+    background: #ff7875;
+  }
+`;
+
+const TextareaContainer = styled.div`
+  margin-bottom: 20px;
+`;
+
+const StyledTextarea = styled.textarea`
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+`;
+
+// 드래그 관련 스타일 추가
+const DraggableItem = styled.div<{ isDragging?: boolean }>`
+  margin-bottom: 10px;
+  cursor: grab;
+  opacity: ${(props) => (props.isDragging ? "0.5" : "1")};
+
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
 const WorkoutRecordPage: React.FC = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [location, setLocation] = useState<string>("");
-  const [locationDisplayName, setLocationDisplayName] = useState("");
-  const [locationAddress, setLocationAddress] = useState("");
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
@@ -203,11 +329,36 @@ const WorkoutRecordPage: React.FC = () => {
   const [kakaoPlaceOriginal, setKakaoPlaceOriginal] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddExercise = (exercise: Exercise) => {
-    setExerciseRecords([
-      ...exerciseRecords,
-      { exercise, sets: [{ weight: 0, reps: 0 }] },
-    ]);
+  // 사진 및 글 작성 상태 추가
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [diaryText, setDiaryText] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 드래그 관련 상태 추가
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const draggedItem = useRef<ExerciseRecord | null>(null);
+
+  // 여러 운동을 한번에 추가하는 함수 (이제 바로 세트 정보와 함께 받음)
+  const handleAddExercises = (
+    exercisesWithSets: {
+      exercise: Exercise;
+      sets: RecordDetail[];
+      setCount?: number;
+    }[]
+  ) => {
+    if (exercisesWithSets.length === 0) return;
+
+    // 이미 세트 정보가 포함된 형태로 받기 때문에 간단하게 처리
+    const newRecords = exercisesWithSets.map(
+      ({ exercise, sets, setCount }) => ({
+        exercise,
+        sets,
+        setCount, // setCount 정보도 함께 저장
+      })
+    );
+
+    setExerciseRecords((prev) => [...prev, ...newRecords]);
     setShowExerciseSelector(false);
   };
 
@@ -246,24 +397,83 @@ const WorkoutRecordPage: React.FC = () => {
     setSelectedLocation(null);
   };
 
+  // 사진 선택 핸들러
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setSelectedPhoto(file);
+
+      // 이미지 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 사진 제거 핸들러
+  const handleRemovePhoto = () => {
+    setSelectedPhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // 사진 업로드 버튼 클릭 핸들러
+  const handleUploadButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // 글 작성 핸들러
+  const handleDiaryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDiaryText(e.target.value);
+  };
+
   const handleSubmit = async () => {
-    if (!date || !location || exerciseRecords.length === 0) {
-      alert("모든 필드를 입력해주세요.");
+    if (!date || exerciseRecords.length === 0) {
+      alert("날짜와 운동 목록은 필수 입력 항목입니다.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const workoutData: WorkoutOfTheDay = {
+      // 이미지 및 텍스트 데이터 추가
+      const formData = new FormData();
+
+      // 운동 데이터 변환 (변환 과정 간소화)
+      const transformedExerciseRecords = exerciseRecords.map((record) => ({
+        exercise: {
+          exerciseSeq: record.exercise.exerciseSeq,
+          exerciseType: record.exercise.exerciseType,
+          exerciseName: record.exercise.exerciseName,
+        },
+        sets: record.sets,
+      }));
+
+      // JSON 데이터
+      const workoutData = {
         date: date.toISOString().split("T")[0],
-        location,
-        exerciseRecords,
+        location: location || "", // 빈 문자열로 기본값 설정
+        exerciseRecords: transformedExerciseRecords,
+        diary: diaryText,
       };
 
-      let placeInfo = undefined;
+      // FormData에 JSON 데이터 추가
+      formData.append("workoutData", JSON.stringify(workoutData));
+
+      // 사진이 있는 경우 추가
+      if (selectedPhoto) {
+        formData.append("image", selectedPhoto);
+      }
+
+      // 장소 정보가 있는 경우 추가
       if (kakaoPlaceOriginal && kakaoPlaceOriginal.id) {
-        placeInfo = {
+        const placeInfo = {
           kakaoPlaceId: kakaoPlaceOriginal.id,
           placeName: kakaoPlaceOriginal.place_name,
           addressName: kakaoPlaceOriginal.address_name || "",
@@ -271,9 +481,10 @@ const WorkoutRecordPage: React.FC = () => {
           x: kakaoPlaceOriginal.x,
           y: kakaoPlaceOriginal.y,
         };
+        formData.append("placeInfo", JSON.stringify(placeInfo));
       }
 
-      await saveWorkoutRecord(workoutData, placeInfo);
+      await saveWorkoutRecord(formData);
       alert("운동 기록이 성공적으로 저장되었습니다!");
       navigate("/workout-history");
     } catch (error) {
@@ -282,6 +493,40 @@ const WorkoutRecordPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // 드래그 시작 핸들러
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+    draggedItem.current = exerciseRecords[index];
+  };
+
+  // 드래그 오버 핸들러
+  const handleDragOver = (
+    e: React.DragEvent<HTMLDivElement>,
+    index: number
+  ) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // 현재 순서 복사
+    const newRecords = [...exerciseRecords];
+
+    // 드래그한 아이템 제거
+    const draggedRecord = newRecords.splice(draggedIndex, 1)[0];
+
+    // 새 위치에 아이템 삽입
+    newRecords.splice(index, 0, draggedRecord);
+
+    // 상태 업데이트
+    setExerciseRecords(newRecords);
+    setDraggedIndex(index);
+  };
+
+  // 드래그 종료 핸들러
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    draggedItem.current = null;
   };
 
   return (
@@ -300,7 +545,7 @@ const WorkoutRecordPage: React.FC = () => {
       </FormGroup>
 
       <FormGroup>
-        <Label>운동 장소</Label>
+        <Label>운동 장소 (선택사항)</Label>
         {selectedLocation ? (
           <LocationDisplay>
             <LocationInfo>
@@ -330,15 +575,64 @@ const WorkoutRecordPage: React.FC = () => {
         )}
       </FormGroup>
 
+      {/* 사진 업로드 섹션 추가 */}
+      <PhotoUploadContainer>
+        <PhotoUploadHeader>
+          <Label>운동 사진 (선택사항)</Label>
+        </PhotoUploadHeader>
+        <PhotoPreviewContainer>
+          {photoPreview ? (
+            <PhotoPreview src={photoPreview} alt="운동 사진 미리보기" />
+          ) : (
+            <span>사진을 업로드해주세요</span>
+          )}
+        </PhotoPreviewContainer>
+        <div>
+          <PhotoUploadInput
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelect}
+            ref={fileInputRef}
+          />
+          <PhotoUploadButton type="button" onClick={handleUploadButtonClick}>
+            사진 선택
+          </PhotoUploadButton>
+          {photoPreview && (
+            <RemovePhotoButton type="button" onClick={handleRemovePhoto}>
+              사진 제거
+            </RemovePhotoButton>
+          )}
+        </div>
+      </PhotoUploadContainer>
+
+      {/* 글 작성 섹션 추가 */}
+      <TextareaContainer>
+        <Label>오늘의 운동 일기 (선택사항)</Label>
+        <StyledTextarea
+          placeholder="오늘 운동에 대한 생각이나 느낌을 기록해보세요."
+          value={diaryText}
+          onChange={handleDiaryChange}
+        />
+      </TextareaContainer>
+
       <ExercisesContainer>
         <Label>운동 목록</Label>
         {exerciseRecords.map((record, index) => (
-          <ExerciseSetForm
+          <DraggableItem
             key={index}
-            exercise={record.exercise}
-            onRemove={() => handleRemoveExercise(index)}
-            onChange={(sets) => handleSetsChange(index, sets)}
-          />
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragOver={(e) => handleDragOver(e, index)}
+            onDragEnd={handleDragEnd}
+            isDragging={index === draggedIndex}
+          >
+            <ExerciseSetForm
+              exercise={record.exercise}
+              onRemove={() => handleRemoveExercise(index)}
+              onChange={(sets) => handleSetsChange(index, sets)}
+              setCount={record.setCount}
+            />
+          </DraggableItem>
         ))}
 
         <AddExerciseButton onClick={() => setShowExerciseSelector(true)}>
@@ -347,9 +641,7 @@ const WorkoutRecordPage: React.FC = () => {
       </ExercisesContainer>
 
       <SubmitButton
-        disabled={
-          isSubmitting || !date || !location || exerciseRecords.length === 0
-        }
+        disabled={isSubmitting || !date || exerciseRecords.length === 0}
         onClick={handleSubmit}
       >
         {isSubmitting ? "저장 중..." : "기록 저장하기"}
@@ -365,7 +657,10 @@ const WorkoutRecordPage: React.FC = () => {
                 ×
               </CloseButton>
             </ModalHeader>
-            <ExerciseSelector onSelectExercise={handleAddExercise} />
+            <ExerciseSelector
+              onSelectExercises={handleAddExercises}
+              onCancel={() => setShowExerciseSelector(false)}
+            />
           </ModalContent>
         </Modal>
       )}

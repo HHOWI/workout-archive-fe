@@ -131,7 +131,7 @@ const ProfilePage: React.FC = () => {
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileImage, setProfileImage] = useState(
-    `${process.env.REACT_APP_API_URL}${userInfo?.userProfileImg || ""}`
+    `${process.env.REACT_APP_API_URL}/${userInfo?.userProfileImg || ""}`
   );
   const dispatch = useDispatch();
 
@@ -142,7 +142,7 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (userInfo?.userProfileImg) {
       setProfileImage(
-        `${process.env.REACT_APP_API_URL}${userInfo.userProfileImg}`
+        `${process.env.REACT_APP_API_URL}/${userInfo.userProfileImg}`
       );
     }
   }, [userInfo]);

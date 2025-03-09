@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { loginUser } from "../api/user";
 import { useDispatch } from "react-redux";
 import { setUserInfo } from "../store/slices/authSlice";
@@ -95,6 +95,12 @@ const LoginFooter = styled.div`
   }
 `;
 
+const AuthMessage = styled.p`
+  color: #28a745;
+  text-align: center;
+  margin-bottom: 1rem;
+`;
+
 const LoginPage: React.FC = () => {
   const [userDTO, setUserDTO] = useState<UserDTO>({
     userId: "",
@@ -102,9 +108,20 @@ const LoginPage: React.FC = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get("redirect") || "/";
+
+  useEffect(() => {
+    const message = sessionStorage.getItem("auth_message");
+    if (message) {
+      setAuthMessage(message);
+      sessionStorage.removeItem("auth_message");
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -122,7 +139,7 @@ const LoginPage: React.FC = () => {
     try {
       const response = await loginUser(userDTO);
       dispatch(setUserInfo(response.data));
-      navigate("/");
+      navigate(redirectPath);
     } catch (err: any) {
       setError(
         err.response?.data?.error?.message ||
@@ -137,6 +154,8 @@ const LoginPage: React.FC = () => {
     <Container>
       <LoginBox>
         <h1>로그인</h1>
+        {authMessage && <AuthMessage>{authMessage}</AuthMessage>}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
         <form onSubmit={handleSubmit}>
           <FormGroup>
             <label htmlFor="userId">아이디</label>
@@ -166,7 +185,6 @@ const LoginPage: React.FC = () => {
             {loading ? "로그인 중..." : "로그인"}
           </LoginButton>
         </form>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
         <LoginFooter>
           <a href="/register">회원가입</a>
           <span> | </span>

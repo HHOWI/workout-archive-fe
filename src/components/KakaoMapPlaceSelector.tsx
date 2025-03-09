@@ -21,7 +21,7 @@ interface KakaoMapPlaceSelectorProps {
 
 const Container = styled.div`
   width: 100%;
-  height: 500px;
+  height: 600px;
   display: flex;
   flex-direction: column;
 `;
@@ -54,11 +54,30 @@ const SearchButton = styled.button`
 `;
 
 const ResultsContainer = styled.div`
-  flex: 1;
+  height: 200px;
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 4px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #999;
+  }
 `;
 
 const PlaceItem = styled.div`
@@ -92,10 +111,34 @@ const PlaceCategory = styled.div`
 `;
 
 const MapContainer = styled.div`
-  height: 250px;
+  flex: 1;
+  min-height: 300px;
   width: 100%;
   border-radius: 4px;
   overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+`;
+
+const SelectButton = styled.button`
+  padding: 10px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #357ac5;
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
 `;
 
 const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
@@ -264,22 +307,9 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
         </Map>
       </MapContainer>
 
-      <button
-        onClick={handleSelect}
-        disabled={!selectedPlace}
-        style={{
-          padding: "10px",
-          backgroundColor: "#4a90e2",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          marginTop: "10px",
-          cursor: selectedPlace ? "pointer" : "not-allowed",
-          opacity: selectedPlace ? 1 : 0.6,
-        }}
-      >
+      <SelectButton onClick={handleSelect} disabled={!selectedPlace}>
         이 장소 선택하기
-      </button>
+      </SelectButton>
     </Container>
   );
 };

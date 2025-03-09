@@ -1,14 +1,9 @@
-import axios from "axios";
+import { workoutAPI } from "./axiosConfig";
 import { WorkoutOfTheDay, WorkoutPlace } from "../types/WorkoutTypes";
 
-const instance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL + "/workouts",
-  withCredentials: true,
-});
-
-// 운동 기록 저장하기
+// 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecord = async (
-  workout: WorkoutOfTheDay,
+  data: FormData | WorkoutOfTheDay,
   placeInfo?: {
     kakaoPlaceId: string;
     placeName: string;
@@ -18,9 +13,21 @@ export const saveWorkoutRecord = async (
     y: string;
   }
 ): Promise<any> => {
-  const response = await instance.post("/workout-records", {
-    ...workout,
-    placeInfo,
-  });
-  return response.data;
+  // FormData 타입 확인
+  if (data instanceof FormData) {
+    // FormData로 전송 (사진 업로드 포함)
+    const response = await workoutAPI.post("/workout-records", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } else {
+    // JSON으로 전송 (기존 방식)
+    const response = await workoutAPI.post("/workout-records", {
+      ...data,
+      placeInfo,
+    });
+    return response.data;
+  }
 };
