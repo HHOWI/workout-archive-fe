@@ -1,9 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import styled from "@emotion/styled";
 import { useDispatch, useSelector } from "react-redux";
-import WorkoutOfTheDay from "../components/WorkoutOfTheDay";
 import { updateProfileImage } from "../api/user";
 import { updateProfileImg } from "../store/slices/authSlice";
+import {
+  getUserWorkoutRecords,
+  getWorkoutRecordDetails,
+  getUserWorkoutTotalCount,
+} from "../api/workout";
+import { WorkoutDetail, WorkoutRecord } from "../dtos/WorkoutDTO";
+import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutCard from "../components/WorkoutCard";
+import { getImageUrl } from "../utils/imageUtils";
 
 const Container = styled.div`
   max-width: 935px;
@@ -15,6 +23,12 @@ const ProfileHeader = styled.div`
   display: flex;
   margin-bottom: 44px;
   gap: 30px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 `;
 
 const ProfileImage = styled.div<{ url: string }>`
@@ -52,6 +66,29 @@ const Username = styled.h2`
   margin-bottom: 20px;
 `;
 
+const StatsContainer = styled.div`
+  display: flex;
+  gap: 20px;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+`;
+
+const StatItem = styled.div`
+  text-align: center;
+`;
+
+const StatValue = styled.div`
+  font-size: 18px;
+  font-weight: bold;
+`;
+
+const StatLabel = styled.div`
+  font-size: 14px;
+  color: #8e8e8e;
+`;
+
 const TabContainer = styled.div`
   border-top: 1px solid #dbdbdb;
   margin-top: 20px;
@@ -79,6 +116,33 @@ const Tab = styled.button<{ isActive: boolean }>`
   &:hover {
     color: #262626;
   }
+`;
+
+// 인스타그램 스타일의 운동 기록 그리드
+const WorkoutGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const NoDataMessage = styled.div`
+  text-align: center;
+  padding: 50px;
+  color: #8e8e8e;
+`;
+
+const LoadingSpinner = styled.div`
+  text-align: center;
+  padding: 50px;
+  color: #8e8e8e;
 `;
 
 const WorkoutMemoGrid = styled.div`
@@ -130,10 +194,108 @@ const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"workout" | "memo">("workout");
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profileImage, setProfileImage] = useState(
-    `${process.env.REACT_APP_API_URL}/${userInfo?.userProfileImg || ""}`
+  const [profileImage, setProfileImage] = useState<string>(
+    getImageUrl(userInfo?.userProfileImg) || ""
   );
   const dispatch = useDispatch();
+
+  // 운동 기록 관련 상태
+  const [workoutRecords, setWorkoutRecords] = useState<WorkoutRecord[]>([]);
+  const [totalWorkoutCount, setTotalWorkoutCount] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState<WorkoutRecord | null>(
+    null
+  );
+  const [showModal, setShowModal] = useState(false);
+  // 무한 스크롤을 위한 상태 추가
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // 총 운동 기록 수 가져오기
+  const fetchTotalWorkoutCount = async () => {
+    const count = await getUserWorkoutTotalCount(userInfo.userSeq);
+    setTotalWorkoutCount(count);
+  };
+
+  useEffect(() => {
+    fetchTotalWorkoutCount();
+  }, []);
+
+  // 운동 기록 불러오기
+  useEffect(() => {
+    const fetchWorkoutRecords = async () => {
+      if (activeTab === "workout" && hasMore && !loading) {
+        setLoading(true);
+        try {
+          const response = await getUserWorkoutRecords(page, 12); // 한 번에 12개씩 로드
+          // 백엔드 응답 구조에 따라 적절히 데이터 처리
+          const records = Array.isArray(response)
+            ? response
+            : response.workouts || [];
+          console.log(response);
+          if (records.length === 0) {
+            setHasMore(false);
+          } else {
+            // 중복 데이터 필터링하여 추가
+            setWorkoutRecords((prev) => {
+              // 기존 데이터의 ID 목록
+              const existingIds = new Set(
+                prev.map((item) => item.workoutOfTheDaySeq)
+              );
+
+              // 중복되지 않은 새 데이터만 필터링
+              const newRecords = records.filter(
+                (record: WorkoutRecord) =>
+                  !existingIds.has(record.workoutOfTheDaySeq)
+              );
+
+              // 기존 데이터와 중복 제거된 새 데이터 합치기
+              return [...prev, ...newRecords];
+            });
+          }
+        } catch (error) {
+          setHasMore(false);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchWorkoutRecords();
+  }, [activeTab, page, hasMore]);
+
+  // 탭이 변경될 때 상태 초기화
+  useEffect(() => {
+    setWorkoutRecords([]);
+    setPage(1);
+    setHasMore(true);
+  }, [activeTab]);
+
+  // Intersection Observer 설정
+  useEffect(() => {
+    const options = {
+      root: null,
+      rootMargin: "20px",
+      threshold: 0.1,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loading && hasMore) {
+        setPage((prev) => prev + 1);
+      }
+    }, options);
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [loading, hasMore]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -141,9 +303,7 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (userInfo?.userProfileImg) {
-      setProfileImage(
-        `${process.env.REACT_APP_API_URL}/${userInfo.userProfileImg}`
-      );
+      setProfileImage(getImageUrl(userInfo.userProfileImg) || "");
     }
   }, [userInfo]);
 
@@ -176,6 +336,47 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // 운동 카드 클릭 핸들러
+  const handleWorkoutClick = async (workout: WorkoutRecord) => {
+    try {
+      // 필요한 경우 더 자세한 정보 가져오기
+      const detailedWorkout = await getWorkoutRecordDetails(
+        workout.workoutOfTheDaySeq
+      );
+
+      // 운동 세부 정보가 있을 경우 workoutDetailSeq 기준으로 정렬
+      if (detailedWorkout && detailedWorkout.workoutDetails) {
+        // workoutDetailSeq 필드로 정렬 (생성 순서)
+        detailedWorkout.workoutDetails.sort(
+          (a: WorkoutDetail, b: WorkoutDetail) =>
+            (a.workoutDetailSeq || 0) - (b.workoutDetailSeq || 0)
+        );
+      }
+
+      setSelectedWorkout(detailedWorkout || workout);
+      setShowModal(true);
+    } catch (error) {
+      console.error("운동 상세 정보 가져오기 실패:", error);
+
+      // 에러 발생 시 기존 데이터라도 보여주되, 정렬 시도
+      if (workout && workout.workoutDetails) {
+        // workoutDetailSeq 필드가 없을 수 있으므로 배열 순서 유지
+        const sortedWorkout = { ...workout };
+        setSelectedWorkout(sortedWorkout);
+      } else {
+        setSelectedWorkout(workout);
+      }
+
+      setShowModal(true);
+    }
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedWorkout(null);
+  };
+
   const memoData = [
     {
       id: 1,
@@ -205,11 +406,20 @@ const ProfilePage: React.FC = () => {
         />
         <ProfileInfo>
           <Username>{userInfo?.userNickname || "사용자"}</Username>
-          <div>
-            <p>총 운동 기록: 156회</p>
-            <p>연속 운동일수: 23일</p>
-            <p>이번 달 목표 달성률: 89%</p>
-          </div>
+          <StatsContainer>
+            <StatItem>
+              <StatValue>{totalWorkoutCount}</StatValue>
+              <StatLabel>운동 기록</StatLabel>
+            </StatItem>
+            <StatItem>
+              <StatValue>23</StatValue>
+              <StatLabel>연속 일수</StatLabel>
+            </StatItem>
+            <StatItem>
+              <StatValue>89%</StatValue>
+              <StatLabel>목표 달성률</StatLabel>
+            </StatItem>
+          </StatsContainer>
         </ProfileInfo>
       </ProfileHeader>
 
@@ -230,7 +440,28 @@ const ProfilePage: React.FC = () => {
         </TabList>
 
         {activeTab === "workout" ? (
-          <WorkoutOfTheDay />
+          workoutRecords.length === 0 && !loading ? (
+            <NoDataMessage>운동 기록이 없습니다.</NoDataMessage>
+          ) : (
+            <>
+              <WorkoutGrid>
+                {workoutRecords.map((workout) => (
+                  <WorkoutCard
+                    key={workout.workoutOfTheDaySeq}
+                    workout={workout}
+                    onClick={handleWorkoutClick}
+                  />
+                ))}
+              </WorkoutGrid>
+              {/* 무한 스크롤을 위한 관찰 대상 요소 */}
+              <div
+                ref={observerTarget}
+                style={{ height: "20px", margin: "20px 0" }}
+              >
+                {loading && <LoadingSpinner>로딩 중...</LoadingSpinner>}
+              </div>
+            </>
+          )
         ) : (
           <WorkoutMemoGrid>
             {memoData.map((memo) => (
@@ -245,6 +476,14 @@ const ProfilePage: React.FC = () => {
           </WorkoutMemoGrid>
         )}
       </TabContainer>
+
+      {/* 운동 상세 모달 - 외부 컴포넌트로 교체 */}
+      {showModal && selectedWorkout && (
+        <WorkoutDetailModal
+          workout={selectedWorkout}
+          onClose={handleCloseModal}
+        />
+      )}
     </Container>
   );
 };

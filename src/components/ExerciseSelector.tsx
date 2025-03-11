@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { Exercise, RecordDetail } from "../types/WorkoutTypes";
+import { Exercise, RecordDetail } from "../dtos/WorkoutDTO";
 import { fetchExercises } from "../api/exercise";
 
 const Container = styled.div`

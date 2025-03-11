@@ -1,5 +1,5 @@
 import axios from "axios";
-import { WorkoutPlace } from "../types/WorkoutTypes";
+import { WorkoutPlace } from "../dtos/WorkoutDTO";
 
 // 공개 접근 가능한 API는 withCredentials가 필요 없음
 const publicInstance = axios.create({

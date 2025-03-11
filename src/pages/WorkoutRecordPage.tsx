@@ -10,7 +10,7 @@ import {
   ExerciseRecord,
   WorkoutPlace,
   RecordDetail,
-} from "../types/WorkoutTypes";
+} from "../dtos/WorkoutDTO";
 import { saveWorkoutRecord } from "../api/workout";
 import KakaoMapPlaceSelector from "../components/KakaoMapPlaceSelector";
 
@@ -486,7 +486,7 @@ const WorkoutRecordPage: React.FC = () => {
 
       await saveWorkoutRecord(formData);
       alert("운동 기록이 성공적으로 저장되었습니다!");
-      navigate("/workout-history");
+      navigate("/profile");
     } catch (error) {
       console.error("운동 기록 저장 실패:", error);
       alert("운동 기록 저장에 실패했습니다. 다시 시도해주세요.");

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Exercise } from "../types/WorkoutTypes";
+import { Exercise } from "../dtos/WorkoutDTO";
 
 const instance = axios.create({
   baseURL: process.env.REACT_APP_API_URL + "/exercises",
