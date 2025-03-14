@@ -1,9 +1,9 @@
 import { workoutAPI, publicWorkoutAPI } from "./axiosConfig";
-import { WorkoutOfTheDay } from "../dtos/WorkoutDTO";
+import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
-export const saveWorkoutRecord = async (
-  data: FormData | WorkoutOfTheDay,
+export const saveWorkoutRecordAPI = async (
+  data: FormData | WorkoutOfTheDayDTO,
   placeInfo?: {
     kakaoPlaceId: string;
     placeName: string;
@@ -32,69 +32,48 @@ export const saveWorkoutRecord = async (
   }
 };
 
-// 사용자의 모든 운동 기록 가져오기
-export const getUserWorkoutRecords = async (
-  page: number,
-  limit: number,
-  userSeq?: number
+// 커서 기반 페이징을 사용한 닉네임으로 운동 기록 가져오기
+export const getUserWorkoutOfTheDaysByNicknameAPI = async (
+  nickname: string,
+  limit: number = 12,
+  cursor: number | null = null
 ): Promise<any> => {
-  // 특정 사용자의 기록 조회 (로그인 불필요)
-  if (userSeq) {
-    const response = await publicWorkoutAPI.get(
-      `/users/${userSeq}/workout-records`,
-      {
-        params: { page, limit },
-      }
-    );
-    return response.data;
+  console.log(`API 호출: 닉네임=${nickname}, 한계=${limit}, 커서=${cursor}`);
+
+  const params: any = { limit };
+  if (cursor) {
+    params.cursor = cursor;
+    console.log("다음 데이터 요청 커서:", cursor);
   }
 
-  // 로그인한 사용자 본인의 기록 조회 (토큰 필요)
-  const response = await workoutAPI.get("/workout-records", {
-    params: { page, limit },
-  });
+  const response = await publicWorkoutAPI.get(
+    `/profiles/${nickname}/workout-records`,
+    { params }
+  );
+
+  console.log("API 응답:", response.data);
+  console.log(`총 데이터 개수: ${response.data.workouts?.length || 0}`);
+  console.log(`다음 커서: ${response.data.nextCursor}`);
+
   return response.data;
 };
 
-// 다른 사용자의 운동 기록 조회 (로그인 불필요)
-export const getOtherUserWorkoutRecords = async (
-  userSeq: number,
-  page: number,
-  limit: number
+// 닉네임으로 총 운동 기록 수 가져오기
+export const getUserWorkoutTotalCountByNicknameAPI = async (
+  nickname: string
 ): Promise<any> => {
   const response = await publicWorkoutAPI.get(
-    `/users/${userSeq}/workout-records`,
-    {
-      params: { page, limit },
-    }
+    `/profiles/${nickname}/workout-records-count`
   );
   return response.data;
-};
-
-// 사용자의 총 운동 기록 수 가져오기
-export const getUserWorkoutTotalCount = async (
-  userSeq: number
-): Promise<number> => {
-  const response = await publicWorkoutAPI.get(
-    `/users/${userSeq}/workout-records-count`
-  );
-  return response.data.count;
 };
 
 // 운동 기록 상세 정보 가져오기
-export const getWorkoutRecordDetails = async (
-  workoutId: number,
-  userSeq?: number
+export const getWorkoutRecordDetailsAPI = async (
+  workoutId: number
 ): Promise<any> => {
-  // 특정 사용자의 기록 상세 조회 (로그인 불필요)
-  if (userSeq) {
-    const response = await publicWorkoutAPI.get(
-      `/users/${userSeq}/workout-records/${workoutId}`
-    );
-    return response.data;
-  }
-
-  // 로그인한 사용자 본인의 기록 상세 조회 (토큰 필요)
-  const response = await workoutAPI.get(`/workout-records/${workoutId}`);
+  const response = await publicWorkoutAPI.get(
+    `/profiles/workout-records/${workoutId}`
+  );
   return response.data;
 };

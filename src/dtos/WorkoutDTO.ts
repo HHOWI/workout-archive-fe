@@ -1,18 +1,21 @@
-export interface WorkoutRecord {
+export interface WorkoutOfTheDayDTO {
   workoutOfTheDaySeq: number;
   recordDate: string;
-  workoutPhoto: string | null;
-  workoutDiary: string | null;
+  workoutPhoto?: string | null;
+  workoutDiary?: string | null;
   workoutLikeCount: number;
-  location?: string;
   workoutPlace?: {
     placeName: string;
   };
+  user?: {
+    userNickname: string;
+    profileImageUrl: string;
+  };
   mainExerciseType?: string;
-  workoutDetails: WorkoutDetail[];
+  workoutDetails?: WorkoutDetailDTO[];
 }
 
-export interface WorkoutDetail {
+export interface WorkoutDetailDTO {
   workoutDetailSeq?: number;
   exercise: {
     exerciseName: string;
@@ -24,25 +27,19 @@ export interface WorkoutDetail {
   recordTime?: number;
 }
 
-export interface Exercise {
+export interface ExerciseDTO {
   exerciseSeq: number;
   exerciseType: string;
   exerciseName: string;
 }
 
-export interface WorkoutOfTheDay {
-  date: string;
-  location: string;
-  exerciseRecords: ExerciseRecord[];
-}
-
-export interface ExerciseRecord {
-  exercise: Exercise;
-  sets: RecordDetail[];
+export interface ExerciseRecordDTO {
+  exercise: ExerciseDTO;
+  sets: RecordDetailDTO[];
   setCount?: number;
 }
 
-export interface RecordDetail {
+export interface RecordDetailDTO {
   weight?: number;
   reps?: number;
   time?: number;
@@ -50,7 +47,7 @@ export interface RecordDetail {
   notes?: string;
 }
 
-export interface WorkoutPlace {
+export interface WorkoutPlaceDTO {
   workoutPlaceSeq: number;
   kakaoPlaceId?: string;
   placeName: string;

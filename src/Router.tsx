@@ -18,13 +18,11 @@ const router = createBrowserRouter([
     children: [
       // 공용
       { index: true, element: <HomePage /> },
+      { path: "/:nickname", element: <ProfilePage /> },
       // 로그인 전용
       {
         element: <ProtectedRoute />,
-        children: [
-          { path: "profile", element: <ProfilePage /> },
-          { path: "workout-record", element: <WorkoutRecordPage /> },
-        ],
+        children: [{ path: "workout-record", element: <WorkoutRecordPage /> }],
       },
       // 비로그인 전용
       {

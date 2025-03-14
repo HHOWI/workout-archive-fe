@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { Exercise, RecordDetail } from "../dtos/WorkoutDTO";
+import { ExerciseDTO, RecordDetailDTO } from "../dtos/WorkoutDTO";
 
 const Container = styled.div`
   margin-bottom: 20px;
@@ -151,9 +151,9 @@ const OptionalText = styled.span`
 `;
 
 interface ExerciseSetFormProps {
-  exercise: Exercise;
+  exercise: ExerciseDTO;
   onRemove: () => void;
-  onChange: (sets: RecordDetail[]) => void;
+  onChange: (sets: RecordDetailDTO[]) => void;
   setCount?: number;
 }
 
@@ -166,12 +166,12 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = ({
   const isCardio = exercise.exerciseType === "유산소";
 
   // 초기 세트 설정 - 유산소 운동의 경우 시간은 0분(0초)으로 설정
-  const getDefaultSet = (): RecordDetail => {
+  const getDefaultSet = (): RecordDetailDTO => {
     return isCardio ? { time: 0, distance: 0 } : { weight: 0, reps: 0 };
   };
 
   // 세트 수를 props로 받은 setCount에 맞게 초기화
-  const [sets, setSets] = useState<RecordDetail[]>(
+  const [sets, setSets] = useState<RecordDetailDTO[]>(
     isCardio
       ? [getDefaultSet()] // 유산소는 항상 1세트
       : Array(setCount)
@@ -225,7 +225,7 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = ({
 
   const handleSetChange = (
     index: number,
-    field: keyof RecordDetail,
+    field: keyof RecordDetailDTO,
     value: number
   ) => {
     const newSets = [...sets];
@@ -236,7 +236,7 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = ({
 
   // 유산소 운동의 경우 단일 세트의 값 변경
   const handleCardioValueChange = (
-    field: keyof RecordDetail,
+    field: keyof RecordDetailDTO,
     value: number
   ) => {
     const newSets = [...sets];

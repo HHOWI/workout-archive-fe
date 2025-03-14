@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
-import { verifyEmail } from "../api/register";
+import { verifyEmailAPI } from "../api/register";
 
 const Container = styled.div`
   display: flex;
@@ -59,7 +59,7 @@ const EmailVerificationPage: React.FC = () => {
 
     const verifyToken = async () => {
       try {
-        await verifyEmail(token);
+        await verifyEmailAPI(token);
         setStatus("success");
         setMessage("이메일 인증이 완료되었습니다.");
       } catch (error: any) {

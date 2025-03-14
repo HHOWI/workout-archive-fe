@@ -1,7 +1,7 @@
 import axios from "axios";
 import { store } from "../store/store";
 import { clearUserInfo } from "../store/slices/authSlice";
-import { logoutUser } from "./user";
+import { logoutUserAPI } from "./user";
 
 // 기본 Axios 인스턴스 생성
 export const axiosInstance = axios.create({
@@ -46,7 +46,7 @@ const handleTokenExpiration = async () => {
 
   try {
     // 로그아웃 API 호출
-    await logoutUser();
+    await logoutUserAPI();
     console.log("로그아웃 API 호출 성공");
   } catch (error) {
     console.error("로그아웃 API 호출 실패:", error);

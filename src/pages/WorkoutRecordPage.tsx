@@ -6,12 +6,12 @@ import "react-datepicker/dist/react-datepicker.css";
 import ExerciseSelector from "../components/ExerciseSelector";
 import ExerciseSetForm from "../components/ExerciseSetForm";
 import {
-  Exercise,
-  ExerciseRecord,
-  WorkoutPlace,
-  RecordDetail,
+  ExerciseDTO,
+  ExerciseRecordDTO,
+  WorkoutPlaceDTO,
+  RecordDetailDTO,
 } from "../dtos/WorkoutDTO";
-import { saveWorkoutRecord } from "../api/workout";
+import { saveWorkoutRecordAPI } from "../api/workout";
 import KakaoMapPlaceSelector from "../components/KakaoMapPlaceSelector";
 
 const Container = styled.div`
@@ -320,12 +320,13 @@ const WorkoutRecordPage: React.FC = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [location, setLocation] = useState<string>("");
-  const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
+  const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecordDTO[]>(
+    []
+  );
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
-  const [selectedLocation, setSelectedLocation] = useState<WorkoutPlace | null>(
-    null
-  );
+  const [selectedLocation, setSelectedLocation] =
+    useState<WorkoutPlaceDTO | null>(null);
   const [kakaoPlaceOriginal, setKakaoPlaceOriginal] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -337,13 +338,13 @@ const WorkoutRecordPage: React.FC = () => {
 
   // 드래그 관련 상태 추가
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const draggedItem = useRef<ExerciseRecord | null>(null);
+  const draggedItem = useRef<ExerciseRecordDTO | null>(null);
 
   // 여러 운동을 한번에 추가하는 함수 (이제 바로 세트 정보와 함께 받음)
   const handleAddExercises = (
     exercisesWithSets: {
-      exercise: Exercise;
-      sets: RecordDetail[];
+      exercise: ExerciseDTO;
+      sets: RecordDetailDTO[];
       setCount?: number;
     }[]
   ) => {
@@ -377,7 +378,7 @@ const WorkoutRecordPage: React.FC = () => {
   const handleLocationSelect = (place: any) => {
     setKakaoPlaceOriginal(place);
 
-    const workoutPlace: WorkoutPlace = {
+    const workoutPlace: WorkoutPlaceDTO = {
       workoutPlaceSeq: 0,
       kakaoPlaceId: place.id,
       placeName: place.place_name,
@@ -484,7 +485,7 @@ const WorkoutRecordPage: React.FC = () => {
         formData.append("placeInfo", JSON.stringify(placeInfo));
       }
 
-      await saveWorkoutRecord(formData);
+      await saveWorkoutRecordAPI(formData);
       alert("운동 기록이 성공적으로 저장되었습니다!");
       navigate("/profile");
     } catch (error) {

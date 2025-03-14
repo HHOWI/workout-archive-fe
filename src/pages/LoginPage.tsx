@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { loginUser } from "../api/user";
+import { loginUserAPI } from "../api/user";
 import { useDispatch } from "react-redux";
 import { setUserInfo } from "../store/slices/authSlice";
 import styled from "@emotion/styled";
-import { UserDTO } from "../dtos/UserDTO";
+import { LoginDTO } from "../dtos/UserDTO";
 
 const Container = styled.div`
   display: flex;
@@ -102,7 +102,7 @@ const AuthMessage = styled.p`
 `;
 
 const LoginPage: React.FC = () => {
-  const [userDTO, setUserDTO] = useState<UserDTO>({
+  const [loginDTO, setLoginDTO] = useState<LoginDTO>({
     userId: "",
     userPw: "",
   });
@@ -125,7 +125,7 @@ const LoginPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUserDTO((prev) => ({
+    setLoginDTO((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -137,7 +137,7 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await loginUser(userDTO);
+      const response = await loginUserAPI(loginDTO);
       dispatch(setUserInfo(response.data));
       navigate(redirectPath);
     } catch (err: any) {
@@ -163,7 +163,7 @@ const LoginPage: React.FC = () => {
               id="userId"
               name="userId"
               type="text"
-              value={userDTO.userId}
+              value={loginDTO.userId}
               onChange={handleChange}
               placeholder="아이디를 입력하세요"
               required
@@ -175,7 +175,7 @@ const LoginPage: React.FC = () => {
               id="userPw"
               name="userPw"
               type="password"
-              value={userDTO.userPw}
+              value={loginDTO.userPw}
               onChange={handleChange}
               placeholder="비밀번호를 입력하세요"
               required

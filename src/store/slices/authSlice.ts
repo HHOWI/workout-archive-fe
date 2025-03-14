@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { UserDTO } from "../../dtos/UserDTO";
+import { UserInfoDTO } from "../../dtos/UserDTO";
 
 interface AuthState {
-  userInfo: UserDTO | null;
+  userInfo: UserInfoDTO | null;
 }
 
 const initialState: AuthState = {
@@ -13,13 +13,8 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUserInfo(state, action: PayloadAction<UserDTO>) {
+    setUserInfo(state, action: PayloadAction<UserInfoDTO>) {
       state.userInfo = action.payload;
-    },
-    updateProfileImg(state, action: PayloadAction<string>) {
-      if (state.userInfo) {
-        state.userInfo.userProfileImg = action.payload;
-      }
     },
     clearUserInfo(state) {
       state.userInfo = null;
@@ -27,6 +22,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUserInfo, clearUserInfo, updateProfileImg } =
-  authSlice.actions;
+export const { setUserInfo, clearUserInfo } = authSlice.actions;
 export default authSlice.reducer;

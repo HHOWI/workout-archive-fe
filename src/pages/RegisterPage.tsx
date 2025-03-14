@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "@emotion/styled";
 import {
-  checkUserId,
-  checkUserEmail,
-  checkUserNickname,
-  registerUser,
+  checkUserIdAPI,
+  checkUserEmailAPI,
+  checkUserNicknameAPI,
+  registerUserAPI,
 } from "../api/register";
 
 const Container = styled.div`
@@ -222,13 +222,13 @@ const RegisterPage: React.FC = () => {
       let response;
       switch (field) {
         case "userId":
-          response = await checkUserId(formData.userId);
+          response = await checkUserIdAPI(formData.userId);
           break;
         case "userEmail":
-          response = await checkUserEmail(formData.userEmail);
+          response = await checkUserEmailAPI(formData.userEmail);
           break;
         case "userNickname":
-          response = await checkUserNickname(formData.userNickname);
+          response = await checkUserNicknameAPI(formData.userNickname);
           break;
       }
 
@@ -251,7 +251,7 @@ const RegisterPage: React.FC = () => {
     if (!Object.values(validations).every(Boolean)) return;
 
     try {
-      await registerUser(formData);
+      await registerUserAPI(formData);
       navigate("/register-success", {
         state: { email: formData.userEmail },
       });

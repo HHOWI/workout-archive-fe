@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { clearUserInfo } from "../store/slices/authSlice";
-import { logoutUser } from "../api/user";
+import { logoutUserAPI } from "../api/user";
 
 const HeaderContainer = styled.header`
   background-color: white;
@@ -73,7 +73,7 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
+      await logoutUserAPI();
       dispatch(clearUserInfo());
       navigate("/");
     } catch (error) {
@@ -93,8 +93,8 @@ const Header: React.FC = () => {
           <NavLink onClick={() => navigate("/community")}>커뮤니티</NavLink>
           {userInfo ? (
             <UserMenu>
-              <NavLink onClick={() => navigate("/profile")}>
-                {userInfo.userNickname || "프로필"}
+              <NavLink onClick={() => navigate(`/${userInfo.userNickname}`)}>
+                {userInfo.userNickname}
               </NavLink>
               <UserButton onClick={handleLogout}>로그아웃</UserButton>
             </UserMenu>

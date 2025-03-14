@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "@emotion/styled";
-import { WorkoutRecord } from "../dtos/WorkoutDTO";
+import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { getImageUrl } from "../utils/imageUtils";
@@ -80,14 +80,17 @@ const WorkoutCardExerciseType = styled.div`
 `;
 
 interface WorkoutCardProps {
-  workout: WorkoutRecord;
-  onClick: (workout: WorkoutRecord) => void;
+  workout: WorkoutOfTheDayDTO;
+  onClick: (workoutOfTheDaySeq: number) => void;
 }
 
 const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onClick }) => {
   return (
-    <Card key={workout.workoutOfTheDaySeq} onClick={() => onClick(workout)}>
-      <WorkoutImage url={getImageUrl(workout.workoutPhoto)}>
+    <Card
+      key={workout.workoutOfTheDaySeq}
+      onClick={() => onClick(workout.workoutOfTheDaySeq)}
+    >
+      <WorkoutImage url={getImageUrl(workout.workoutPhoto || null)}>
         {!workout.workoutPhoto && (
           <span style={{ color: "#555", fontSize: "14px" }}>No Image</span>
         )}

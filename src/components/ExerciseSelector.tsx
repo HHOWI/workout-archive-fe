@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { Exercise, RecordDetail } from "../dtos/WorkoutDTO";
-import { fetchExercises } from "../api/exercise";
+import { ExerciseDTO, RecordDetailDTO } from "../dtos/WorkoutDTO";
+import { fetchExercisesAPI } from "../api/exercise";
 
 const Container = styled.div`
   margin-bottom: 20px;
@@ -170,8 +170,8 @@ const EmptySelectionMessage = styled.div`
 interface ExerciseSelectorProps {
   onSelectExercises: (
     exercises: {
-      exercise: Exercise;
-      sets: RecordDetail[];
+      exercise: ExerciseDTO;
+      sets: RecordDetailDTO[];
       setCount?: number;
     }[]
   ) => void;
@@ -179,7 +179,7 @@ interface ExerciseSelectorProps {
 }
 
 interface SelectedExerciseWithSets {
-  exercise: Exercise;
+  exercise: ExerciseDTO;
   setCount: number;
 }
 
@@ -187,8 +187,8 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   onSelectExercises,
   onCancel,
 }) => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<ExerciseDTO[]>([]);
+  const [filteredExercises, setFilteredExercises] = useState<ExerciseDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
@@ -199,7 +199,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   useEffect(() => {
     const loadExercises = async () => {
       try {
-        const data = await fetchExercises();
+        const data = await fetchExercisesAPI();
         setExercises(data);
         setFilteredExercises(data);
 
@@ -238,7 +238,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     setSelectedCategory((prev) => (prev === category ? null : category));
   };
 
-  const handleExerciseClick = (exercise: Exercise) => {
+  const handleExerciseClick = (exercise: ExerciseDTO) => {
     setSelectedExercises((prev) => {
       // 이미 선택된 운동인지 확인
       const isAlreadySelected = prev.some(

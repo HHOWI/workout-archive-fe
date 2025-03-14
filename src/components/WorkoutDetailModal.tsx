@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { WorkoutRecord, WorkoutDetail } from "../dtos/WorkoutDTO";
+import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { getWorkoutRecordDetailsAPI } from "../api/workout";
+import { getImageUrl } from "../utils/imageUtils";
 
 // 스타일 컴포넌트 정의
 const Modal = styled.div`
@@ -51,6 +53,10 @@ const ModalBody = styled.div`
 const ModalHeader = styled.div`
   display: flex;
   margin-bottom: 20px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 const ModalImage = styled.div<{ url?: string }>`
@@ -140,23 +146,11 @@ const WorkoutDiary = styled.div`
   font-style: italic;
 `;
 
-// 이미지 URL 생성 유틸리티 함수
-const getImageUrl = (imagePath: string | null): string | undefined => {
-  if (!imagePath) return undefined;
-
-  // 이미 전체 URL인 경우
-  if (imagePath.startsWith("http")) {
-    return imagePath;
-  }
-
-  // uploads/ 로 시작하는 경우
-  if (imagePath.startsWith("uploads/")) {
-    return `${process.env.REACT_APP_API_URL}/${imagePath}`;
-  }
-
-  // 그 외 경우
-  return `${process.env.REACT_APP_API_URL}/uploads/${imagePath}`;
-};
+const LoadingContainer = styled.div`
+  padding: 50px;
+  text-align: center;
+  color: #666;
+`;
 
 // 운동 시간 포맷팅 함수
 const formatTime = (seconds?: number): string => {
@@ -176,7 +170,7 @@ const formatTime = (seconds?: number): string => {
 
 // 운동 그룹화 함수 - 같은 운동을 순서에 맞게 그룹화
 const groupExerciseDetails = (
-  details: WorkoutDetail[]
+  details: WorkoutDetailDTO[]
 ): {
   exercise: string;
   type: string;
@@ -238,91 +232,128 @@ const groupExerciseDetails = (
   return result.sort((a, b) => a.originalIndex - b.originalIndex);
 };
 
-// 컴포넌트 props 타입 정의
+// Props 타입 정의
 interface WorkoutDetailModalProps {
-  workout: WorkoutRecord;
+  workoutOfTheDaySeq: number;
   onClose: () => void;
 }
 
 // 운동 상세 모달 컴포넌트
 const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
-  workout,
+  workoutOfTheDaySeq,
   onClose,
 }) => {
+  const [workout, setWorkout] = useState<WorkoutOfTheDayDTO | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 운동 상세 정보 가져오기
+  useEffect(() => {
+    const fetchWorkoutDetail = async () => {
+      setLoading(true);
+      try {
+        const response = await getWorkoutRecordDetailsAPI(workoutOfTheDaySeq);
+        setWorkout(response);
+      } catch (err) {
+        console.error("운동 상세 정보를 가져오는 중 오류가 발생했습니다:", err);
+        setError("운동 상세 정보를 불러올 수 없습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWorkoutDetail();
+  }, [workoutOfTheDaySeq]);
+
+  // 로딩 중 표시
+  if (loading) {
+    return (
+      <Modal onClick={onClose}>
+        <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalCloseButton onClick={onClose}>×</ModalCloseButton>
+          <LoadingContainer>데이터를 불러오는 중...</LoadingContainer>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
+  const isValidDate = (date: any) => date && !isNaN(new Date(date).getTime());
   return (
     <Modal onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalCloseButton onClick={onClose}>×</ModalCloseButton>
         <ModalBody>
           <ModalHeader>
-            <ModalImage url={getImageUrl(workout.workoutPhoto)} />
+            <ModalImage url={getImageUrl(workout?.workoutPhoto || null)} />
             <ModalInfo>
-              <ModalTitle>
-                {workout.workoutDetails[0]?.exercise.exerciseName}
-                {workout.workoutDetails.length > 1
-                  ? ` 외 ${workout.workoutDetails.length - 1}개`
-                  : ""}
-              </ModalTitle>
+              <ModalTitle>{workout?.user?.userNickname}</ModalTitle>
               <ModalDate>
-                {format(new Date(workout.recordDate), "yyyy년 MM월 dd일 EEEE", {
-                  locale: ko,
-                })}
+                {isValidDate(workout?.recordDate)
+                  ? format(
+                      new Date(workout?.recordDate || ""),
+                      "yyyy년 MM월 dd일 EEEE",
+                      {
+                        locale: ko,
+                      }
+                    )
+                  : "날짜 정보 없음"}
               </ModalDate>
 
-              {(workout.workoutPlace?.placeName || workout.location) && (
-                <WorkoutLocation>
-                  <LocationIcon>📍</LocationIcon>
-                  {workout.workoutPlace?.placeName || workout.location}
-                </WorkoutLocation>
-              )}
+              <WorkoutLocation>
+                <LocationIcon>📍</LocationIcon>
+                {workout?.workoutPlace?.placeName}
+              </WorkoutLocation>
 
-              {workout.workoutDiary && (
-                <WorkoutDiary>{workout.workoutDiary}</WorkoutDiary>
+              {workout?.workoutDiary && (
+                <WorkoutDiary>{workout?.workoutDiary}</WorkoutDiary>
               )}
             </ModalInfo>
           </ModalHeader>
 
           <ModalExercises>
-            {groupExerciseDetails(workout.workoutDetails).map(
-              (group, groupIndex) => (
-                <ExerciseItem key={groupIndex}>
-                  <ExerciseTitle>
-                    {group.exercise} ({group.type})
-                  </ExerciseTitle>
-                  <ExerciseSets>
-                    {group.type === "유산소" ? (
-                      <>
-                        {group.sets.map((set, setIndex) => (
-                          <SetItem key={setIndex}>
-                            {set.distance && (
-                              <span>
-                                {set.distance}m
-                                {set.distance >= 1000 &&
-                                  ` (${(set.distance / 1000).toFixed(2)}km)`}
-                              </span>
-                            )}
-                            {set.recordTime && (
-                              <span>{formatTime(set.recordTime)}</span>
-                            )}
-                          </SetItem>
-                        ))}
-                      </>
-                    ) : (
-                      <>
-                        {group.sets.map((set, setIndex) => (
-                          <SetItem key={setIndex}>
-                            {set.weight && set.reps && (
-                              <span>
-                                {set.weight}kg × {set.reps}회
-                              </span>
-                            )}
-                          </SetItem>
-                        ))}
-                      </>
-                    )}
-                  </ExerciseSets>
-                </ExerciseItem>
+            {workout?.workoutDetails && workout?.workoutDetails.length > 0 ? (
+              groupExerciseDetails(workout?.workoutDetails).map(
+                (group, groupIndex) => (
+                  <ExerciseItem key={groupIndex}>
+                    <ExerciseTitle>
+                      {group.exercise} ({group.type})
+                    </ExerciseTitle>
+                    <ExerciseSets>
+                      {group.type === "유산소" ? (
+                        <>
+                          {group.sets.map((set, setIndex) => (
+                            <SetItem key={setIndex}>
+                              {set.distance && (
+                                <span>
+                                  {set.distance}m
+                                  {set.distance >= 1000 &&
+                                    ` (${(set.distance / 1000).toFixed(2)}km)`}
+                                </span>
+                              )}
+                              {set.recordTime && (
+                                <span>{formatTime(set.recordTime)}</span>
+                              )}
+                            </SetItem>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {group.sets.map((set, setIndex) => (
+                            <SetItem key={setIndex}>
+                              {set.weight && set.reps && (
+                                <span>
+                                  {set.weight}kg × {set.reps}회
+                                </span>
+                              )}
+                            </SetItem>
+                          ))}
+                        </>
+                      )}
+                    </ExerciseSets>
+                  </ExerciseItem>
+                )
               )
+            ) : (
+              <p>운동 세부 정보가 없습니다.</p>
             )}
           </ModalExercises>
         </ModalBody>
