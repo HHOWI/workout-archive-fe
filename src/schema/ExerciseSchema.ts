@@ -14,3 +14,9 @@ export const ExerciseNameSchema = z.string().min(1, "운동 이름이 필요합�
 
 // 운동 타입 파라미터 스키마
 export const ExerciseTypeSchema = z.string().min(1, "운동 타입이 필요합니다.");
+
+export const ExerciseSchema = z.object({
+  exerciseSeq: ExerciseIdSchema,
+  exerciseType: ExerciseTypeSchema,
+  exerciseName: ExerciseNameSchema,
+});

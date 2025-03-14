@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { ExerciseSchema } from "../schema/ExerciseSchema";
+
 export interface WorkoutOfTheDayDTO {
   workoutOfTheDaySeq: number;
   recordDate: string;
@@ -27,11 +30,7 @@ export interface WorkoutDetailDTO {
   recordTime?: number;
 }
 
-export interface ExerciseDTO {
-  exerciseSeq: number;
-  exerciseType: string;
-  exerciseName: string;
-}
+export type ExerciseDTO = z.infer<typeof ExerciseSchema>;
 
 export interface ExerciseRecordDTO {
   exercise: ExerciseDTO;

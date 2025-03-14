@@ -13,6 +13,7 @@ import {
 } from "../dtos/WorkoutDTO";
 import { saveWorkoutRecordAPI } from "../api/workout";
 import KakaoMapPlaceSelector from "../components/KakaoMapPlaceSelector";
+import { useSelector } from "react-redux";
 
 const Container = styled.div`
   max-width: 800px;
@@ -329,6 +330,9 @@ const WorkoutRecordPage: React.FC = () => {
     useState<WorkoutPlaceDTO | null>(null);
   const [kakaoPlaceOriginal, setKakaoPlaceOriginal] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const userNickname = useSelector(
+    (state: any) => state.auth.userInfo.userNickname
+  );
 
   // 사진 및 글 작성 상태 추가
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -487,7 +491,7 @@ const WorkoutRecordPage: React.FC = () => {
 
       await saveWorkoutRecordAPI(formData);
       alert("운동 기록이 성공적으로 저장되었습니다!");
-      navigate("/profile");
+      navigate(`/${userNickname}`);
     } catch (error) {
       console.error("운동 기록 저장 실패:", error);
       alert("운동 기록 저장에 실패했습니다. 다시 시도해주세요.");

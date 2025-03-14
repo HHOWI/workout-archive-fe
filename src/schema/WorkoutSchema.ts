@@ -1,25 +1,7 @@
 import { z } from "zod";
 
-// 기본 ID 파라미터 스키마
-export const UserIdSchema = z
-  .string()
-  .or(z.number())
-  .transform((val) => Number(val))
-  .refine((val) => !isNaN(val) && val > 0, {
-    message: "유효한 사용자 ID가 필요합니다.",
-  });
-
-// 워크아웃 ID 파라미터 스키마
-export const WorkoutIdSchema = z
-  .string()
-  .or(z.number())
-  .transform((val) => Number(val))
-  .refine((val) => !isNaN(val) && val > 0, {
-    message: "유효한 운동 기록 ID가 필요합니다.",
-  });
-
-// 페이지네이션 파라미터 스키마
-export const PaginationSchema = z.object({
+// 커서 기반 페이징 스키마
+export const CursorPaginationSchema = z.object({
   limit: z
     .string()
     .or(z.number())
@@ -28,18 +10,16 @@ export const PaginationSchema = z.object({
       message: "limit은 1에서 100 사이여야 합니다.",
     })
     .default("12"),
-  page: z
+  cursor: z
     .string()
     .or(z.number())
     .transform((val) => Number(val))
-    .refine((val) => !isNaN(val) && val >= 1, {
-      message: "page는 1 이상이어야 합니다.",
-    })
-    .default("1"),
+    .nullable()
+    .optional(),
 });
 
 // 운동 세트 스키마
-const WorkoutSetSchema = z.object({
+export const WorkoutSetSchema = z.object({
   weight: z.number().nullable().optional(),
   reps: z.number().nullable().optional(),
   distance: z.number().nullable().optional(),
@@ -47,11 +27,13 @@ const WorkoutSetSchema = z.object({
 });
 
 // 운동 기록 스키마
-const ExerciseRecordSchema = z.object({
+export const ExerciseRecordSchema = z.object({
   exercise: z.object({
     exerciseSeq: z.number({
       required_error: "운동 ID가 필요합니다.",
     }),
+    exerciseType: z.string().nullable().optional(),
+    exerciseName: z.string().nullable().optional(),
   }),
   sets: z.array(WorkoutSetSchema).min(1, {
     message: "최소 하나 이상의 세트 정보가 필요합니다.",
@@ -59,7 +41,7 @@ const ExerciseRecordSchema = z.object({
 });
 
 // 위치 정보 스키마
-const PlaceInfoSchema = z
+export const PlaceInfoSchema = z
   .object({
     kakaoPlaceId: z.string(),
     placeName: z.string(),

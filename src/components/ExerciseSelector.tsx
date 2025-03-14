@@ -207,7 +207,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         const uniqueCategories = [
           ...new Set(data.map((ex) => ex.exerciseType)),
         ];
-        setCategories(uniqueCategories);
+        setCategories(uniqueCategories.filter((category) => category !== null));
       } catch (error) {
         console.error("운동 목록을 불러오는데 실패했습니다:", error);
       }
@@ -227,7 +227,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     // 검색어 필터링
     if (searchTerm) {
       result = result.filter((ex) =>
-        ex.exerciseName.toLowerCase().includes(searchTerm.toLowerCase())
+        ex.exerciseName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
