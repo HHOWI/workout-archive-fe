@@ -1,12 +1,28 @@
 import { workoutAPI, publicWorkoutAPI } from "./axiosConfig";
-import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
-  const response = await workoutAPI.post("/workout-records", data, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return response.data; // 필요 시 응답 스키마로 검증 가능
+  try {
+    console.log("API 요청 데이터:", {
+      workoutData: data.get("workoutData"),
+      placeInfo: data.get("placeInfo"),
+      image: data.get("image"),
+    });
+
+    const response = await workoutAPI.post("/workout-records", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    console.log("API 응답:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
 };
 
 // 커서 기반 페이징을 사용한 닉네임으로 운동 기록 가져오기
@@ -15,22 +31,15 @@ export const getUserWorkoutOfTheDaysByNicknameAPI = async (
   limit: number = 12,
   cursor: number | null = null
 ): Promise<any> => {
-  console.log(`API 호출: 닉네임=${nickname}, 한계=${limit}, 커서=${cursor}`);
-
   const params: any = { limit };
   if (cursor) {
     params.cursor = cursor;
-    console.log("다음 데이터 요청 커서:", cursor);
   }
 
   const response = await publicWorkoutAPI.get(
     `/profiles/${nickname}/workout-records`,
     { params }
   );
-
-  console.log("API 응답:", response.data);
-  console.log(`총 데이터 개수: ${response.data.workouts?.length || 0}`);
-  console.log(`다음 커서: ${response.data.nextCursor}`);
 
   return response.data;
 };
@@ -52,5 +61,11 @@ export const getWorkoutRecordDetailsAPI = async (
   const response = await publicWorkoutAPI.get(
     `/profiles/workout-records/${workoutId}`
   );
+  return response.data;
+};
+
+// 사용자의 최근 운동목록 조회
+export const getRecentWorkoutRecordsAPI = async (): Promise<any> => {
+  const response = await workoutAPI.get("/workout-records/recent");
   return response.data;
 };

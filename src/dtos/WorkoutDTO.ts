@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { ExerciseSchema } from "../schema/ExerciseSchema";
+import {
+  CursorPaginationSchema,
+  SaveWorkoutSchema,
+} from "../schema/WorkoutSchema";
 
 export interface WorkoutOfTheDayDTO {
   workoutOfTheDaySeq: number;
@@ -33,17 +37,17 @@ export interface WorkoutDetailDTO {
 export type ExerciseDTO = z.infer<typeof ExerciseSchema>;
 
 export interface ExerciseRecordDTO {
+  id?: string;
   exercise: ExerciseDTO;
   sets: RecordDetailDTO[];
   setCount?: number;
 }
 
 export interface RecordDetailDTO {
-  weight?: number;
-  reps?: number;
-  time?: number;
-  distance?: number;
-  notes?: string;
+  weight?: number | null;
+  reps?: number | null;
+  distance?: number | null;
+  time?: number | null;
 }
 
 export interface WorkoutPlaceDTO {
@@ -56,3 +60,16 @@ export interface WorkoutPlaceDTO {
   y?: number | string;
   placeAddress?: string;
 }
+
+export interface WorkoutDetailResponseDTO {
+  workoutDetails: {
+    exercise: ExerciseDTO;
+    weight?: number;
+    reps?: number;
+    distance?: number;
+    recordTime?: number;
+  }[];
+}
+
+export type SaveWorkoutDTO = z.infer<typeof SaveWorkoutSchema>;
+export type CursorPaginationDTO = z.infer<typeof CursorPaginationSchema>;

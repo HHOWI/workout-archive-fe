@@ -225,11 +225,7 @@ const ProfilePage: React.FC = () => {
         getProfileImageAPI(nickname || ""),
         getUserWorkoutTotalCountByNicknameAPI(nickname || ""),
       ]);
-      setProfileImageUrl(
-        profileResponse.imageUrl
-          ? `${process.env.REACT_APP_API_URL}/${profileResponse.imageUrl}`
-          : ""
-      );
+      setProfileImageUrl(getImageUrl(profileResponse.imageUrl) || "");
       setTotalWorkoutCount(countResponse.count);
     } catch (error) {
       console.error("초기 데이터 로드 실패:", error);

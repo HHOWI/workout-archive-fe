@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 import styled from "@emotion/styled";
 import initKakaoMap from "../utils/kakaoMapInit";
+import { fetchRecentWorkoutPlacesAPI } from "../api/workoutPlace";
+import { WorkoutPlaceDTO } from "../dtos/WorkoutDTO";
 
 interface Place {
   id: string;
@@ -19,16 +21,33 @@ interface KakaoMapPlaceSelectorProps {
   onPlaceSelect: (place: Place) => void;
 }
 
+// 스타일 정의
 const Container = styled.div`
   width: 100%;
   height: 600px;
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* 좌측: 검색+결과+최근, 우측: 지도 */
+  gap: 15px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+`;
+
+const LeftPanel = styled.div`
   display: flex;
   flex-direction: column;
+  height: 100%;
+  gap: 10px;
+`;
+
+const RightPanel = styled.div`
+  height: 100%;
 `;
 
 const SearchContainer = styled.div`
   display: flex;
-  margin-bottom: 10px;
 `;
 
 const SearchInput = styled.input`
@@ -54,15 +73,14 @@ const SearchButton = styled.button`
 `;
 
 const ResultsContainer = styled.div`
-  height: 200px;
+  max-height: 255px; /* 검색 결과 높이 증가 */
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 4px;
-  margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
 
   &::-webkit-scrollbar-track {
@@ -74,14 +92,33 @@ const ResultsContainer = styled.div`
     background: #ccc;
     border-radius: 4px;
   }
+`;
 
-  &::-webkit-scrollbar-thumb:hover {
-    background: #999;
+const RecentPlacesContainer = styled.div`
+  height: 159px; /* 최대 3개에 맞춘 더 작은 높이 */
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  background: #f9f9f9;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
   }
 `;
 
 const PlaceItem = styled.div`
-  padding: 12px;
+  padding: 8px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
 
@@ -96,27 +133,20 @@ const PlaceItem = styled.div`
 
 const PlaceName = styled.div`
   font-weight: 600;
-  margin-bottom: 4px;
-`;
-
-const PlaceAddress = styled.div`
   font-size: 13px;
-  color: #666;
   margin-bottom: 2px;
 `;
 
-const PlaceCategory = styled.div`
+const PlaceAddress = styled.div`
   font-size: 12px;
-  color: #888;
+  color: #666;
 `;
 
 const MapContainer = styled.div`
-  flex: 1;
-  min-height: 300px;
+  height: 100%;
   width: 100%;
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 10px;
   border: 1px solid #ddd;
 `;
 
@@ -128,8 +158,6 @@ const SelectButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   font-weight: 600;
-  width: 100%;
-  transition: background-color 0.2s;
 
   &:hover {
     background-color: #357ac5;
@@ -139,6 +167,32 @@ const SelectButton = styled.button`
     background-color: #cccccc;
     cursor: not-allowed;
   }
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 13px;
+  margin: 5px 0;
+  color: #555;
+`;
+
+const RecentPlaceItem = styled.div`
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+`;
+
+const RecentPlaceIcon = styled.div`
+  margin-right: 8px;
+  color: #4a90e2;
 `;
 
 const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
@@ -151,8 +205,9 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
   const [markers, setMarkers] = useState<kakao.maps.Marker[]>([]);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recentPlaces, setRecentPlaces] = useState<WorkoutPlaceDTO[]>([]);
+  const [isLoadingRecentPlaces, setIsLoadingRecentPlaces] = useState(false);
 
-  // 컴포넌트 마운트 시 카카오맵 API 초기화
   useEffect(() => {
     const loadKakaoMap = async () => {
       try {
@@ -168,10 +223,22 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
       }
     };
 
+    const loadRecentPlaces = async () => {
+      setIsLoadingRecentPlaces(true);
+      try {
+        const places = await fetchRecentWorkoutPlacesAPI();
+        setRecentPlaces(places);
+      } catch (err) {
+        console.error("최근 운동 장소 로드 실패:", err);
+      } finally {
+        setIsLoadingRecentPlaces(false);
+      }
+    };
+
     loadKakaoMap();
+    loadRecentPlaces();
   }, []);
 
-  // 키워드 검색 함수
   const searchPlaces = () => {
     if (!keyword.trim()) {
       alert("키워드를 입력해주세요!");
@@ -201,14 +268,11 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
           if (data.length > 0) {
             setSelectedPlace(data[0]);
 
-            // 검색된 장소 위치로 지도 중심 이동
             if (map) {
               const bounds = new window.kakao.maps.LatLngBounds();
-
               data.forEach((place: Place) => {
                 bounds.extend(new window.kakao.maps.LatLng(+place.y, +place.x));
               });
-
               map.setBounds(bounds);
             }
           }
@@ -223,14 +287,12 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
     );
   };
 
-  // 엔터 키 입력 처리
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       searchPlaces();
     }
   };
 
-  // 장소 선택 처리
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
 
@@ -238,7 +300,6 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
       const moveLatLng = new window.kakao.maps.LatLng(+place.y, +place.x);
       map.setCenter(moveLatLng);
 
-      // 선택한 위치에 마커 표시
       markers.forEach((marker) => marker.setMap(null));
 
       const marker = new window.kakao.maps.Marker({
@@ -250,7 +311,41 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
     }
   };
 
-  // 선택 완료 처리
+  const handleRecentPlaceSelect = (place: WorkoutPlaceDTO) => {
+    if (!window.kakao || !isMapLoaded) return;
+
+    const kakaoPlace: Place = {
+      id: place.kakaoPlaceId || String(place.workoutPlaceSeq),
+      place_name: place.placeName,
+      category_name: "",
+      address_name: place.addressName || "",
+      road_address_name: place.roadAddressName || "",
+      phone: "",
+      place_url: "",
+      x: String(place.x || 0),
+      y: String(place.y || 0),
+    };
+
+    setSelectedPlace(kakaoPlace);
+
+    if (map) {
+      const moveLatLng = new window.kakao.maps.LatLng(
+        Number(kakaoPlace.y),
+        Number(kakaoPlace.x)
+      );
+      map.setCenter(moveLatLng);
+
+      markers.forEach((marker) => marker.setMap(null));
+
+      const marker = new window.kakao.maps.Marker({
+        position: moveLatLng,
+        map: map,
+      });
+
+      setMarkers([marker]);
+    }
+  };
+
   const handleSelect = () => {
     if (selectedPlace) {
       onPlaceSelect(selectedPlace);
@@ -269,47 +364,105 @@ const KakaoMapPlaceSelector: React.FC<KakaoMapPlaceSelectorProps> = ({
 
   return (
     <Container>
-      <SearchContainer>
-        <SearchInput
-          type="text"
-          placeholder="장소명을 입력하세요"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
-        <SearchButton onClick={searchPlaces}>검색</SearchButton>
-      </SearchContainer>
+      {/* 좌측: 검색 + 결과 + 최근 장소 */}
+      <LeftPanel>
+        <SearchContainer>
+          <SearchInput
+            type="text"
+            placeholder="장소 검색 (예: 피트니스, 헬스장)"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+          <SearchButton onClick={searchPlaces}>검색</SearchButton>
+        </SearchContainer>
 
-      <ResultsContainer>
-        {places.map((place) => (
-          <PlaceItem key={place.id} onClick={() => handlePlaceClick(place)}>
-            <PlaceName>{place.place_name}</PlaceName>
-            <PlaceAddress>
-              {place.road_address_name || place.address_name}
-            </PlaceAddress>
-            <PlaceCategory>{place.category_name}</PlaceCategory>
-          </PlaceItem>
-        ))}
-      </ResultsContainer>
+        {places.length > 0 && (
+          <>
+            <SectionTitle>검색 결과</SectionTitle>
+            <ResultsContainer>
+              {places.map((place) => (
+                <PlaceItem
+                  key={place.id}
+                  onClick={() => handlePlaceClick(place)}
+                  style={{
+                    backgroundColor:
+                      selectedPlace?.id === place.id
+                        ? "#e6f2ff"
+                        : "transparent",
+                  }}
+                >
+                  <PlaceName>{place.place_name}</PlaceName>
+                  <PlaceAddress>
+                    {place.road_address_name || place.address_name}
+                  </PlaceAddress>
+                </PlaceItem>
+              ))}
+            </ResultsContainer>
+          </>
+        )}
 
-      <MapContainer>
-        <Map
-          center={{ lat: 37.566826, lng: 126.9786567 }}
-          style={{ width: "100%", height: "100%" }}
-          level={3}
-          onCreate={setMap}
-        >
-          {selectedPlace && (
-            <MapMarker
-              position={{ lat: +selectedPlace.y, lng: +selectedPlace.x }}
-            />
-          )}
-        </Map>
-      </MapContainer>
+        {recentPlaces.length > 0 && (
+          <>
+            <SectionTitle>최근 운동 장소</SectionTitle>
+            <RecentPlacesContainer>
+              {isLoadingRecentPlaces ? (
+                <div>로딩 중...</div>
+              ) : (
+                recentPlaces.map((place) => (
+                  <RecentPlaceItem
+                    key={place.workoutPlaceSeq}
+                    onClick={() => handleRecentPlaceSelect(place)}
+                  >
+                    <RecentPlaceIcon>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        fill="currentColor"
+                        viewBox="0 0 16 16"
+                      >
+                        <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                      </svg>
+                    </RecentPlaceIcon>
+                    <div>
+                      <PlaceName>{place.placeName}</PlaceName>
+                      <PlaceAddress>
+                        {place.roadAddressName || place.addressName || ""}
+                      </PlaceAddress>
+                    </div>
+                  </RecentPlaceItem>
+                ))
+              )}
+            </RecentPlacesContainer>
+          </>
+        )}
 
-      <SelectButton onClick={handleSelect} disabled={!selectedPlace}>
-        이 장소 선택하기
-      </SelectButton>
+        <SelectButton onClick={handleSelect} disabled={!selectedPlace}>
+          이 장소 선택하기
+        </SelectButton>
+      </LeftPanel>
+
+      {/* 우측: 지도 */}
+      <RightPanel>
+        <MapContainer>
+          <Map
+            center={{ lat: 37.566826, lng: 126.9786567 }}
+            style={{ width: "100%", height: "100%" }}
+            level={2}
+            onCreate={setMap}
+          >
+            {selectedPlace && (
+              <MapMarker
+                position={{
+                  lat: Number(selectedPlace.y),
+                  lng: Number(selectedPlace.x),
+                }}
+              />
+            )}
+          </Map>
+        </MapContainer>
+      </RightPanel>
     </Container>
   );
 };

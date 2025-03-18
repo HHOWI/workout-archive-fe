@@ -10,10 +10,19 @@ import {
   ExerciseRecordDTO,
   WorkoutPlaceDTO,
   RecordDetailDTO,
+  WorkoutOfTheDayDTO,
+  WorkoutDetailResponseDTO,
 } from "../dtos/WorkoutDTO";
-import { saveWorkoutRecordAPI } from "../api/workout";
+import { SaveWorkoutSchema } from "../schema/WorkoutSchema";
+import {
+  saveWorkoutRecordAPI,
+  getRecentWorkoutRecordsAPI,
+  getWorkoutRecordDetailsAPI,
+} from "../api/workout";
 import KakaoMapPlaceSelector from "../components/KakaoMapPlaceSelector";
 import { useSelector } from "react-redux";
+import { format } from "date-fns";
+import { v4 as uuidv4 } from "uuid";
 
 const Container = styled.div`
   max-width: 800px;
@@ -317,10 +326,94 @@ const DraggableItem = styled.div<{ isDragging?: boolean }>`
   }
 `;
 
+// 추가: 최근 운동 기록 관련 스타일
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+const SecondaryButton = styled.button`
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  svg {
+    margin-right: 8px;
+  }
+
+  &:hover {
+    background: #e8e8e8;
+  }
+`;
+
+const RecentWorkoutsList = styled.div`
+  margin-top: 15px;
+`;
+
+const RecentWorkoutItem = styled.div`
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+    border-color: #4a90e2;
+  }
+`;
+
+const WorkoutDate = styled.div`
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 5px;
+`;
+
+const WorkoutInfo = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #666;
+`;
+
+const WorkoutIcon = styled.span`
+  margin-right: 8px;
+  color: #4a90e2;
+`;
+
+const WorkoutExercises = styled.div`
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+`;
+
+const ExerciseItem = styled.div`
+  font-size: 14px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: "•";
+    color: #4a90e2;
+    margin-right: 5px;
+  }
+`;
+
 const WorkoutRecordPage: React.FC = () => {
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
-  const [location, setLocation] = useState<string>("");
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecordDTO[]>(
     []
   );
@@ -328,11 +421,12 @@ const WorkoutRecordPage: React.FC = () => {
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
   const [selectedLocation, setSelectedLocation] =
     useState<WorkoutPlaceDTO | null>(null);
-  const [kakaoPlaceOriginal, setKakaoPlaceOriginal] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const userNickname = useSelector(
     (state: any) => state.auth.userInfo.userNickname
   );
+  const ExerciseSetFormMemo = React.memo(ExerciseSetForm);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // 사진 및 글 작성 상태 추가
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -340,9 +434,48 @@ const WorkoutRecordPage: React.FC = () => {
   const [diaryText, setDiaryText] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 최근 운동 기록 관련 상태 추가
+  const [showRecentWorkoutsModal, setShowRecentWorkoutsModal] = useState(false);
+  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutOfTheDayDTO[]>(
+    []
+  );
+  const [isLoadingRecentWorkouts, setIsLoadingRecentWorkouts] = useState(false);
+
   // 드래그 관련 상태 추가
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const draggedItem = useRef<ExerciseRecordDTO | null>(null);
+
+  // 드래그 시작 핸들러
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+    draggedItem.current = exerciseRecords[index];
+  };
+
+  // 드래그 오버 핸들러
+  const handleDragOver = (
+    e: React.DragEvent<HTMLDivElement>,
+    index: number
+  ) => {
+    e.preventDefault(); // 드롭을 허용하기 위해 필요
+    // 상태 업데이트 제거
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newRecords = [...exerciseRecords];
+    const draggedRecord = newRecords.splice(draggedIndex, 1)[0];
+    newRecords.splice(index, 0, draggedRecord);
+    setExerciseRecords(newRecords);
+    setDraggedIndex(null); // 드롭 후 초기화
+  };
+
+  // 드래그 종료 핸들러
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    draggedItem.current = null;
+  };
 
   // 여러 운동을 한번에 추가하는 함수 (이제 바로 세트 정보와 함께 받음)
   const handleAddExercises = (
@@ -352,17 +485,14 @@ const WorkoutRecordPage: React.FC = () => {
       setCount?: number;
     }[]
   ) => {
-    if (exercisesWithSets.length === 0) return;
-
-    // 이미 세트 정보가 포함된 형태로 받기 때문에 간단하게 처리
     const newRecords = exercisesWithSets.map(
       ({ exercise, sets, setCount }) => ({
+        id: uuidv4(), // 고유 ID 생성
         exercise,
         sets,
-        setCount, // setCount 정보도 함께 저장
+        setCount,
       })
     );
-
     setExerciseRecords((prev) => [...prev, ...newRecords]);
     setShowExerciseSelector(false);
   };
@@ -380,8 +510,6 @@ const WorkoutRecordPage: React.FC = () => {
   };
 
   const handleLocationSelect = (place: any) => {
-    setKakaoPlaceOriginal(place);
-
     const workoutPlace: WorkoutPlaceDTO = {
       workoutPlaceSeq: 0,
       kakaoPlaceId: place.id,
@@ -392,14 +520,8 @@ const WorkoutRecordPage: React.FC = () => {
       y: place.y,
       placeAddress: place.road_address_name || place.address_name || "",
     };
-
     setSelectedLocation(workoutPlace);
-    setLocation(place.place_name);
     setShowLocationModal(false);
-  };
-
-  const handleRemoveLocation = () => {
-    setSelectedLocation(null);
   };
 
   // 사진 선택 핸들러
@@ -438,6 +560,58 @@ const WorkoutRecordPage: React.FC = () => {
     setDiaryText(e.target.value);
   };
 
+  // 최근 운동 기록 로드
+  const loadRecentWorkouts = async () => {
+    setIsLoadingRecentWorkouts(true);
+    try {
+      const response = await getRecentWorkoutRecordsAPI();
+      setRecentWorkouts(response);
+      setShowRecentWorkoutsModal(true);
+    } catch (error) {
+      console.error("최근 운동 기록 로딩 실패:", error);
+      alert("최근 운동 기록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoadingRecentWorkouts(false);
+    }
+  };
+
+  // 특정 운동 기록의 상세 정보 로드 및 적용
+  const loadAndApplyWorkoutDetails = async (workoutId: number) => {
+    setIsLoadingDetails(true);
+    try {
+      const workoutDetails: WorkoutDetailResponseDTO =
+        await getWorkoutRecordDetailsAPI(workoutId);
+      const exerciseMap = new Map<number, ExerciseRecordDTO>();
+      workoutDetails.workoutDetails.forEach((detail: any) => {
+        const exerciseSeq = detail.exercise.exerciseSeq;
+        if (!exerciseMap.has(exerciseSeq)) {
+          exerciseMap.set(exerciseSeq, {
+            id: uuidv4(), // 고유 ID 추가
+            exercise: {
+              exerciseSeq: detail.exercise.exerciseSeq,
+              exerciseName: detail.exercise.exerciseName,
+              exerciseType: detail.exercise.exerciseType,
+            },
+            sets: [],
+          });
+        }
+        exerciseMap.get(exerciseSeq)!.sets.push({
+          weight: detail.weight,
+          reps: detail.reps,
+          distance: detail.distance,
+          time: detail.recordTime,
+        });
+      });
+      setExerciseRecords(Array.from(exerciseMap.values()));
+      setShowRecentWorkoutsModal(false);
+    } catch (error) {
+      console.error("운동 상세 정보 로딩 실패:", error);
+      alert("운동 상세 정보를 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!date || exerciseRecords.length === 0) {
       alert("날짜와 운동 목록은 필수 입력 항목입니다.");
@@ -447,48 +621,72 @@ const WorkoutRecordPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 이미지 및 텍스트 데이터 추가
-      const formData = new FormData();
-
-      // 운동 데이터 변환 (변환 과정 간소화)
+      // 운동 데이터 변환 (스키마에 맞게 변환)
       const transformedExerciseRecords = exerciseRecords.map((record) => ({
         exercise: {
           exerciseSeq: record.exercise.exerciseSeq,
-          exerciseType: record.exercise.exerciseType,
           exerciseName: record.exercise.exerciseName,
+          exerciseType: record.exercise.exerciseType,
         },
-        sets: record.sets,
+        sets: record.sets.map((set) => ({
+          weight: set.weight ?? null,
+          reps: set.reps ?? null,
+          time: set.time ?? null,
+          distance: set.distance ?? null,
+        })),
       }));
 
-      // JSON 데이터
+      // SaveWorkoutSchema에 맞는 데이터 구조 생성
       const workoutData = {
         date: date.toISOString().split("T")[0],
-        location: location || "", // 빈 문자열로 기본값 설정
         exerciseRecords: transformedExerciseRecords,
-        diary: diaryText,
+        diary: diaryText || null,
       };
 
-      // FormData에 JSON 데이터 추가
-      formData.append("workoutData", JSON.stringify(workoutData));
-
-      // 사진이 있는 경우 추가
-      if (selectedPhoto) {
-        formData.append("image", selectedPhoto);
+      let placeInfo = undefined;
+      if (selectedLocation) {
+        placeInfo = {
+          kakaoPlaceId: selectedLocation.kakaoPlaceId || "",
+          placeName: selectedLocation.placeName,
+          addressName: selectedLocation.addressName || "",
+          roadAddressName: selectedLocation.roadAddressName || "",
+          x: selectedLocation.x?.toString() || "0",
+          y: selectedLocation.y?.toString() || "0",
+        };
       }
 
-      // 장소 정보가 있는 경우 추가
-      if (kakaoPlaceOriginal && kakaoPlaceOriginal.id) {
-        const placeInfo = {
-          kakaoPlaceId: kakaoPlaceOriginal.id,
-          placeName: kakaoPlaceOriginal.place_name,
-          addressName: kakaoPlaceOriginal.address_name || "",
-          roadAddressName: kakaoPlaceOriginal.road_address_name || "",
-          x: kakaoPlaceOriginal.x,
-          y: kakaoPlaceOriginal.y,
-        };
+      // Zod로 유효성 검사
+      const validationResult = SaveWorkoutSchema.safeParse({
+        workoutData,
+        placeInfo,
+      });
+
+      if (!validationResult.success) {
+        const errorMessages = validationResult.error.errors.map(
+          (err) => `${err.path.join(".")}: ${err.message}`
+        );
+        console.error("유효성 검사 실패:", errorMessages);
+        alert(
+          "입력한 데이터가 올바르지 않습니다:\n" + errorMessages.join("\n")
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // FormData 구성
+      const formData = new FormData();
+
+      // 백엔드에서 req.body로 접근하므로 각각 별도의 필드로 추가
+      formData.append("workoutData", JSON.stringify(workoutData));
+
+      if (placeInfo) {
         formData.append("placeInfo", JSON.stringify(placeInfo));
       }
 
+      // 파일은 req.file로 자동 처리됨
+      if (selectedPhoto && selectedPhoto instanceof File) {
+        formData.append("image", selectedPhoto);
+      }
       await saveWorkoutRecordAPI(formData);
       alert("운동 기록이 성공적으로 저장되었습니다!");
       navigate(`/${userNickname}`);
@@ -498,40 +696,6 @@ const WorkoutRecordPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // 드래그 시작 핸들러
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-    draggedItem.current = exerciseRecords[index];
-  };
-
-  // 드래그 오버 핸들러
-  const handleDragOver = (
-    e: React.DragEvent<HTMLDivElement>,
-    index: number
-  ) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === index) return;
-
-    // 현재 순서 복사
-    const newRecords = [...exerciseRecords];
-
-    // 드래그한 아이템 제거
-    const draggedRecord = newRecords.splice(draggedIndex, 1)[0];
-
-    // 새 위치에 아이템 삽입
-    newRecords.splice(index, 0, draggedRecord);
-
-    // 상태 업데이트
-    setExerciseRecords(newRecords);
-    setDraggedIndex(index);
-  };
-
-  // 드래그 종료 핸들러
-  const handleDragEnd = () => {
-    setDraggedIndex(null);
-    draggedItem.current = null;
   };
 
   return (
@@ -562,7 +726,9 @@ const WorkoutRecordPage: React.FC = () => {
                   ""}
               </LocationAddress>
             </LocationInfo>
-            <RemoveButton onClick={handleRemoveLocation}>삭제</RemoveButton>
+            <RemoveButton onClick={() => setSelectedLocation(null)}>
+              삭제
+            </RemoveButton>
           </LocationDisplay>
         ) : (
           <SelectLocationButton onClick={() => setShowLocationModal(true)}>
@@ -621,21 +787,43 @@ const WorkoutRecordPage: React.FC = () => {
       </TextareaContainer>
 
       <ExercisesContainer>
-        <Label>운동 목록</Label>
+        <ButtonContainer>
+          <Label>운동 목록</Label>
+          <SecondaryButton onClick={loadRecentWorkouts}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z" />
+            </svg>
+            최근 운동 목록 가져오기
+          </SecondaryButton>
+        </ButtonContainer>
+        {isLoadingDetails && (
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            운동 상세 정보를 불러오는 중...
+          </div>
+        )}
+
         {exerciseRecords.map((record, index) => (
           <DraggableItem
-            key={index}
+            key={record.id}
             draggable
             onDragStart={() => handleDragStart(index)}
             onDragOver={(e) => handleDragOver(e, index)}
+            onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
             isDragging={index === draggedIndex}
           >
-            <ExerciseSetForm
+            <ExerciseSetFormMemo
               exercise={record.exercise}
               onRemove={() => handleRemoveExercise(index)}
               onChange={(sets) => handleSetsChange(index, sets)}
               setCount={record.setCount}
+              initialSets={record.sets}
             />
           </DraggableItem>
         ))}
@@ -657,7 +845,7 @@ const WorkoutRecordPage: React.FC = () => {
         <Modal>
           <ModalContent>
             <ModalHeader>
-              <h2>운동 선택</h2>
+              <ModalTitle>운동 선택</ModalTitle>
               <CloseButton onClick={() => setShowExerciseSelector(false)}>
                 ×
               </CloseButton>
@@ -681,6 +869,106 @@ const WorkoutRecordPage: React.FC = () => {
               </CloseButton>
             </ModalHeader>
             <KakaoMapPlaceSelector onPlaceSelect={handleLocationSelect} />
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* 최근 운동 목록 모달 */}
+      {showRecentWorkoutsModal && (
+        <Modal>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>최근 운동 목록</ModalTitle>
+              <CloseButton onClick={() => setShowRecentWorkoutsModal(false)}>
+                ×
+              </CloseButton>
+            </ModalHeader>
+
+            {isLoadingRecentWorkouts ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                최근 운동 목록을 불러오는 중...
+              </div>
+            ) : recentWorkouts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                최근 저장한 운동 기록이 없습니다.
+              </div>
+            ) : (
+              <RecentWorkoutsList>
+                {recentWorkouts.map((workout) => (
+                  <RecentWorkoutItem
+                    key={workout.workoutOfTheDaySeq}
+                    onClick={() =>
+                      loadAndApplyWorkoutDetails(workout.workoutOfTheDaySeq)
+                    }
+                  >
+                    <WorkoutDate>
+                      {format(new Date(workout.recordDate), "yyyy년 MM월 dd일")}
+                    </WorkoutDate>
+
+                    {workout.workoutPlace && (
+                      <WorkoutInfo>
+                        <WorkoutIcon>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            fill="currentColor"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                          </svg>
+                        </WorkoutIcon>
+                        {workout.workoutPlace.placeName}
+                      </WorkoutInfo>
+                    )}
+
+                    {workout.mainExerciseType && (
+                      <WorkoutInfo>
+                        <WorkoutIcon>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            fill="currentColor"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M1 11.5a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 0-1h-13a.5.5 0 0 0-.5.5ZM8 7.04a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0-4.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM6 13c-2.76 0-5-1.5-5-3v-.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5V10c0 1.971-2.5 3-5 3Z" />
+                          </svg>
+                        </WorkoutIcon>
+                        {workout.mainExerciseType}
+                      </WorkoutInfo>
+                    )}
+
+                    {workout.workoutDetails &&
+                      workout.workoutDetails.length > 0 && (
+                        <WorkoutExercises>
+                          {workout.workoutDetails
+                            .filter(
+                              (detail, index, self) =>
+                                index ===
+                                self.findIndex(
+                                  (d) =>
+                                    d.exercise.exerciseName ===
+                                    detail.exercise.exerciseName
+                                )
+                            )
+                            .slice(0, 3)
+                            .map((detail, index) => (
+                              <ExerciseItem key={index}>
+                                {detail.exercise.exerciseName}
+                              </ExerciseItem>
+                            ))}
+                          {workout.workoutDetails.length > 3 && (
+                            <ExerciseItem>
+                              외 {workout.workoutDetails.length - 3}개 운동
+                            </ExerciseItem>
+                          )}
+                        </WorkoutExercises>
+                      )}
+                  </RecentWorkoutItem>
+                ))}
+              </RecentWorkoutsList>
+            )}
           </ModalContent>
         </Modal>
       )}

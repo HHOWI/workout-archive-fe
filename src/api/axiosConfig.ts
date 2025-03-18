@@ -100,6 +100,11 @@ export const workoutAPI = axios.create({
   withCredentials: true,
 });
 
+export const workoutPlaceAPI = axios.create({
+  baseURL: process.env.REACT_APP_API_URL + "/workout-places",
+  withCredentials: true,
+});
+
 // 인증이 필요 없는 API 요청용 인스턴스
 export const publicWorkoutAPI = axios.create({
   baseURL: process.env.REACT_APP_API_URL + "/workouts",

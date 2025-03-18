@@ -5,27 +5,34 @@ const UserIdSchema = z.string().nonempty("아이디를 입력해주세요.");
 const UserPwSchema = z.string().nonempty("비밀번호를 입력해주세요.");
 const UserNicknameSchema = z.string().nonempty("닉네임을 입력해주세요.");
 const UserEmailSchema = z.string().email("유효한 이메일을 입력해주세요.");
-const UserSeqSchema = z
-  .number()
-  .int()
-  .positive("유효한 사용자 번호를 입력해주세요.");
-const UserProfileImgSchema = z
-  .string()
-  .nonempty("프로필 이미지를 입력해주세요.");
 
+// 정규표현식 상수
+const USER_ID_REGEX = /^[a-z][a-z0-9]{5,19}$/;
+const USER_ID_ERROR =
+  "아이디는 영문 소문자로 시작하고, 영문 소문자와 숫자를 포함하여 6~20자여야 합니다.";
+
+const USER_NICKNAME_REGEX = /^[가-힣a-zA-Z0-9._-]{2,10}$/;
+const USER_NICKNAME_ERROR =
+  "닉네임은 한글, 영문, 숫자를 포함하여 2~10자여야 합니다.";
+
+// 사용자 번호 스키마
+export const UserSeqSchema = z
+  .string()
+  .or(z.number())
+  .transform((val) => Number(val))
+  .refine((val) => !isNaN(val) && val > 0, {
+    message: "유효한 사용자 ID가 필요합니다.",
+  });
 // 각 요청 스키마
 export const RegisterSchema = z.object({
-  userId: UserIdSchema.regex(
-    /^[a-z][a-z0-9]{5,19}$/,
-    "아이디는 영문 소문자로 시작하고, 영문 소문자와 숫자를 포함하여 6~20자여야 합니다."
-  ),
+  userId: UserIdSchema.regex(USER_ID_REGEX, USER_ID_ERROR),
   userPw: UserPwSchema.regex(
     /^[A-Za-z\d@$!%*?&]{8,20}$/,
     "비밀번호는 8~20자 사이여야 합니다."
   ),
   userNickname: UserNicknameSchema.regex(
-    /^[가-힣a-zA-Z0-9._-]{2,10}$/,
-    "닉네임은 한글, 영문, 숫자를 포함하여 2~10자여야 합니다."
+    USER_NICKNAME_REGEX,
+    USER_NICKNAME_ERROR
   ),
   userEmail: UserEmailSchema,
 });
@@ -35,19 +42,16 @@ export const LoginSchema = z.object({
   userPw: UserPwSchema,
 });
 
+// 사용자 ID 중복 체크 스키마
+export const CheckUserIdSchema = z.object({
+  userId: UserIdSchema.regex(USER_ID_REGEX, USER_ID_ERROR),
+});
+
 // 닉네임 중복 체크 스키마
 export const CheckNicknameSchema = z.object({
   userNickname: UserNicknameSchema.regex(
-    /^[가-힣a-zA-Z0-9._-]{2,10}$/,
-    "닉네임은 한글, 영문, 숫자를 포함하여 2~10자여야 합니다."
-  ),
-});
-
-// 사용자 ID 중복 체크 스키마
-export const CheckUserIdSchema = z.object({
-  userId: UserIdSchema.regex(
-    /^[a-z][a-z0-9]{5,19}$/,
-    "아이디는 영문 소문자로 시작하고, 영문 소문자와 숫자를 포함하여 6~20자여야 합니다."
+    USER_NICKNAME_REGEX,
+    USER_NICKNAME_ERROR
   ),
 });
 
@@ -60,7 +64,3 @@ export const CheckEmailSchema = z.object({
 export const VerifyEmailSchema = z.object({
   token: z.string().min(1, "유효한 인증 토큰이 필요합니다."),
 });
-
-// 타입 추출
-export type RegisterDTO = z.infer<typeof RegisterSchema>;
-export type LoginDTO = z.infer<typeof LoginSchema>;

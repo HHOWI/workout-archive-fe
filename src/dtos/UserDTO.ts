@@ -1,14 +1,9 @@
-export interface RegisterDTO {
-  userId: string;
-  userPw: string;
-  userNickname: string;
-  userEmail: string;
-}
+import { z } from "zod";
+import { LoginSchema, RegisterSchema } from "../schema/UserSchema";
 
-export interface LoginDTO {
-  userId: string;
-  userPw: string;
-}
+// 요청 데이터 타입 (로그인, 회원가입)
+export type LoginDTO = z.infer<typeof LoginSchema>;
+export type RegisterDTO = z.infer<typeof RegisterSchema>;
 
 export interface UserInfoDTO {
   userSeq: number;
