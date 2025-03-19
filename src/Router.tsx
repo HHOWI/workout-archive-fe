@@ -14,26 +14,26 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
-    errorElement: <ErrorPage />, // 전역 오류 처리
+    errorElement: <ErrorPage />,
     children: [
-      // 공용
+      // 공용 경로
       { index: true, element: <HomePage /> },
       { path: "/:nickname", element: <ProfilePage /> },
-      // 로그인 전용
+      // 로그인 전용 경로
       {
         element: <ProtectedRoute />,
         children: [{ path: "workout-record", element: <WorkoutRecordPage /> }],
       },
-      // 비로그인 전용
-      {
-        element: <LoginGuard />,
-        children: [
-          { path: "login", element: <LoginPage /> },
-          { path: "register", element: <RegisterPage /> },
-          { path: "register-success", element: <RegisterSuccessPage /> },
-          { path: "verify-email", element: <EmailVerificationPage /> },
-        ],
-      },
+    ],
+  },
+  // 비로그인 전용 경로 (Layout 제외)
+  {
+    element: <LoginGuard />,
+    children: [
+      { path: "login", element: <LoginPage /> },
+      { path: "register", element: <RegisterPage /> },
+      { path: "register-success", element: <RegisterSuccessPage /> },
+      { path: "verify-email", element: <EmailVerificationPage /> },
     ],
   },
 ]);

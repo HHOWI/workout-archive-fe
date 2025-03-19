@@ -207,7 +207,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         const uniqueCategories = [
           ...new Set(data.map((ex) => ex.exerciseType)),
         ];
-        setCategories(uniqueCategories.filter((category) => category !== null));
+        setCategories(uniqueCategories);
       } catch (error) {
         console.error("운동 목록을 불러오는데 실패했습니다:", error);
       }

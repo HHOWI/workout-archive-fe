@@ -26,3 +26,11 @@ export const getProfileImageAPI = async (userNickname: string) => {
   const response = await userAPI.get(`/profile-image/${userNickname}`);
   return response.data;
 };
+
+// 프로필 소유권 확인 API
+export const checkProfileOwnershipAPI = async (userNickname: string) => {
+  const response = await userAPI.get(
+    `/check-profile-ownership/${userNickname}`
+  );
+  return response.data;
+};

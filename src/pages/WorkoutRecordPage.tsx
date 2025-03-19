@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "@emotion/styled";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
@@ -412,6 +412,7 @@ const ExerciseItem = styled.div`
 `;
 
 const WorkoutRecordPage: React.FC = () => {
+  const userInfo = useSelector((state: any) => state.auth.userInfo);
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecordDTO[]>(
@@ -444,6 +445,12 @@ const WorkoutRecordPage: React.FC = () => {
   // 드래그 관련 상태 추가
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const draggedItem = useRef<ExerciseRecordDTO | null>(null);
+
+  useEffect(() => {
+    if (!userInfo) {
+      navigate("/login");
+    }
+  }, [userInfo, navigate]);
 
   // 드래그 시작 핸들러
   const handleDragStart = (index: number) => {
@@ -697,6 +704,8 @@ const WorkoutRecordPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (!userInfo) return null;
 
   return (
     <Container>

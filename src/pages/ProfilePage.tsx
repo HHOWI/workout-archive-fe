@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
-import { getProfileImageAPI, updateProfileImageAPI } from "../api/user";
+import {
+  getProfileImageAPI,
+  updateProfileImageAPI,
+  checkProfileOwnershipAPI,
+} from "../api/user";
 import {
   getUserWorkoutOfTheDaysByNicknameAPI,
   getUserWorkoutTotalCountByNicknameAPI,
@@ -12,6 +16,7 @@ import WorkoutCard from "../components/WorkoutCard";
 import { getImageUrl } from "../utils/imageUtils";
 import { useParams, useNavigate } from "react-router-dom";
 import { debounce } from "lodash";
+import { RootState } from "../store/store";
 
 const Container = styled.div`
   max-width: 935px;
@@ -42,7 +47,7 @@ const ProfileImage = styled.div<{ url: string; isEditable: boolean }>`
   position: relative;
 
   &:hover::after {
-    content: ${(props) => (props.isEditable ? '"수정하기"' : '""')};
+    content: ${(props) => (props.isEditable ? '"프로필 사진 변경"' : '""')};
     position: absolute;
     bottom: 0;
     left: 0;
@@ -65,6 +70,23 @@ const Username = styled.h2`
   font-size: 28px;
   font-weight: 300;
   margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+`;
+
+const EditProfileButton = styled.button`
+  background: transparent;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  padding: 5px 9px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #fafafa;
+  }
 `;
 
 const StatsContainer = styled.div`
@@ -196,11 +218,11 @@ type TabType = "workout" | "memo";
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>("workout");
-  const userInfo = useSelector((state: any) => state.auth.userInfo);
+  const userInfo = useSelector((state: RootState) => state.auth.userInfo);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { nickname } = useParams<{ nickname: string }>();
-  const isOwnProfile = userInfo?.nickname === nickname;
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [workoutOfTheDays, setWorkoutOfTheDays] = useState<
     WorkoutOfTheDayDTO[]
   >([]);
@@ -217,20 +239,28 @@ const ProfilePage: React.FC = () => {
 
   // 초기 데이터 로드 및 상태 초기화
   const initializeData = useCallback(async () => {
-    setWorkoutOfTheDays([]);
-    setNextCursor(null);
-    setHasMore(true);
+    if (!nickname) return;
+    setLoading(true);
     try {
       const [profileResponse, countResponse] = await Promise.all([
-        getProfileImageAPI(nickname || ""),
-        getUserWorkoutTotalCountByNicknameAPI(nickname || ""),
+        getProfileImageAPI(nickname),
+        getUserWorkoutTotalCountByNicknameAPI(nickname),
       ]);
       setProfileImageUrl(getImageUrl(profileResponse.imageUrl) || "");
       setTotalWorkoutCount(countResponse.count);
+
+      if (userInfo) {
+        const ownershipResponse = await checkProfileOwnershipAPI(nickname);
+        setIsOwnProfile(ownershipResponse.isOwner);
+      } else {
+        setIsOwnProfile(false);
+      }
     } catch (error) {
       console.error("초기 데이터 로드 실패:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [nickname]);
+  }, [nickname, userInfo]);
 
   // 운동 기록 가져오기
   const fetchWorkouts = useCallback(
@@ -252,6 +282,7 @@ const ProfilePage: React.FC = () => {
         setHasMore(!!response.nextCursor);
       } catch (error) {
         console.error("운동 기록 로드 실패:", error);
+        alert("운동 기록을 불러오지 못했습니다."); // 사용자 피드백
         setHasMore(false);
       } finally {
         setLoading(false);
@@ -305,9 +336,10 @@ const ProfilePage: React.FC = () => {
       const formData = new FormData();
       formData.append("image", file);
       const response = await updateProfileImageAPI(formData);
-      setProfileImageUrl(
-        `${process.env.REACT_APP_API_URL}/${response.data.imageUrl}`
-      );
+
+      if (response.data && response.data.imageUrl) {
+        setProfileImageUrl(getImageUrl(response.data.imageUrl) || "");
+      }
     } catch (error) {
       console.error("프로필 이미지 업로드 에러:", error);
       alert("프로필 이미지 업로드에 실패했습니다.");
@@ -323,6 +355,11 @@ const ProfilePage: React.FC = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedWorkoutOfTheDaySeq(null);
+  };
+
+  // 프로필 편집 페이지로 이동
+  const handleEditProfile = () => {
+    navigate("/edit-profile");
   };
 
   const memoData = [
@@ -359,7 +396,14 @@ const ProfilePage: React.FC = () => {
           />
         )}
         <ProfileInfo>
-          <Username>{nickname}</Username>
+          <Username>
+            {nickname}
+            {isOwnProfile && (
+              <EditProfileButton onClick={handleEditProfile}>
+                프로필 편집
+              </EditProfileButton>
+            )}
+          </Username>
           <StatsContainer>
             <StatItem>
               <StatValue>{totalWorkoutCount}</StatValue>
