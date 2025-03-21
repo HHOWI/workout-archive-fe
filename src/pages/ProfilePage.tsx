@@ -294,7 +294,10 @@ const ProfilePage: React.FC = () => {
   // 초기화 및 첫 데이터 로드
   useEffect(() => {
     initializeData();
-    if (activeTab === "workout" && nickname) {
+    if (activeTab === "workout") {
+      setWorkoutOfTheDays([]); // 초기화
+      setNextCursor(null);
+      setHasMore(true);
       fetchWorkouts(null);
     }
   }, [initializeData, activeTab, nickname]);
@@ -427,13 +430,13 @@ const ProfilePage: React.FC = () => {
             isActive={activeTab === "workout"}
             onClick={() => setActiveTab("workout")}
           >
-            {isOwnProfile ? "내 운동 기록" : "운동 기록"}
+            운동 기록
           </Tab>
           <Tab
             isActive={activeTab === "memo"}
             onClick={() => setActiveTab("memo")}
           >
-            {isOwnProfile ? "내 운동 메모" : "운동 메모"}
+            운동 메모
           </Tab>
         </TabList>
 
