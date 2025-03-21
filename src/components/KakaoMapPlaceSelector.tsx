@@ -73,7 +73,7 @@ const SearchButton = styled.button`
 `;
 
 const ResultsContainer = styled.div`
-  max-height: 255px; /* 검색 결과 높이 증가 */
+  height: 255px;
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 4px;

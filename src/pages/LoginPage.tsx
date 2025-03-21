@@ -1,7 +1,8 @@
+// src/pages/LoginPage.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { loginUserAPI } from "../api/user";
 import { useDispatch } from "react-redux";
+import { loginUserAPI } from "../api/user";
 import { setUserInfo } from "../store/slices/authSlice";
 import styled from "@emotion/styled";
 import { LoginDTO } from "../dtos/UserDTO";
@@ -96,7 +97,7 @@ const LoginFooter = styled.div`
 `;
 
 const AuthMessage = styled.p`
-  color: #28a745;
+  color: #dc3545; // 경고 느낌으로 빨간색 사용
   text-align: center;
   margin-bottom: 1rem;
 `;
@@ -106,9 +107,9 @@ const LoginPage: React.FC = () => {
     userId: "",
     userPw: "",
   });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [authMessage, setAuthMessage] = useState<string>("");
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -116,12 +117,15 @@ const LoginPage: React.FC = () => {
   const redirectPath = searchParams.get("redirect") || "/";
 
   useEffect(() => {
-    const message = sessionStorage.getItem("auth_message");
-    if (message) {
-      setAuthMessage(message);
-      sessionStorage.removeItem("auth_message");
+    const reason = searchParams.get("reason");
+    if (reason === "token_expired") {
+      setAuthMessage(
+        "로그인 인증 시간이 만료되었습니다. 다시 로그인해 주세요."
+      );
+    } else if (reason === "unauthenticated") {
+      setAuthMessage("로그인이 필요합니다.");
     }
-  }, []);
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -139,7 +143,7 @@ const LoginPage: React.FC = () => {
     try {
       const response = await loginUserAPI(loginDTO);
       dispatch(setUserInfo(response.data));
-      navigate(redirectPath);
+      navigate(redirectPath, { replace: true });
     } catch (err: any) {
       setError(
         err.response?.data?.error?.message ||

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { clearUserInfo } from "../store/slices/authSlice";
 import { logoutUserAPI } from "../api/user";
+import { RootState } from "../store/store";
 
 const HeaderContainer = styled.header`
   background-color: white;
@@ -69,7 +70,7 @@ const UserButton = styled.button`
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const userInfo = useSelector((state: any) => state.auth.userInfo);
+  const userInfo = useSelector((state: RootState) => state.auth.userInfo);
 
   const handleLogout = async () => {
     try {

@@ -6,37 +6,32 @@ import { useEffect, useState } from "react";
 import { verifyTokenAPI } from "./api/user";
 import { clearUserInfo, setUserInfo } from "./store/slices/authSlice";
 
-function App() {
+const App: React.FC = () => {
   const dispatch = useDispatch();
-  const userInfo = useSelector((state: any) => state.auth.userInfo);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
-      if (userInfo) {
-        setIsAuthChecked(true);
-        return;
-      }
       try {
         const response = await verifyTokenAPI();
-        if (response?.data) {
+        const tokenExpired = response.headers["x-token-expired"] === "true";
+        if (response?.data && !tokenExpired) {
           dispatch(setUserInfo(response.data));
-        } else {
-          dispatch(clearUserInfo());
         }
       } catch (error) {
         console.error("인증 상태 확인 중 오류 발생:", error);
-        dispatch(clearUserInfo());
       } finally {
         setIsAuthChecked(true);
       }
     };
     checkAuthStatus();
-  }, [dispatch, userInfo]);
+  }, [dispatch]);
+
+  if (!isAuthChecked) return <div>로딩 중...</div>;
 
   if (!isAuthChecked) return <div>로딩 중...</div>;
 
   return <RouterProvider router={router} />;
-}
+};
 
 export default App;

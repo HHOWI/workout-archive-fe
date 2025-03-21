@@ -1,16 +1,16 @@
-import { userAPI } from "./axiosConfig";
+import { publicUserAPI, userAPI } from "./axiosConfig";
 import { LoginDTO } from "../dtos/UserDTO";
 
 export const loginUserAPI = async (loginDTO: LoginDTO) => {
-  return await userAPI.post("/login", loginDTO);
+  return await userAPI.post("/users/login", loginDTO);
 };
 
 export const logoutUserAPI = async () => {
-  return await userAPI.post("/logout");
+  return await userAPI.post("/users/logout");
 };
 
 export const updateProfileImageAPI = async (formData: FormData) => {
-  return await userAPI.post("/profile-image", formData, {
+  return await userAPI.post("/users/profile-image", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -19,18 +19,21 @@ export const updateProfileImageAPI = async (formData: FormData) => {
 
 // 토큰 유효성 확인 및 사용자 정보 가져오기
 export const verifyTokenAPI = async () => {
-  return await userAPI.get("/verify-token");
+  const response = await userAPI.get("/users/verify-token");
+  return response;
 };
 
 export const getProfileImageAPI = async (userNickname: string) => {
-  const response = await userAPI.get(`/profile-image/${userNickname}`);
+  const response = await publicUserAPI.get(
+    `/users/profile-image/${userNickname}`
+  );
   return response.data;
 };
 
 // 프로필 소유권 확인 API
 export const checkProfileOwnershipAPI = async (userNickname: string) => {
   const response = await userAPI.get(
-    `/check-profile-ownership/${userNickname}`
+    `/users/check-profile-ownership/${userNickname}`
   );
   return response.data;
 };

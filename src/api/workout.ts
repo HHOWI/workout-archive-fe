@@ -9,7 +9,7 @@ export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
       image: data.get("image"),
     });
 
-    const response = await workoutAPI.post("/workout-records", data, {
+    const response = await workoutAPI.post("/workouts/workout-records", data, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
@@ -37,7 +37,7 @@ export const getUserWorkoutOfTheDaysByNicknameAPI = async (
   }
 
   const response = await publicWorkoutAPI.get(
-    `/profiles/${nickname}/workout-records`,
+    `/workouts/profiles/${nickname}/workout-records`,
     { params }
   );
 
@@ -49,7 +49,7 @@ export const getUserWorkoutTotalCountByNicknameAPI = async (
   nickname: string
 ): Promise<any> => {
   const response = await publicWorkoutAPI.get(
-    `/profiles/${nickname}/workout-records-count`
+    `/workouts/profiles/${nickname}/workout-records-count`
   );
   return response.data;
 };
@@ -59,13 +59,13 @@ export const getWorkoutRecordDetailsAPI = async (
   workoutId: number
 ): Promise<any> => {
   const response = await publicWorkoutAPI.get(
-    `/profiles/workout-records/${workoutId}`
+    `/workouts/profiles/workout-records/${workoutId}`
   );
   return response.data;
 };
 
 // 사용자의 최근 운동목록 조회
 export const getRecentWorkoutRecordsAPI = async (): Promise<any> => {
-  const response = await workoutAPI.get("/workout-records/recent");
+  const response = await workoutAPI.get("/workouts/workout-records/recent");
   return response.data;
 };

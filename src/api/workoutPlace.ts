@@ -5,6 +5,6 @@ import { workoutPlaceAPI } from "./axiosConfig";
 export const fetchRecentWorkoutPlacesAPI = async (): Promise<
   WorkoutPlaceDTO[]
 > => {
-  const response = await workoutPlaceAPI.get("/recent");
+  const response = await workoutPlaceAPI.get("/workout-places/recent");
   return response.data;
 };
