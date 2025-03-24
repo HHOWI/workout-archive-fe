@@ -430,13 +430,13 @@ const ProfilePage: React.FC = () => {
             isActive={activeTab === "workout"}
             onClick={() => setActiveTab("workout")}
           >
-            운동 기록
+            오운완
           </Tab>
           <Tab
             isActive={activeTab === "memo"}
             onClick={() => setActiveTab("memo")}
           >
-            운동 메모
+            레코드
           </Tab>
         </TabList>
 

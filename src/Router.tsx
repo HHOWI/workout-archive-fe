@@ -10,6 +10,8 @@ import ErrorPage from "./pages/ErrorPage";
 import RegisterSuccessPage from "./pages/RegisterSuccessPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
 import WorkoutRecordPage from "./pages/WorkoutRecordPage";
+import BodyLogPage from "./pages/BodyLogPage";
+import StatisticsPage from "./pages/StatisticsPage";
 
 const ProfileWrapper = () => {
   const { nickname } = useParams(); // URL 파라미터에서 nickname 가져오기
@@ -24,11 +26,15 @@ const router = createBrowserRouter([
     children: [
       // 공용 경로
       { index: true, element: <HomePage /> },
-      { path: "/:nickname", element: <ProfileWrapper /> },
+      { path: "/profile/:nickname", element: <ProfileWrapper /> },
       // 로그인 전용 경로
       {
         element: <ProtectedRoute />,
-        children: [{ path: "workout-record", element: <WorkoutRecordPage /> }],
+        children: [
+          { path: "workout-record/:nickname", element: <WorkoutRecordPage /> },
+          { path: "body-log/:nickname", element: <BodyLogPage /> },
+          { path: "statistics/:nickname", element: <StatisticsPage /> },
+        ],
       },
     ],
   },

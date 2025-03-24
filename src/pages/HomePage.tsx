@@ -79,6 +79,14 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const handleBodyLogClick = () => {
+    if (isAuthenticated) {
+      navigate("/body-log");
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <Container>
       <Hero>
@@ -110,6 +118,18 @@ const HomePage: React.FC = () => {
             <br />
             당신의 성장을 확인하세요.
           </p>
+        </FeatureCard>
+
+        <FeatureCard>
+          <h3>바디 로그</h3>
+          <p>
+            키, 체중, 골격근량, 체지방률 등을
+            <br />
+            기록하고 변화를 추적하세요.
+          </p>
+          <Button onClick={handleBodyLogClick} style={{ marginTop: "1rem" }}>
+            {isAuthenticated ? "바디 로그 기록하기" : "시작하기"}
+          </Button>
         </FeatureCard>
 
         <FeatureCard>

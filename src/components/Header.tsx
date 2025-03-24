@@ -87,14 +87,28 @@ const Header: React.FC = () => {
       <HeaderContent>
         <Logo onClick={() => navigate("/")}>WOA</Logo>
         <Nav>
-          <NavLink onClick={() => navigate("/workout-record")}>
-            운동 기록
+          <NavLink
+            onClick={() =>
+              navigate(`/workout-record/${userInfo?.userNickname}`)
+            }
+          >
+            오운완
           </NavLink>
-          <NavLink onClick={() => navigate("/statistics")}>통계</NavLink>
-          <NavLink onClick={() => navigate("/community")}>커뮤니티</NavLink>
+          <NavLink
+            onClick={() => navigate(`/statistics/${userInfo?.userNickname}`)}
+          >
+            레코드
+          </NavLink>
+          <NavLink
+            onClick={() => navigate(`/body-log/${userInfo?.userNickname}`)}
+          >
+            바디로그
+          </NavLink>
           {userInfo ? (
             <UserMenu>
-              <NavLink onClick={() => navigate(`/${userInfo.userNickname}`)}>
+              <NavLink
+                onClick={() => navigate(`/profile/${userInfo.userNickname}`)}
+              >
                 {userInfo.userNickname}
               </NavLink>
               <UserButton onClick={handleLogout}>로그아웃</UserButton>
