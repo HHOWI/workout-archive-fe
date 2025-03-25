@@ -69,3 +69,43 @@ export const getRecentWorkoutRecordsAPI = async (): Promise<any> => {
   const response = await workoutAPI.get("/workouts/workout-records/recent");
   return response.data;
 };
+
+// 운동 기록 소프트 삭제
+export const deleteWorkoutRecordAPI = async (
+  workoutId: number
+): Promise<any> => {
+  try {
+    const response = await workoutAPI.delete(
+      `/workouts/workout-records/${workoutId}`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+// 운동 기록 수정
+export const updateWorkoutRecordAPI = async (
+  workoutId: number,
+  updateData: { workoutDiary?: string | null }
+): Promise<any> => {
+  try {
+    const response = await workoutAPI.put(
+      `/workouts/workout-records/${workoutId}`,
+      updateData
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+};

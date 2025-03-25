@@ -447,8 +447,6 @@ const BodyLogPage: React.FC = () => {
 
   return (
     <Container>
-      <Title>바디 로그</Title>
-
       <TabsContainer>
         <Tab
           active={activeTab === "input"}

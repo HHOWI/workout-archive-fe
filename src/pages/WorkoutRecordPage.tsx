@@ -831,8 +831,6 @@ const WorkoutRecordPage: React.FC = () => {
 
   return (
     <Container>
-      <Title>오늘의 운동 기록</Title>
-
       {/* 날짜 선택 */}
       <FormGroup>
         <Label>운동 날짜</Label>

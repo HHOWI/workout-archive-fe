@@ -360,6 +360,25 @@ const ProfilePage: React.FC = () => {
     setSelectedWorkoutOfTheDaySeq(null);
   };
 
+  // 워크아웃 삭제 처리
+  const handleWorkoutDelete = useCallback(() => {
+    if (selectedWorkoutOfTheDaySeq) {
+      // 목록에서 삭제된 워크아웃 제거
+      setWorkoutOfTheDays((prev) =>
+        prev.filter(
+          (workout) => workout.workoutOfTheDaySeq !== selectedWorkoutOfTheDaySeq
+        )
+      );
+
+      // 총 워크아웃 수 감소
+      setTotalWorkoutCount((prev) => Math.max(0, prev - 1));
+
+      // 모달 닫기
+      setShowModal(false);
+      setSelectedWorkoutOfTheDaySeq(null);
+    }
+  }, [selectedWorkoutOfTheDaySeq]);
+
   // 프로필 편집 페이지로 이동
   const handleEditProfile = () => {
     navigate("/edit-profile");
@@ -485,6 +504,7 @@ const ProfilePage: React.FC = () => {
         <WorkoutDetailModal
           workoutOfTheDaySeq={selectedWorkoutOfTheDaySeq}
           onClose={handleCloseModal}
+          onDelete={handleWorkoutDelete}
         />
       )}
     </Container>

@@ -95,15 +95,16 @@ const Header: React.FC = () => {
             오운완
           </NavLink>
           <NavLink
-            onClick={() => navigate(`/statistics/${userInfo?.userNickname}`)}
-          >
-            레코드
-          </NavLink>
-          <NavLink
             onClick={() => navigate(`/body-log/${userInfo?.userNickname}`)}
           >
             바디로그
           </NavLink>
+          <NavLink
+            onClick={() => navigate(`/statistics/${userInfo?.userNickname}`)}
+          >
+            레코드
+          </NavLink>
+
           {userInfo ? (
             <UserMenu>
               <NavLink
