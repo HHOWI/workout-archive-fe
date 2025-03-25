@@ -4,18 +4,14 @@ import { useSelector } from "react-redux";
 import styled from "@emotion/styled";
 import { Tabs, Tab } from "@mui/material";
 import { FaWeight, FaChartLine, FaDumbbell } from "react-icons/fa";
+import BodyLogTab from "../components/statistics/BodyLogTab";
+import ExerciseWeightTab from "../components/statistics/ExerciseWeightTab";
+import BodyPartVolumeTab from "../components/statistics/BodyPartVolumeTab";
 
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-`;
-
-const Title = styled.h1`
-  text-align: center;
-  margin-bottom: 30px;
-  font-size: 24px;
-  color: #333;
 `;
 
 const FiltersContainer = styled.div`
@@ -57,12 +53,6 @@ interface RootState {
   };
 }
 
-interface TabPanelProps {
-  value: string;
-  index: string;
-  children: React.ReactNode;
-}
-
 // 차트 타입 정의
 type ChartType = "bodyLog" | "exerciseWeight" | "bodyPartVolume";
 
@@ -71,11 +61,8 @@ interface ChartConfig {
   value: ChartType;
   label: string;
   icon: React.ReactNode;
+  component: React.ReactNode;
 }
-
-const TabPanel = ({ value, index, children }: TabPanelProps) => {
-  return value === index ? <div>{children}</div> : null;
-};
 
 const StatisticsPage: React.FC = () => {
   const userInfo = useSelector((state: RootState) => state.auth.userInfo);
@@ -88,9 +75,24 @@ const StatisticsPage: React.FC = () => {
 
   // 차트 설정 배열
   const chartConfigs: ChartConfig[] = [
-    { value: "bodyLog", label: "바디로그", icon: <FaWeight /> },
-    { value: "exerciseWeight", label: "운동 무게 변화", icon: <FaChartLine /> },
-    { value: "bodyPartVolume", label: "운동 볼륨", icon: <FaDumbbell /> },
+    {
+      value: "bodyLog",
+      label: "바디로그",
+      icon: <FaWeight />,
+      component: <BodyLogTab />,
+    },
+    {
+      value: "exerciseWeight",
+      label: "운동 무게 변화",
+      icon: <FaChartLine />,
+      component: <ExerciseWeightTab />,
+    },
+    {
+      value: "bodyPartVolume",
+      label: "운동 볼륨",
+      icon: <FaDumbbell />,
+      component: <BodyPartVolumeTab />,
+    },
   ];
 
   if (!userInfo) return null;
@@ -120,11 +122,8 @@ const StatisticsPage: React.FC = () => {
 
         <FiltersContainer>{/* 필터 UI 컴팩트하게 정리 */}</FiltersContainer>
 
-        {chartConfigs.map((config) => (
-          <TabPanel key={config.value} value={activeChart} index={config.value}>
-            <div>{config.label} 차트</div>
-          </TabPanel>
-        ))}
+        {/* 현재 선택된 탭에 해당하는 컴포넌트 렌더링 */}
+        {chartConfigs.find((config) => config.value === activeChart)?.component}
       </GraphContainer>
     </Container>
   );

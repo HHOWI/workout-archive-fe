@@ -1,3 +1,4 @@
+import { BodyLogStatsDTO } from "../dtos/BodyLogDTO";
 import { userAPI } from "./axiosConfig";
 
 // 바디로그 저장
@@ -30,6 +31,24 @@ export const getBodyLogsAPI = async (params?: {
 }): Promise<any> => {
   try {
     const response = await userAPI.get("/users/body-logs", { params });
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+// 바디로그 통계 데이터 조회
+export const getBodyLogStatsAPI = async (params?: {
+  period?: "3months" | "6months" | "1year" | "2years" | "all";
+  interval?: "1week" | "2weeks" | "4weeks" | "3months";
+}): Promise<BodyLogStatsDTO> => {
+  try {
+    const response = await userAPI.get("/users/body-logs/stats", { params });
     return response.data;
   } catch (error: any) {
     console.error("API 오류:", {
