@@ -19,10 +19,10 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  TooltipItem,
 } from "chart.js";
 import { getBodyLogStatsAPI } from "../../api/statistics";
 import { BodyLogDataPoint, BodyLogStatsDTO } from "../../dtos/BodyLogDTO";
+import zoomPlugin from "chartjs-plugin-zoom";
 
 // Chart.js 컴포넌트 등록
 ChartJS.register(
@@ -32,7 +32,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  zoomPlugin
 );
 
 const Container = styled.div`

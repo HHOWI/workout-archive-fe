@@ -12,6 +12,7 @@
     "@types/recharts": "^1.8.29",
     "axios": "^1.7.2",
     "chart.js": "^4.4.8",
+    "chartjs-plugin-zoom": "^2.2.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",

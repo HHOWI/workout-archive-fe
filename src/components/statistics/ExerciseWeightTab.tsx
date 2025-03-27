@@ -330,12 +330,17 @@ const ExerciseWeightTab: React.FC = () => {
     const loadExercises = async () => {
       try {
         const data = await fetchExercisesAPI();
-        setExercises(data);
-        setFilteredExercises(data);
+        // 유산소 운동 제외
+        const strengthExercises = data.filter(
+          (ex) => ex.exerciseType !== "유산소"
+        );
+
+        setExercises(strengthExercises);
+        setFilteredExercises(strengthExercises);
 
         // 카테고리 추출
         const uniqueCategories = [
-          ...new Set(data.map((ex) => ex.exerciseType)),
+          ...new Set(strengthExercises.map((ex) => ex.exerciseType)),
         ];
         setCategories(uniqueCategories);
       } catch (error) {

@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import styled from "@emotion/styled";
 import { Tabs, Tab } from "@mui/material";
-import { FaWeight, FaChartLine, FaDumbbell } from "react-icons/fa";
+import { FaWeight, FaChartLine, FaDumbbell, FaRunning } from "react-icons/fa";
 import BodyLogTab from "../components/statistics/BodyLogTab";
 import ExerciseWeightTab from "../components/statistics/ExerciseWeightTab";
 import BodyPartVolumeTab from "../components/statistics/BodyPartVolumeTab";
+import CardioRecordTab from "../components/statistics/CardioRecordTab";
 
 const Container = styled.div`
   max-width: 1200px;
@@ -90,7 +91,7 @@ const StatisticsPage: React.FC = () => {
     {
       value: "cardio",
       label: "유산소 기록",
-      icon: <FaChartLine />,
+      icon: <FaRunning />,
       component: <CardioRecordTab />,
     },
     {
@@ -125,10 +126,6 @@ const StatisticsPage: React.FC = () => {
             />
           ))}
         </Tabs>
-
-        <FiltersContainer>{/* 필터 UI 컴팩트하게 정리 */}</FiltersContainer>
-
-        {/* 현재 선택된 탭에 해당하는 컴포넌트 렌더링 */}
         {chartConfigs.find((config) => config.value === activeChart)?.component}
       </GraphContainer>
     </Container>

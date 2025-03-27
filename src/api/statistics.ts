@@ -19,6 +19,21 @@ export interface ExerciseWeightStatsDTO {
   exercises: ExerciseWeightStats[];
 }
 
+// 유산소 운동 통계 데이터 타입 정의
+export interface CardioDataPoint {
+  date: string;
+  value: number | null;
+}
+
+export interface CardioStatsDTO {
+  exerciseName: string;
+  exerciseSeq: number;
+  exerciseType: string;
+  distance: CardioDataPoint[];
+  duration: CardioDataPoint[];
+  avgSpeed: CardioDataPoint[];
+}
+
 /**
  * 바디로그 통계 데이터 조회
  */
@@ -52,6 +67,31 @@ export const getExerciseWeightStatsAPI = async (params?: {
 }): Promise<ExerciseWeightStatsDTO> => {
   try {
     const response = await authAPI.get("/statistics/exercise-weight-stats", {
+      params: {
+        ...params,
+        exerciseSeqs: params?.exerciseSeqs,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * 유산소 운동 통계 데이터 조회
+ */
+export const getCardioStatsAPI = async (params?: {
+  period?: "1months" | "3months" | "6months" | "1year" | "2years" | "all";
+  exerciseSeqs?: number[];
+}): Promise<CardioStatsDTO[]> => {
+  try {
+    const response = await authAPI.get("/statistics/cardio-stats", {
       params: {
         ...params,
         exerciseSeqs: params?.exerciseSeqs,
