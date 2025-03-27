@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { clearUserInfo } from "../store/slices/authSlice";
 import { logoutUserAPI } from "../api/user";
 import { RootState } from "../store/store";
+import SearchComponent from "./SearchComponent";
 
 const HeaderContainer = styled.header`
   background-color: white;
@@ -34,6 +35,20 @@ const Nav = styled.nav`
   display: flex;
   gap: 2rem;
   align-items: center;
+`;
+
+const SearchWrapper = styled.div`
+  flex: 1;
+  max-width: 350px;
+  margin: 0 2rem;
+
+  @media (max-width: 992px) {
+    margin: 0 1rem;
+  }
+
+  @media (max-width: 768px) {
+    max-width: 300px;
+  }
 `;
 
 const NavLink = styled.span`
@@ -67,6 +82,16 @@ const UserButton = styled.button`
   }
 `;
 
+const LeftSection = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -85,39 +110,46 @@ const Header: React.FC = () => {
   return (
     <HeaderContainer>
       <HeaderContent>
-        <Logo onClick={() => navigate("/")}>WOA</Logo>
-        <Nav>
-          <NavLink
-            onClick={() =>
-              navigate(`/workout-record/${userInfo?.userNickname}`)
-            }
-          >
-            오운완
-          </NavLink>
-          <NavLink
-            onClick={() => navigate(`/body-log/${userInfo?.userNickname}`)}
-          >
-            바디로그
-          </NavLink>
-          <NavLink
-            onClick={() => navigate(`/statistics/${userInfo?.userNickname}`)}
-          >
-            레코드
-          </NavLink>
+        <LeftSection>
+          <Logo onClick={() => navigate("/")}>WOA</Logo>
+          <SearchWrapper>
+            <SearchComponent />
+          </SearchWrapper>
+        </LeftSection>
+        <RightSection>
+          <Nav>
+            <NavLink
+              onClick={() =>
+                navigate(`/workout-record/${userInfo?.userNickname}`)
+              }
+            >
+              오운완
+            </NavLink>
+            <NavLink
+              onClick={() => navigate(`/body-log/${userInfo?.userNickname}`)}
+            >
+              바디로그
+            </NavLink>
+            <NavLink
+              onClick={() => navigate(`/statistics/${userInfo?.userNickname}`)}
+            >
+              레코드
+            </NavLink>
 
-          {userInfo ? (
-            <UserMenu>
-              <NavLink
-                onClick={() => navigate(`/profile/${userInfo.userNickname}`)}
-              >
-                {userInfo.userNickname}
-              </NavLink>
-              <UserButton onClick={handleLogout}>로그아웃</UserButton>
-            </UserMenu>
-          ) : (
-            <UserButton onClick={() => navigate("/login")}>로그인</UserButton>
-          )}
-        </Nav>
+            {userInfo ? (
+              <UserMenu>
+                <NavLink
+                  onClick={() => navigate(`/profile/${userInfo.userNickname}`)}
+                >
+                  {userInfo.userNickname}
+                </NavLink>
+                <UserButton onClick={handleLogout}>로그아웃</UserButton>
+              </UserMenu>
+            ) : (
+              <UserButton onClick={() => navigate("/login")}>로그인</UserButton>
+            )}
+          </Nav>
+        </RightSection>
       </HeaderContent>
     </HeaderContainer>
   );

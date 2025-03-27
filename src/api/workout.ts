@@ -5,6 +5,7 @@ import type {
   ExerciseWeightStats,
   ExerciseWeightStatsDTO,
 } from "./statistics";
+import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
@@ -122,4 +123,46 @@ export type {
   ExerciseWeightDataPoint,
   ExerciseWeightStats,
   ExerciseWeightStatsDTO,
+};
+
+// 장소별 운동 기록 조회 API
+export const getWorkoutsByPlaceAPI = async (
+  placeSeq: string,
+  limit: number = 12,
+  cursor: number | null = null
+): Promise<{
+  workouts: WorkoutOfTheDayDTO[];
+  nextCursor: number | null;
+  placeInfo: {
+    placeName: string;
+    addressName: string | null;
+    roadAddressName: string | null;
+    kakaoPlaceId?: string | null;
+    x?: string | null;
+    y?: string | null;
+  };
+}> => {
+  const params: any = { limit };
+  if (cursor) {
+    params.cursor = cursor;
+  }
+
+  const response = await publicAPI.get(
+    `/workouts/places/${placeSeq}/workout-records`,
+    {
+      params,
+    }
+  );
+
+  return response.data;
+};
+
+// 장소 ID로 운동 기록 총 개수 조회 API
+export const getWorkoutOfTheDayCountByPlaceIdAPI = async (
+  placeSeq: string
+): Promise<any> => {
+  const response = await publicAPI.get(
+    `/workouts/places/${placeSeq}/workout-records-count`
+  );
+  return response.data;
 };
