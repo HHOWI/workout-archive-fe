@@ -34,6 +34,17 @@ export interface CardioStatsDTO {
   avgSpeed: CardioDataPoint[];
 }
 
+// 운동 볼륨 통계 데이터 타입 정의
+export interface VolumeDataPoint {
+  date: string;
+  value: number;
+}
+
+export interface BodyPartVolumeStatsDTO {
+  bodyPart: string;
+  volumeData: VolumeDataPoint[];
+}
+
 /**
  * 바디로그 통계 데이터 조회
  */
@@ -96,6 +107,36 @@ export const getCardioStatsAPI = async (params?: {
         ...params,
         exerciseSeqs: params?.exerciseSeqs,
       },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * 운동 볼륨 통계 데이터 조회
+ */
+export const getBodyPartVolumeStatsAPI = async (params?: {
+  period?: "3months" | "6months" | "1year" | "2years" | "all";
+  interval?: "1week" | "2weeks" | "1month" | "3months";
+  bodyPart?:
+    | "chest"
+    | "back"
+    | "legs"
+    | "shoulders"
+    | "triceps"
+    | "biceps"
+    | "all";
+}): Promise<BodyPartVolumeStatsDTO> => {
+  try {
+    const response = await authAPI.get("/statistics/body-part-volume-stats", {
+      params,
     });
     return response.data;
   } catch (error: any) {

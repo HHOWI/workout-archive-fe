@@ -1,6 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
+import {
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
+  CircularProgress,
+} from "@mui/material";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions,
+} from "chart.js";
+import {
+  getBodyPartVolumeStatsAPI,
+  BodyPartVolumeStatsDTO,
+  VolumeDataPoint,
+} from "../../api/statistics";
+
+// Chart.js 컴포넌트 등록
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const Container = styled.div`
   margin-top: 20px;
@@ -39,20 +71,149 @@ const ChartPlaceholder = styled.div`
   border: 1px dashed #ccc;
 `;
 
-// 임시 운동 부위 목록
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  width: 100%;
+`;
+
+const ErrorMessage = styled.div`
+  color: #f44336;
+  text-align: center;
+  padding: 20px;
+`;
+
+const NoDataMessage = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+`;
+
+// 차트 옵션 설정
+const getChartOptions = (title: string): ChartOptions<"bar"> => ({
+  responsive: true,
+  plugins: {
+    legend: {
+      position: "top" as const,
+      display: false,
+    },
+    title: {
+      display: true,
+      text: title,
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false,
+      },
+    },
+    y: {
+      beginAtZero: true,
+      title: {
+        display: true,
+        text: "볼륨 (무게×횟수×세트 kg)",
+      },
+    },
+  },
+  maintainAspectRatio: false,
+  datasets: {
+    bar: {
+      barThickness: 30,
+    },
+  },
+});
+
+// 운동 부위 옵션
 const bodyPartOptions = [
   { value: "chest", label: "가슴" },
   { value: "back", label: "등" },
   { value: "legs", label: "하체" },
   { value: "shoulders", label: "어깨" },
-  { value: "arms", label: "팔" },
+  { value: "triceps", label: "삼두" },
+  { value: "biceps", label: "이두" },
+  { value: "all", label: "전체" },
+];
+
+// 주기 옵션
+const intervalOptions = [
+  { value: "1week", label: "1주" },
+  { value: "2weeks", label: "2주" },
+  { value: "1month", label: "1개월" },
+  { value: "3months", label: "3개월" },
+  { value: "all", label: "전체보기" },
+];
+
+// 기간 옵션
+const periodOptions = [
+  { value: "1months", label: "최근 1개월" },
+  { value: "3months", label: "최근 3개월" },
+  { value: "6months", label: "최근 6개월" },
+  { value: "1year", label: "최근 1년" },
+  { value: "2years", label: "최근 2년" },
+  { value: "all", label: "전체 기간" },
 ];
 
 const BodyPartVolumeTab: React.FC = () => {
   // 상태 관리
-  const [period, setPeriod] = useState("3months");
+  const [period, setPeriod] = useState("1months");
   const [interval, setInterval] = useState("all");
-  const [bodyPart, setBodyPart] = useState("chest");
+  const [bodyPart, setBodyPart] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<BodyPartVolumeStatsDTO | null>(null);
+
+  // 통계 데이터 로드
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await getBodyPartVolumeStatsAPI({
+          period: period as any,
+          interval: interval as any,
+          bodyPart: bodyPart as any,
+        });
+        setStats(data);
+      } catch (err: any) {
+        console.error("운동 볼륨 통계 데이터 로드 실패:", err);
+        setError("데이터를 불러오는 데 실패했습니다. 다시 시도해주세요.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [period, interval, bodyPart]);
+
+  // 차트 데이터 생성
+  const getChartData = (volumeData: VolumeDataPoint[]) => {
+    return {
+      labels: volumeData.map((point) => point.date),
+      datasets: [
+        {
+          label: "볼륨",
+          data: volumeData.map((point) => point.value),
+          backgroundColor: "rgba(54, 162, 235, 0.6)",
+          borderColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 1,
+        },
+      ],
+    };
+  };
+
+  // 운동 부위 한글 이름 가져오기
+  const getBodyPartLabel = (bodyPartValue: string): string => {
+    const option = bodyPartOptions.find(
+      (option) => option.value === bodyPartValue
+    );
+    return option ? option.label : bodyPartValue;
+  };
 
   return (
     <Container>
@@ -64,11 +225,11 @@ const BodyPartVolumeTab: React.FC = () => {
             onChange={(e) => setPeriod(e.target.value as string)}
             label="기간"
           >
-            <MenuItem value="3months">최근 3개월</MenuItem>
-            <MenuItem value="6months">최근 6개월</MenuItem>
-            <MenuItem value="1year">최근 1년</MenuItem>
-            <MenuItem value="2years">최근 2년</MenuItem>
-            <MenuItem value="all">전체 기간</MenuItem>
+            {periodOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -79,11 +240,11 @@ const BodyPartVolumeTab: React.FC = () => {
             onChange={(e) => setInterval(e.target.value as string)}
             label="주기"
           >
-            <MenuItem value="1week">1주</MenuItem>
-            <MenuItem value="2weeks">2주</MenuItem>
-            <MenuItem value="4weeks">4주</MenuItem>
-            <MenuItem value="3months">3개월</MenuItem>
-            <MenuItem value="all">전체보기</MenuItem>
+            {intervalOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -103,16 +264,33 @@ const BodyPartVolumeTab: React.FC = () => {
         </FormControl>
       </FiltersContainer>
 
-      <ChartContainer>
-        <ChartTitle>
-          {bodyPartOptions.find((bp) => bp.value === bodyPart)?.label || ""}
-          부위 운동 볼륨 변화
-        </ChartTitle>
-        <ChartPlaceholder>
-          {bodyPartOptions.find((bp) => bp.value === bodyPart)?.label || ""}
-          부위의 운동 볼륨 변화 막대 그래프가 여기에 표시됩니다
-        </ChartPlaceholder>
-      </ChartContainer>
+      {loading ? (
+        <LoadingContainer>
+          <CircularProgress />
+        </LoadingContainer>
+      ) : error ? (
+        <ErrorMessage>{error}</ErrorMessage>
+      ) : stats && stats.volumeData.length > 0 ? (
+        <ChartContainer>
+          <ChartTitle>
+            {getBodyPartLabel(stats.bodyPart)} 부위 운동 볼륨
+          </ChartTitle>
+          <Bar
+            options={getChartOptions(
+              `${getBodyPartLabel(stats.bodyPart)} 부위 운동 볼륨 추이`
+            )}
+            data={getChartData(stats.volumeData)}
+          />
+        </ChartContainer>
+      ) : (
+        <ChartContainer>
+          <ChartTitle>{getBodyPartLabel(bodyPart)} 부위 운동 볼륨</ChartTitle>
+          <NoDataMessage>
+            선택한 기간에 {getBodyPartLabel(bodyPart)} 부위 운동 데이터가
+            없습니다.
+          </NoDataMessage>
+        </ChartContainer>
+      )}
     </Container>
   );
 };
