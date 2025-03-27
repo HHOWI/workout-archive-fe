@@ -50,14 +50,8 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// API 경로별 인스턴스 생성
-export const userAPI = axiosInstance;
-export const workoutAPI = axiosInstance;
-export const workoutPlaceAPI = axiosInstance;
-export const exerciseAPI = axiosInstance;
+// 인증이 필요한 API 요청용 인스턴스
+export const authAPI = axiosInstance;
+
 // 인증이 필요 없는 API 요청용 인스턴스
-export const publicUserAPI = publicAxiosInstance;
-export const publicWorkoutAPI = publicAxiosInstance;
-export const registerAPI = publicAxiosInstance;
-export const publicExerciseAPI = publicAxiosInstance;
-export const publicWorkoutPlaceAPI = publicAxiosInstance;
+export const publicAPI = publicAxiosInstance;

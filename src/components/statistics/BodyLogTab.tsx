@@ -19,9 +19,10 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
+  TooltipItem,
 } from "chart.js";
-import { getBodyLogStatsAPI } from "../../api/bodyLog";
-import { BodyLogStatsDTO } from "../../dtos/BodyLogDTO";
+import { getBodyLogStatsAPI } from "../../api/statistics";
+import { BodyLogDataPoint, BodyLogStatsDTO } from "../../dtos/BodyLogDTO";
 
 // Chart.js 컴포넌트 등록
 ChartJS.register(
@@ -73,12 +74,29 @@ const ErrorMessage = styled.div`
   padding: 20px;
 `;
 
-interface BodyLogTabProps {
-  // 필요한 props 정의
-}
+// 추정치 정보를 툴팁에 표시하는 함수
+const customTooltipCallback = (context: any) => {
+  // 추정치 여부 데이터 가져오기 - 안전하게 접근
+  const dataIndex = context.dataIndex;
+  const datasetIndex = context.datasetIndex;
 
-// 차트 옵션 설정
-const getChartOptions = (title: string): ChartOptions<"line"> => ({
+  // 데이터셋에서 직접 isEstimatedData 배열 가져오기
+  const dataset = context.chart.data.datasets[datasetIndex];
+  const isEstimated = dataset?.isEstimatedData?.[dataIndex];
+
+  // 기본 표시 내용
+  let tooltipText = [`${context.dataset.label}: ${context.formattedValue}`];
+
+  // 추정치인 경우 안내 메시지 추가
+  if (isEstimated) {
+    tooltipText.push("(추정치)");
+  }
+
+  return tooltipText;
+};
+
+// 몸무게 차트 옵션
+const getBodyWeightChartOptions = (title: string): ChartOptions<"line"> => ({
   responsive: true,
   plugins: {
     legend: {
@@ -88,19 +106,109 @@ const getChartOptions = (title: string): ChartOptions<"line"> => ({
       display: true,
       text: title,
     },
+    tooltip: {
+      callbacks: {
+        label: customTooltipCallback,
+      },
+    },
   },
   scales: {
+    x: {
+      type: "category",
+      title: {
+        display: true,
+        text: "날짜",
+      },
+    },
     y: {
-      beginAtZero: false,
+      min: 30, // 최소값 30kg
+      title: {
+        display: true,
+        text: "체중 (kg)",
+      },
     },
   },
   maintainAspectRatio: false,
 });
 
-const BodyLogTab: React.FC<BodyLogTabProps> = () => {
+// 골격근량 차트 옵션
+const getMuscleMassChartOptions = (title: string): ChartOptions<"line"> => ({
+  responsive: true,
+  plugins: {
+    legend: {
+      position: "top" as const,
+    },
+    title: {
+      display: true,
+      text: title,
+    },
+    tooltip: {
+      callbacks: {
+        label: customTooltipCallback,
+      },
+    },
+  },
+  scales: {
+    x: {
+      type: "category",
+      title: {
+        display: true,
+        text: "날짜",
+      },
+    },
+    y: {
+      min: 10, // 최소값 10kg
+      max: 80, // 최대값 80kg
+      title: {
+        display: true,
+        text: "골격근량 (kg)",
+      },
+    },
+  },
+  maintainAspectRatio: false,
+});
+
+// 체지방률 차트 옵션
+const getBodyFatChartOptions = (title: string): ChartOptions<"line"> => ({
+  responsive: true,
+  plugins: {
+    legend: {
+      position: "top" as const,
+    },
+    title: {
+      display: true,
+      text: title,
+    },
+    tooltip: {
+      callbacks: {
+        label: customTooltipCallback,
+      },
+    },
+  },
+  scales: {
+    x: {
+      type: "category",
+      title: {
+        display: true,
+        text: "날짜",
+      },
+    },
+    y: {
+      min: 0, // 최소값 10%
+      max: 40, // 최대값 50%
+      title: {
+        display: true,
+        text: "체지방률 (%)",
+      },
+    },
+  },
+  maintainAspectRatio: false,
+});
+
+const BodyLogTab: React.FC = () => {
   // 상태 관리
-  const [period, setPeriod] = useState("1year");
-  const [interval, setInterval] = useState("1week");
+  const [period, setPeriod] = useState("3months");
+  const [interval, setInterval] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<BodyLogStatsDTO | null>(null);
@@ -128,10 +236,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
   }, [period, interval]);
 
   // 차트 데이터 가공
-  const getChartData = (
-    label: string,
-    data: { date: string; value: number | null }[]
-  ) => {
+  const getChartData = (label: string, data: BodyLogDataPoint[]) => {
     return {
       labels: data.map((item) => item.date),
       datasets: [
@@ -151,6 +256,16 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
               ? "rgba(75, 192, 192, 0.5)"
               : "rgba(255, 99, 132, 0.5)",
           tension: 0.2,
+          // 추정치 정보를 내부 속성으로 저장
+          isEstimatedData: data.map((item) => item.isEstimated),
+          // 추정치에 대한 시각적 표현
+          pointStyle: data.map(
+            (item) =>
+              item.isEstimated
+                ? "triangle" // 추정치는 삼각형으로 표시
+                : "circle" // 실제 데이터는 원으로 표시
+          ),
+          pointRadius: data.map((item) => (item.isEstimated ? 5 : 3)), // 추정치는 약간 더 크게
         },
       ],
     };
@@ -166,6 +281,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
             onChange={(e) => setPeriod(e.target.value as string)}
             label="기간"
           >
+            <MenuItem value="1months">최근 1개월</MenuItem>
             <MenuItem value="3months">최근 3개월</MenuItem>
             <MenuItem value="6months">최근 6개월</MenuItem>
             <MenuItem value="1year">최근 1년</MenuItem>
@@ -185,6 +301,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
             <MenuItem value="2weeks">2주</MenuItem>
             <MenuItem value="4weeks">4주</MenuItem>
             <MenuItem value="3months">3개월</MenuItem>
+            <MenuItem value="all">전체보기</MenuItem>
           </Select>
         </FormControl>
       </FiltersContainer>
@@ -202,7 +319,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
             <ChartWrapper style={{ height: "300px" }}>
               <ChartTitle>몸무게 변화</ChartTitle>
               <Line
-                options={getChartOptions("체중 추이")}
+                options={getBodyWeightChartOptions("체중 추이")}
                 data={getChartData("체중 (kg)", stats.bodyWeight)}
               />
             </ChartWrapper>
@@ -213,7 +330,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
             <ChartWrapper style={{ height: "250px" }}>
               <ChartTitle>골격근량 변화</ChartTitle>
               <Line
-                options={getChartOptions("골격근량 추이")}
+                options={getMuscleMassChartOptions("골격근량 추이")}
                 data={getChartData("골격근량 (kg)", stats.muscleMass)}
               />
             </ChartWrapper>
@@ -224,7 +341,7 @@ const BodyLogTab: React.FC<BodyLogTabProps> = () => {
             <ChartWrapper style={{ height: "250px" }}>
               <ChartTitle>체지방량 변화</ChartTitle>
               <Line
-                options={getChartOptions("체지방률 추이")}
+                options={getBodyFatChartOptions("체지방률 추이")}
                 data={getChartData("체지방률 (%)", stats.bodyFat)}
               />
             </ChartWrapper>

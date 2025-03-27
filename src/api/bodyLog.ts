@@ -1,5 +1,5 @@
-import { BodyLogStatsDTO } from "../dtos/BodyLogDTO";
-import { userAPI } from "./axiosConfig";
+import { authAPI } from "./axiosConfig";
+import { getBodyLogStatsAPI } from "./statistics";
 
 // 바디로그 저장
 export const saveBodyLogAPI = async (data: {
@@ -10,7 +10,7 @@ export const saveBodyLogAPI = async (data: {
   recordDate?: string;
 }): Promise<any> => {
   try {
-    const response = await userAPI.post("/users/body-logs", data);
+    const response = await authAPI.post("/users/body-logs", data);
     return response.data;
   } catch (error: any) {
     console.error("API 오류:", {
@@ -30,7 +30,7 @@ export const getBodyLogsAPI = async (params?: {
   offset?: number;
 }): Promise<any> => {
   try {
-    const response = await userAPI.get("/users/body-logs", { params });
+    const response = await authAPI.get("/users/body-logs", { params });
     return response.data;
   } catch (error: any) {
     console.error("API 오류:", {
@@ -42,28 +42,13 @@ export const getBodyLogsAPI = async (params?: {
   }
 };
 
-// 바디로그 통계 데이터 조회
-export const getBodyLogStatsAPI = async (params?: {
-  period?: "3months" | "6months" | "1year" | "2years" | "all";
-  interval?: "1week" | "2weeks" | "4weeks" | "3months";
-}): Promise<BodyLogStatsDTO> => {
-  try {
-    const response = await userAPI.get("/users/body-logs/stats", { params });
-    return response.data;
-  } catch (error: any) {
-    console.error("API 오류:", {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    });
-    throw error;
-  }
-};
+// 바디로그 통계 데이터 조회 - statistics.ts로 이동
+export { getBodyLogStatsAPI };
 
 // 최신 바디로그 조회
 export const getLatestBodyLogAPI = async (): Promise<any> => {
   try {
-    const response = await userAPI.get("/users/body-logs/latest");
+    const response = await authAPI.get("/users/body-logs/latest");
     return response.data;
   } catch (error: any) {
     console.error("API 오류:", {
@@ -80,7 +65,7 @@ export const deleteBodyLogAPI = async (
   userInfoRecordSeq: number
 ): Promise<any> => {
   try {
-    const response = await userAPI.delete(
+    const response = await authAPI.delete(
       `/users/body-logs/${userInfoRecordSeq}`
     );
     return response.data;

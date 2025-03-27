@@ -54,7 +54,7 @@ interface RootState {
 }
 
 // 차트 타입 정의
-type ChartType = "bodyLog" | "exerciseWeight" | "bodyPartVolume";
+type ChartType = "bodyLog" | "exerciseWeight" | "cardio" | "bodyPartVolume";
 
 // 차트 설정 정의
 interface ChartConfig {
@@ -83,9 +83,15 @@ const StatisticsPage: React.FC = () => {
     },
     {
       value: "exerciseWeight",
-      label: "운동 무게 변화",
+      label: "웨이트 기록 변화",
       icon: <FaChartLine />,
       component: <ExerciseWeightTab />,
+    },
+    {
+      value: "cardio",
+      label: "유산소 기록",
+      icon: <FaChartLine />,
+      component: <CardioRecordTab />,
     },
     {
       value: "bodyPartVolume",

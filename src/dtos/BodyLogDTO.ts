@@ -7,8 +7,14 @@ export interface BodyLogDTO {
   recordDate?: Date;
 }
 
+export interface BodyLogDataPoint {
+  date: string;
+  value: number | null;
+  isEstimated: boolean;
+}
+
 export interface BodyLogStatsDTO {
-  bodyWeight: { date: string; value: number | null }[];
-  muscleMass: { date: string; value: number | null }[];
-  bodyFat: { date: string; value: number | null }[];
+  bodyWeight: BodyLogDataPoint[];
+  muscleMass: BodyLogDataPoint[];
+  bodyFat: BodyLogDataPoint[];
 }

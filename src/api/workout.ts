@@ -1,4 +1,10 @@
-import { workoutAPI, publicWorkoutAPI } from "./axiosConfig";
+import { authAPI, publicAPI } from "./axiosConfig";
+import { getExerciseWeightStatsAPI } from "./statistics";
+import type {
+  ExerciseWeightDataPoint,
+  ExerciseWeightStats,
+  ExerciseWeightStatsDTO,
+} from "./statistics";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
@@ -9,7 +15,7 @@ export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
       image: data.get("image"),
     });
 
-    const response = await workoutAPI.post("/workouts/workout-records", data, {
+    const response = await authAPI.post("/workouts/workout-records", data, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
@@ -36,7 +42,7 @@ export const getUserWorkoutOfTheDaysByNicknameAPI = async (
     params.cursor = cursor;
   }
 
-  const response = await publicWorkoutAPI.get(
+  const response = await publicAPI.get(
     `/workouts/profiles/${nickname}/workout-records`,
     { params }
   );
@@ -48,7 +54,7 @@ export const getUserWorkoutOfTheDaysByNicknameAPI = async (
 export const getUserWorkoutTotalCountByNicknameAPI = async (
   nickname: string
 ): Promise<any> => {
-  const response = await publicWorkoutAPI.get(
+  const response = await publicAPI.get(
     `/workouts/profiles/${nickname}/workout-records-count`
   );
   return response.data;
@@ -58,7 +64,7 @@ export const getUserWorkoutTotalCountByNicknameAPI = async (
 export const getWorkoutRecordDetailsAPI = async (
   workoutId: number
 ): Promise<any> => {
-  const response = await publicWorkoutAPI.get(
+  const response = await publicAPI.get(
     `/workouts/profiles/workout-records/${workoutId}`
   );
   return response.data;
@@ -66,7 +72,7 @@ export const getWorkoutRecordDetailsAPI = async (
 
 // 사용자의 최근 운동목록 조회
 export const getRecentWorkoutRecordsAPI = async (): Promise<any> => {
-  const response = await workoutAPI.get("/workouts/workout-records/recent");
+  const response = await authAPI.get("/workouts/workout-records/recent");
   return response.data;
 };
 
@@ -75,7 +81,7 @@ export const deleteWorkoutRecordAPI = async (
   workoutId: number
 ): Promise<any> => {
   try {
-    const response = await workoutAPI.delete(
+    const response = await authAPI.delete(
       `/workouts/workout-records/${workoutId}`
     );
     return response.data;
@@ -95,7 +101,7 @@ export const updateWorkoutRecordAPI = async (
   updateData: { workoutDiary?: string | null }
 ): Promise<any> => {
   try {
-    const response = await workoutAPI.put(
+    const response = await authAPI.put(
       `/workouts/workout-records/${workoutId}`,
       updateData
     );
@@ -108,4 +114,12 @@ export const updateWorkoutRecordAPI = async (
     });
     throw error;
   }
+};
+
+// 운동 무게 통계 데이터 조회 - statistics.ts로 이동
+export { getExerciseWeightStatsAPI };
+export type {
+  ExerciseWeightDataPoint,
+  ExerciseWeightStats,
+  ExerciseWeightStatsDTO,
 };

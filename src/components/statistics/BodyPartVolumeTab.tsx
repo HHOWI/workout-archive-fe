@@ -48,14 +48,10 @@ const bodyPartOptions = [
   { value: "arms", label: "팔" },
 ];
 
-interface BodyPartVolumeTabProps {
-  // 필요한 props 정의
-}
-
-const BodyPartVolumeTab: React.FC<BodyPartVolumeTabProps> = () => {
+const BodyPartVolumeTab: React.FC = () => {
   // 상태 관리
-  const [period, setPeriod] = useState("1year");
-  const [interval, setInterval] = useState("1week");
+  const [period, setPeriod] = useState("3months");
+  const [interval, setInterval] = useState("all");
   const [bodyPart, setBodyPart] = useState("chest");
 
   return (
@@ -87,6 +83,7 @@ const BodyPartVolumeTab: React.FC<BodyPartVolumeTabProps> = () => {
             <MenuItem value="2weeks">2주</MenuItem>
             <MenuItem value="4weeks">4주</MenuItem>
             <MenuItem value="3months">3개월</MenuItem>
+            <MenuItem value="all">전체보기</MenuItem>
           </Select>
         </FormControl>
 
