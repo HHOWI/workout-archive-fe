@@ -2,172 +2,258 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled from "@emotion/styled";
 import { ExerciseDTO, RecordDetailDTO } from "../dtos/WorkoutDTO";
 
+// 색상 테마
+const COLORS = {
+  primary: "#4a90e2",
+  primaryDark: "#2a6bba",
+  primaryLight: "#e8f2ff",
+  primaryHover: "#357ac5",
+  secondary: "#f8f9fa",
+  secondaryHover: "#e9ecef",
+  border: "#dde2e8",
+  borderDark: "#c6ccd4",
+  text: "#333333",
+  textSecondary: "#6c757d",
+  textLight: "#adb5bd",
+  danger: "#dc3545",
+  dangerHover: "#c82333",
+  background: "#ffffff",
+  cardBackground: "#ffffff",
+  success: "#28a745",
+  shadow: "rgba(0, 0, 0, 0.1)",
+  shadowLight: "rgba(0, 0, 0, 0.05)",
+};
+
+// 간격 및 크기 상수화
+const SPACING = {
+  xs: "4px",
+  sm: "8px",
+  md: "16px",
+  lg: "24px",
+  xl: "32px",
+};
+
+const BORDER_RADIUS = {
+  sm: "4px",
+  md: "8px",
+  lg: "12px",
+  round: "50%",
+};
+
 const Container = styled.div`
-  margin-bottom: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  padding: ${SPACING.lg};
+  background-color: ${COLORS.cardBackground};
+  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+  transition: all 0.2s ease;
 `;
 
 const ExerciseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: ${SPACING.md};
+  padding-bottom: ${SPACING.sm};
+  border-bottom: 1px solid ${COLORS.border};
 `;
 
 const ExerciseInfoContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: ${SPACING.sm};
 `;
 
 const ExerciseName = styled.h3`
   margin: 0;
   font-size: 18px;
+  font-weight: 600;
+  color: ${COLORS.text};
 `;
 
 const ExerciseType = styled.span`
   font-size: 14px;
-  color: #666;
+  color: ${COLORS.textSecondary};
+  background-color: ${COLORS.secondary};
+  padding: 2px 8px;
+  border-radius: ${BORDER_RADIUS.sm};
 `;
 
 const RemoveButton = styled.button`
-  background: #ff4d4f;
+  background-color: ${COLORS.danger};
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
+  border-radius: ${BORDER_RADIUS.sm};
+  padding: 8px 12px;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${COLORS.dangerHover};
+  }
 `;
 
 const SetContainer = styled.div`
-  margin-top: 15px;
+  margin-top: ${SPACING.md};
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: ${SPACING.md};
   overflow-x: auto;
-  padding-bottom: 10px;
+  padding-bottom: ${SPACING.md};
+  scrollbar-width: thin;
 
   &::-webkit-scrollbar {
     height: 6px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: #ccc;
+    background-color: ${COLORS.borderDark};
     border-radius: 3px;
   }
 
   &::-webkit-scrollbar-track {
-    background-color: #f0f0f0;
+    background-color: ${COLORS.secondary};
+    border-radius: 3px;
   }
 `;
 
 const SetCard = styled.div`
   display: flex;
   flex-direction: column;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  padding: 8px;
-  min-width: 100px;
-  max-width: 100px;
-  background-color: #f9f9f9;
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  padding: ${SPACING.md};
+  min-width: 120px;
+  max-width: 120px;
+  background-color: ${COLORS.background};
   flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+
+  &:hover {
+    border-color: ${COLORS.borderDark};
+    box-shadow: 0 3px 6px ${COLORS.shadow};
+  }
 `;
 
 const SetNumber = styled.div`
-  font-weight: bold;
-  font-size: 12px;
-  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: ${SPACING.sm};
   text-align: center;
-  padding: 2px;
-  background-color: #eee;
-  border-radius: 4px;
+  padding: 4px;
+  background-color: ${COLORS.secondary};
+  border-radius: ${BORDER_RADIUS.sm};
+  color: ${COLORS.text};
 `;
 
 const InputField = styled.input<{ isRequired?: boolean }>`
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 8px 10px;
+  border: 1px solid ${(props) => (props.isRequired ? "#ffebee" : COLORS.border)};
+  border-radius: ${BORDER_RADIUS.sm};
   width: 100%;
-  margin-top: 3px;
-  font-size: 13px;
+  margin-top: 4px;
+  font-size: 14px;
   box-sizing: border-box;
-  background-color: ${({ isRequired }) => (isRequired ? "#fff5f5" : "white")};
+  background-color: ${({ isRequired }) => (isRequired ? "#fff8f8" : "white")};
+  color: ${COLORS.text};
+  transition: all 0.2s ease;
+
   &:focus {
-    outline: 1px solid #4a90e2;
-    border-color: #4a90e2;
+    outline: none;
+    border-color: ${COLORS.primary};
+    box-shadow: 0 0 0 2px ${COLORS.primaryLight};
+  }
+
+  &:hover:not(:focus) {
+    border-color: ${COLORS.borderDark};
   }
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  margin-bottom: ${SPACING.sm};
 `;
 
 const InputLabel = styled.label`
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   margin-bottom: 2px;
-  color: #555;
+  color: ${COLORS.textSecondary};
+  display: flex;
+  align-items: center;
 `;
 
 const RequiredText = styled.span`
-  color: red;
+  color: ${COLORS.danger};
   font-size: 10px;
-  margin-left: 2px;
+  margin-left: ${SPACING.xs};
 `;
 
 const CardioContainer = styled.div`
-  margin-top: 15px;
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
+  margin-top: ${SPACING.md};
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${SPACING.md};
 `;
 
 const CardioCard = styled.div`
   display: flex;
   flex-direction: column;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  padding: 8px;
-  min-width: 120px;
-  background-color: #f9f9f9;
-  flex: 1;
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  padding: ${SPACING.md};
+  background-color: ${COLORS.background};
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+
+  &:hover {
+    border-color: ${COLORS.borderDark};
+    box-shadow: 0 3px 6px ${COLORS.shadow};
+  }
 `;
 
 const CardioCardTitle = styled.div`
-  font-weight: bold;
-  font-size: 12px;
-  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: ${SPACING.sm};
   text-align: center;
-  padding: 2px;
-  background-color: #eee;
-  border-radius: 4px;
+  padding: 4px;
+  background-color: ${COLORS.secondary};
+  border-radius: ${BORDER_RADIUS.sm};
+  color: ${COLORS.text};
 `;
 
 const CardioInfoText = styled.small`
-  margin-top: 5px;
+  margin-top: ${SPACING.sm};
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
-  color: #666;
+  color: ${COLORS.textSecondary};
+  background-color: ${COLORS.secondary};
+  padding: 4px;
+  border-radius: ${BORDER_RADIUS.sm};
 `;
 
 const Tooltip = styled.div`
   position: relative;
+
   &:hover::after {
     content: "시간 또는 거리 중 하나 이상 입력해주세요";
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: #333;
+    background: ${COLORS.text};
     color: white;
-    padding: 5px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: ${BORDER_RADIUS.sm};
     font-size: 12px;
     white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 3px 6px ${COLORS.shadow};
   }
 `;
 

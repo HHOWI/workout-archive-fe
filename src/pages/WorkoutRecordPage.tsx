@@ -30,129 +30,560 @@ import { useSelector } from "react-redux";
 import { format } from "date-fns";
 import { v4 as uuidv4 } from "uuid";
 
+// 색상 테마 상수화
+const COLORS = {
+  primary: "#4a90e2",
+  primaryDark: "#2a6bba",
+  primaryLight: "#e8f2ff",
+  primaryHover: "#357ac5",
+  secondary: "#f8f9fa",
+  secondaryHover: "#e9ecef",
+  border: "#dde2e8",
+  borderDark: "#c6ccd4",
+  text: "#333333",
+  textSecondary: "#6c757d",
+  textLight: "#adb5bd",
+  danger: "#dc3545",
+  dangerHover: "#c82333",
+  background: "#ffffff",
+  cardBackground: "#ffffff",
+  success: "#28a745",
+  shadow: "rgba(0, 0, 0, 0.1)",
+  shadowLight: "rgba(0, 0, 0, 0.05)",
+};
+
+// 간격 및 크기 상수화
+const SPACING = {
+  xs: "4px",
+  sm: "8px",
+  md: "16px",
+  lg: "24px",
+  xl: "32px",
+  xxl: "48px",
+};
+
+const BORDER_RADIUS = {
+  sm: "4px",
+  md: "8px",
+  lg: "12px",
+  xl: "16px",
+  round: "50%",
+};
+
+// 전체 레이아웃 관련 반응형 스타일 적용
+const minimumFormsWidth = "680px";
+
+// 메인 컨테이너
 const Container = styled.div`
-  max-width: 800px;
+  max-width: 1000px;
+  width: 95%;
   margin: 0 auto;
-  padding: 20px;
+  padding: ${SPACING.lg} ${SPACING.md};
+  color: ${COLORS.text};
 `;
 
-const Title = styled.h1`
-  text-align: center;
-  margin-bottom: 30px;
+// 카드 스타일 컴포넌트
+const Card = styled.div`
+  background-color: ${COLORS.cardBackground};
+  border-radius: ${BORDER_RADIUS.lg};
+  box-shadow: 0 2px 8px ${COLORS.shadowLight};
+  margin-bottom: ${SPACING.lg};
+  overflow: hidden;
 `;
 
-const FormGroup = styled.div`
-  margin-bottom: 20px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+// 카드 헤더
+const CardHeader = styled.div`
+  padding: ${SPACING.md} ${SPACING.lg};
+  border-bottom: 1px solid ${COLORS.border};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${SPACING.sm};
+
+  @media (max-width: ${minimumFormsWidth}) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
+// 카드 내용
+const CardBody = styled.div`
+  padding: ${SPACING.lg};
+`;
+
+// 카드 제목
+const CardTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: ${COLORS.text};
+`;
+
+// 카드 푸터
+const CardFooter = styled.div`
+  padding: ${SPACING.md} ${SPACING.lg};
+  border-top: 1px solid ${COLORS.border};
+  background-color: ${COLORS.secondary};
+`;
+
+// 폼 레이블
 const Label = styled.label`
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: ${SPACING.sm};
   font-weight: 600;
+  font-size: 15px;
+  color: ${COLORS.text};
 `;
 
-const ExercisesContainer = styled.div`
-  margin-top: 30px;
+// 날짜, 장소 선택 그리드 레이아웃
+const TwoColumnGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1.5fr 8.5fr;
+  gap: ${SPACING.xl};
+
+  @media (max-width: ${minimumFormsWidth}) {
+    grid-template-columns: 1fr;
+    gap: ${SPACING.md};
+  }
 `;
 
-const AddExerciseButton = styled.button`
-  background: none;
-  border: 1px dashed #aaa;
-  border-radius: 8px;
+// 입력 필드 공통 스타일
+const inputBaseStyles = `
   width: 100%;
-  padding: 15px;
-  margin-top: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
+  height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: ${COLORS.text};
+  background-color: ${COLORS.background};
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  
+  &:focus {
+    outline: none;
+    border-color: ${COLORS.primary};
+    box-shadow: 0 0 0 3px ${COLORS.primaryLight};
+  }
+  
   &:hover {
-    background: #f5f5f5;
+    border-color: ${COLORS.borderDark};
   }
 `;
 
-const SubmitButton = styled.button`
-  background: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 20px;
-  width: 100%;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 30px;
-
-  &:hover {
-    background: #357ac5;
-  }
-
-  &:disabled {
-    background: #cccccc;
-    cursor: not-allowed;
-  }
-`;
-
-const CustomDatePickerWrapper = styled.div`
+// 날짜 선택기 래퍼
+const DatePickerWrapper = styled.div`
   .react-datepicker-wrapper {
     width: 100%;
   }
 
-  .react-datepicker__input-container input {
+  .react-datepicker__input-container {
+    display: block;
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
   }
 
-  max-width: 800px;
-  margin: 0 auto;
+  .react-datepicker__input-container input {
+    ${inputBaseStyles}
+  }
 `;
 
+// 위치 선택 버튼
+const LocationButton = styled.button`
+  ${inputBaseStyles}
+  display: flex;
+  align-items: center;
+  color: ${COLORS.textSecondary};
+  cursor: pointer;
+  text-align: left;
+
+  svg {
+    margin-right: ${SPACING.sm};
+    color: ${COLORS.primary};
+    flex-shrink: 0;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: ${COLORS.borderDark};
+    background-color: ${COLORS.secondaryHover};
+  }
+`;
+
+// 선택된 위치 표시
+const SelectedLocation = styled.div`
+  ${inputBaseStyles}
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: auto;
+  min-height: 40px;
+  padding: 4px 12px;
+
+  &:hover {
+    border-color: ${COLORS.borderDark};
+  }
+`;
+
+// 선택된 위치 표시 스타일 개선
+const LocationInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: ${SPACING.sm};
+`;
+
+// 위치 이름
+const LocationName = styled.div`
+  font-weight: 600;
+  color: ${COLORS.text};
+  white-space: nowrap;
+`;
+
+// 위치 주소
+const LocationAddress = styled.div`
+  font-size: 13px;
+  color: ${COLORS.textSecondary};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+// 삭제 버튼
+const RemoveButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: ${COLORS.danger};
+  border: none;
+  cursor: pointer;
+  padding: ${SPACING.xs};
+  margin-left: ${SPACING.sm};
+  border-radius: ${BORDER_RADIUS.sm};
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+
+  &:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+`;
+
+// 사진 및 일기 그리드
+const PhotoDiaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  background-color: ${COLORS.cardBackground};
+  border-radius: ${BORDER_RADIUS.lg};
+  box-shadow: 0 2px 8px ${COLORS.shadowLight};
+  overflow: hidden;
+  margin-bottom: ${SPACING.lg};
+
+  @media (max-width: ${minimumFormsWidth}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+// 사진 섹션
+const PhotoSection = styled.div`
+  padding: ${SPACING.lg};
+  border-right: 1px solid ${COLORS.border};
+
+  @media (max-width: ${minimumFormsWidth}) {
+    border-right: none;
+    border-bottom: 1px solid ${COLORS.border};
+  }
+`;
+
+// 일기 섹션
+const DiarySection = styled.div`
+  padding: ${SPACING.lg};
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+// 사진 업로드 컨테이너
+const PhotoUploadContainer = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+// 사진 미리보기 영역
+const PhotoPreviewArea = styled.div<{ hasPhoto: boolean }>`
+  flex: 1;
+  min-height: 280px;
+  border: ${(props) =>
+    props.hasPhoto ? "none" : `2px dashed ${COLORS.border}`};
+  border-radius: ${BORDER_RADIUS.md};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: ${SPACING.md};
+  overflow: hidden;
+  position: relative;
+  cursor: ${(props) => (props.hasPhoto ? "default" : "pointer")};
+  background-color: ${(props) =>
+    props.hasPhoto ? "transparent" : COLORS.secondary};
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.hasPhoto ? "transparent" : COLORS.secondaryHover};
+    border-color: ${(props) => (props.hasPhoto ? "none" : COLORS.borderDark)};
+  }
+`;
+
+// 사진 미리보기
+const PreviewImage = styled.img`
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+`;
+
+// 업로드 플레이스홀더
+const UploadPlaceholder = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: ${SPACING.md};
+  color: ${COLORS.textSecondary};
+
+  svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: ${SPACING.md};
+    color: ${COLORS.textLight};
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+  }
+`;
+
+// 파일 입력
+const FileInput = styled.input`
+  display: none;
+`;
+
+// 사진 제거 버튼
+const PhotoRemoveButton = styled.button`
+  background-color: ${COLORS.background};
+  color: ${COLORS.danger};
+  border: 1px solid ${COLORS.danger};
+  border-radius: ${BORDER_RADIUS.md};
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+`;
+
+// 운동 일기 텍스트 영역
+const DiaryTextarea = styled.textarea`
+  width: 100%;
+  min-height: 280px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: ${COLORS.text};
+  background-color: ${COLORS.background};
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  resize: vertical;
+  line-height: 1.6;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: ${COLORS.primary};
+    box-shadow: 0 0 0 3px ${COLORS.primaryLight};
+  }
+
+  &:hover:not(:focus) {
+    border-color: ${COLORS.borderDark};
+  }
+
+  &::placeholder {
+    color: ${COLORS.textLight};
+  }
+`;
+
+// 운동 목록 헤더
+const ExerciseListHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${SPACING.md};
+`;
+
+// 최근 운동 버튼
+const RecentWorkoutsButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${SPACING.sm};
+  padding: 10px 16px;
+  background-color: ${COLORS.secondary};
+  color: ${COLORS.text};
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  @media (max-width: ${minimumFormsWidth}) {
+    width: 100%;
+    justify-content: center;
+    margin-top: ${SPACING.xs};
+  }
+
+  svg {
+    color: ${COLORS.primary};
+  }
+
+  &:hover {
+    background-color: ${COLORS.secondaryHover};
+    border-color: ${COLORS.borderDark};
+  }
+`;
+
+// 운동 추가 버튼
+const AddExerciseButton = styled.button`
+  width: 100%;
+  padding: ${SPACING.md};
+  margin-top: ${SPACING.md};
+  background-color: ${COLORS.secondary};
+  color: ${COLORS.textSecondary};
+  border: 1px dashed ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${COLORS.secondaryHover};
+    border-color: ${COLORS.borderDark};
+    color: ${COLORS.text};
+  }
+`;
+
+// 드래그 가능한 운동 아이템
+const DraggableExercise = styled.div<{ isDragging?: boolean }>`
+  margin-bottom: ${SPACING.md};
+  opacity: ${(props) => (props.isDragging ? "0.5" : "1")};
+  cursor: grab;
+  border-radius: ${BORDER_RADIUS.md};
+  overflow: hidden;
+  box-shadow: 0 2px 6px ${COLORS.shadowLight};
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px ${COLORS.shadow};
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+`;
+
+// 메시지 스타일
+const Message = styled.div`
+  text-align: center;
+  padding: ${SPACING.lg} ${SPACING.md};
+  color: ${COLORS.textSecondary};
+  font-size: 15px;
+`;
+
+// 저장 버튼
+const SaveButton = styled.button`
+  width: 100%;
+  padding: ${SPACING.md};
+  background-color: ${COLORS.primary};
+  color: white;
+  border: none;
+  border-radius: ${BORDER_RADIUS.md};
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3);
+
+  &:hover:not(:disabled) {
+    background-color: ${COLORS.primaryHover};
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+  }
+
+  &:disabled {
+    background-color: ${COLORS.textLight};
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
+// 모달 스타일
 const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: ${SPACING.md};
 `;
 
 const ModalContent = styled.div`
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
+  background-color: ${COLORS.background};
+  border-radius: ${BORDER_RADIUS.lg};
   width: 90%;
   max-width: 900px;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 
-  /* 스크롤바 스타일링 */
+  @media (max-width: ${minimumFormsWidth}) {
+    width: 100%;
+    max-height: 90vh;
+  }
+
   &::-webkit-scrollbar {
     width: 8px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background-color: ${COLORS.secondary};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #ccc;
+    background-color: #c1c9d6;
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #999;
+    background-color: #a8b2c1;
   }
 `;
 
@@ -160,280 +591,110 @@ const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  padding: ${SPACING.md} ${SPACING.lg};
+  border-bottom: 1px solid ${COLORS.border};
+  position: sticky;
+  top: 0;
+  background-color: ${COLORS.background};
+  z-index: 1;
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
-  font-size: 1.5rem;
-  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  color: ${COLORS.text};
 `;
 
 const CloseButton = styled.button`
   background: none;
   border: none;
   font-size: 24px;
+  line-height: 1;
+  color: ${COLORS.textSecondary};
   cursor: pointer;
-  color: #666;
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 
   &:hover {
-    color: #333;
+    color: ${COLORS.text};
   }
 `;
 
-const LocationDisplay = styled.div`
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-top: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const ModalBody = styled.div`
+  padding: ${SPACING.lg};
 `;
 
-const LocationInfo = styled.div`
-  flex: 1;
-`;
-
-const LocationName = styled.div`
-  font-weight: 600;
-  margin-bottom: 3px;
-`;
-
-const LocationAddress = styled.div`
-  font-size: 14px;
-  color: #666;
-`;
-
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: #ff5252;
-  cursor: pointer;
-  padding: 5px;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const SelectLocationButton = styled.button`
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-
-  svg {
-    margin-right: 8px;
-  }
-
-  &:hover {
-    background: #e8e8e8;
-  }
-`;
-
-const PhotoUploadContainer = styled.div`
-  margin-bottom: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const PhotoUploadHeader = styled.div`
-  margin-bottom: 15px;
-`;
-
-const PhotoPreviewContainer = styled.div`
-  width: 100%;
-  height: 200px;
-  border: 1px dashed #aaa;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 15px;
-  overflow: hidden;
-  position: relative;
-`;
-
-const PhotoPreview = styled.img`
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-`;
-
-const PhotoUploadInput = styled.input`
-  display: none;
-`;
-
-const PhotoUploadButton = styled.button`
-  background: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 15px;
-  cursor: pointer;
-  margin-right: 10px;
-
-  &:hover {
-    background: #357ac5;
-  }
-
-  &:disabled {
-    background: #cccccc;
-    cursor: not-allowed;
-  }
-`;
-
-const RemovePhotoButton = styled.button`
-  background: #ff4d4f;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 15px;
-  cursor: pointer;
-
-  &:hover {
-    background: #ff7875;
-  }
-`;
-
-const TextareaContainer = styled.div`
-  margin-bottom: 20px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const StyledTextarea = styled.textarea`
-  width: 100%;
-  min-height: 100px;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  resize: vertical;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-
-  &:focus {
-    outline: none;
-    border-color: #4a90e2;
-  }
-`;
-
-// 드래그 관련 스타일 추가
-const DraggableItem = styled.div<{ isDragging?: boolean }>`
-  margin-bottom: 10px;
-  cursor: grab;
-  opacity: ${(props) => (props.isDragging ? "0.5" : "1")};
-
-  &:active {
-    cursor: grabbing;
-  }
-`;
-
-// 추가: 최근 운동 기록 관련 스타일
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-`;
-
-const SecondaryButton = styled.button`
-  background: #f0f0f0;
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px 15px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-
-  svg {
-    margin-right: 8px;
-  }
-
-  &:hover {
-    background: #e8e8e8;
-  }
-`;
-
+// 최근 운동 목록 스타일
 const RecentWorkoutsList = styled.div`
-  margin-top: 15px;
+  margin-top: ${SPACING.md};
 `;
 
 const RecentWorkoutItem = styled.div`
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  padding: ${SPACING.md};
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  margin-bottom: ${SPACING.md};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: #f5f5f5;
-    border-color: #4a90e2;
+    background-color: ${COLORS.secondary};
+    border-color: ${COLORS.primary};
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px ${COLORS.shadowLight};
   }
 `;
 
 const WorkoutDate = styled.div`
   font-weight: 600;
   font-size: 16px;
-  color: #333;
-  margin-bottom: 5px;
+  color: ${COLORS.text};
+  margin-bottom: ${SPACING.sm};
 `;
 
 const WorkoutInfo = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  gap: ${SPACING.xs};
+  margin-bottom: ${SPACING.sm};
   font-size: 14px;
-  color: #666;
+  color: ${COLORS.textSecondary};
 `;
 
 const WorkoutIcon = styled.span`
-  margin-right: 8px;
-  color: #4a90e2;
+  display: flex;
+  align-items: center;
+  color: ${COLORS.primary};
 `;
 
 const WorkoutExercises = styled.div`
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
+  margin-top: ${SPACING.sm};
+  padding-top: ${SPACING.sm};
+  border-top: 1px solid ${COLORS.border};
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${SPACING.xs};
 `;
 
-const ExerciseItem = styled.div`
-  font-size: 14px;
-  margin-bottom: 5px;
-  display: flex;
+const ExerciseTag = styled.div`
+  display: inline-flex;
   align-items: center;
+  font-size: 13px;
+  background-color: ${COLORS.secondary};
+  color: ${COLORS.text};
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin: 2px;
 
   &::before {
-    content: "•";
-    color: #4a90e2;
-    margin-right: 5px;
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: ${COLORS.primary};
+    margin-right: 6px;
   }
-`;
-
-// 재사용 가능한 메시지 컴포넌트
-const LoadingMessage = styled.div`
-  text-align: center;
-  padding: 20px;
-  color: #666;
 `;
 
 const WorkoutRecordPage: React.FC = () => {
@@ -488,6 +749,60 @@ const WorkoutRecordPage: React.FC = () => {
       navigate("/login");
     }
   }, [userInfo, navigate]);
+
+  // 커스텀 스타일을 head에 추가
+  useEffect(() => {
+    // DatePicker 스타일 커스터마이징
+    const styleElement = document.createElement("style");
+    styleElement.textContent = `
+      .custom-datepicker {
+        font-family: inherit !important;
+        font-size: 14px !important;
+        color: ${COLORS.text} !important;
+        height: 40px !important;
+      }
+      
+      .react-datepicker {
+        font-family: inherit !important;
+        border-color: ${COLORS.border} !important;
+        box-shadow: 0 2px 10px ${COLORS.shadowLight} !important;
+        font-size: 13px !important;
+      }
+      
+      .react-datepicker__header {
+        background-color: ${COLORS.secondary} !important;
+        border-bottom-color: ${COLORS.border} !important;
+        padding-top: 8px !important;
+      }
+      
+      .react-datepicker__current-month, 
+      .react-datepicker-time__header,
+      .react-datepicker-year-header {
+        color: ${COLORS.text} !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+      }
+      
+      .react-datepicker__day {
+        margin: 2px !important;
+      }
+      
+      .react-datepicker__day--selected, 
+      .react-datepicker__day--keyboard-selected {
+        background-color: ${COLORS.primary} !important;
+        color: white !important;
+      }
+      
+      .react-datepicker__day:hover {
+        background-color: ${COLORS.primaryLight} !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
 
   // 폼 유효성 검사 - 최적화 및 불필요한 검사 제거
   const validateForm = useCallback(() => {
@@ -692,9 +1007,11 @@ const WorkoutRecordPage: React.FC = () => {
     }
   }, []);
 
-  const handleUploadButtonClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+  const handlePhotoContainerClick = useCallback(() => {
+    if (!photoPreview) {
+      fileInputRef.current?.click();
+    }
+  }, [photoPreview]);
 
   // API 관련 함수
   const loadRecentWorkouts = useCallback(async () => {
@@ -831,160 +1148,217 @@ const WorkoutRecordPage: React.FC = () => {
 
   return (
     <Container>
-      {/* 날짜 선택 */}
-      <FormGroup>
-        <Label>운동 날짜</Label>
-        <CustomDatePickerWrapper>
-          <DatePicker
-            selected={date}
-            onChange={handleDateChange}
-            dateFormat="yyyy-MM-dd"
-          />
-        </CustomDatePickerWrapper>
-      </FormGroup>
+      {/* 날짜 및 장소 섹션 */}
+      <Card>
+        <CardBody>
+          <TwoColumnGrid>
+            <div>
+              <Label>운동 날짜</Label>
+              <DatePickerWrapper>
+                <DatePicker
+                  selected={date}
+                  onChange={handleDateChange}
+                  dateFormat="yyyy-MM-dd"
+                  className="custom-datepicker"
+                />
+              </DatePickerWrapper>
+            </div>
 
-      {/* 장소 선택 */}
-      <FormGroup>
-        <Label>운동 장소 (선택사항)</Label>
-        {selectedLocation ? (
-          <LocationDisplay>
-            <LocationInfo>
-              <LocationName>{selectedLocation.placeName}</LocationName>
-              <LocationAddress>
-                {selectedLocation.roadAddressName ||
-                  selectedLocation.addressName ||
-                  selectedLocation.placeAddress ||
-                  ""}
-              </LocationAddress>
-            </LocationInfo>
-            <RemoveButton onClick={() => setSelectedLocation(null)}>
-              삭제
-            </RemoveButton>
-          </LocationDisplay>
-        ) : (
-          <SelectLocationButton onClick={() => setShowLocationModal(true)}>
+            <div>
+              <Label>운동 장소 (선택사항)</Label>
+              {selectedLocation ? (
+                <SelectedLocation>
+                  <LocationInfo>
+                    <LocationName>{selectedLocation.placeName}</LocationName>
+                    <LocationAddress>
+                      {selectedLocation.roadAddressName ||
+                        selectedLocation.addressName ||
+                        selectedLocation.placeAddress ||
+                        ""}
+                    </LocationAddress>
+                  </LocationInfo>
+                  <RemoveButton onClick={() => setSelectedLocation(null)}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </RemoveButton>
+                </SelectedLocation>
+              ) : (
+                <LocationButton onClick={() => setShowLocationModal(true)}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  장소 선택하기
+                </LocationButton>
+              )}
+            </div>
+          </TwoColumnGrid>
+        </CardBody>
+      </Card>
+
+      {/* 사진과 일기 섹션 */}
+      <PhotoDiaryGrid>
+        <PhotoSection>
+          <PhotoUploadContainer>
+            <Label>운동 사진 (선택사항)</Label>
+            <PhotoPreviewArea
+              hasPhoto={!!photoPreview}
+              onClick={photoPreview ? undefined : handlePhotoContainerClick}
+            >
+              {photoPreview ? (
+                <PreviewImage src={photoPreview} alt="운동 사진 미리보기" />
+              ) : (
+                <UploadPlaceholder>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <p>사진을 업로드하려면 클릭하세요</p>
+                </UploadPlaceholder>
+              )}
+            </PhotoPreviewArea>
+
+            <FileInput
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              ref={fileInputRef}
+            />
+
+            {photoPreview && (
+              <PhotoRemoveButton onClick={handleRemovePhoto}>
+                사진 제거
+              </PhotoRemoveButton>
+            )}
+          </PhotoUploadContainer>
+        </PhotoSection>
+
+        <DiarySection>
+          <Label>오늘의 운동 일기 (선택사항)</Label>
+          <DiaryTextarea
+            placeholder="오늘 운동에 대한 생각이나 느낌을 기록해보세요."
+            value={diaryText}
+            onChange={handleDiaryChange}
+            spellCheck="false"
+          />
+        </DiarySection>
+      </PhotoDiaryGrid>
+
+      {/* 운동 목록 섹션 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>운동 목록</CardTitle>
+          <RecentWorkoutsButton onClick={loadRecentWorkouts}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="16"
-              fill="currentColor"
-              viewBox="0 0 16 16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
-            </svg>
-            장소 선택하기
-          </SelectLocationButton>
-        )}
-      </FormGroup>
-
-      {/* 사진 업로드 */}
-      <PhotoUploadContainer>
-        <PhotoUploadHeader>
-          <Label>운동 사진 (선택사항)</Label>
-        </PhotoUploadHeader>
-        <PhotoPreviewContainer>
-          {photoPreview ? (
-            <PhotoPreview src={photoPreview} alt="운동 사진 미리보기" />
-          ) : (
-            <span>사진을 업로드해주세요</span>
-          )}
-        </PhotoPreviewContainer>
-        <div>
-          <PhotoUploadInput
-            type="file"
-            accept="image/*"
-            onChange={handlePhotoSelect}
-            ref={fileInputRef}
-          />
-          <PhotoUploadButton type="button" onClick={handleUploadButtonClick}>
-            사진 선택
-          </PhotoUploadButton>
-          {photoPreview && (
-            <RemovePhotoButton type="button" onClick={handleRemovePhoto}>
-              사진 제거
-            </RemovePhotoButton>
-          )}
-        </div>
-      </PhotoUploadContainer>
-
-      {/* 운동 일기 */}
-      <TextareaContainer>
-        <Label>오늘의 운동 일기 (선택사항)</Label>
-        <StyledTextarea
-          placeholder="오늘 운동에 대한 생각이나 느낌을 기록해보세요."
-          value={diaryText}
-          onChange={handleDiaryChange}
-        />
-      </TextareaContainer>
-
-      {/* 운동 목록 */}
-      <ExercisesContainer>
-        <ButtonContainer>
-          <Label>운동 목록</Label>
-          <SecondaryButton onClick={loadRecentWorkouts}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path d="M2.5 3.5a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-11zm2-2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM0 13a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 16 13V6a1.5 1.5 0 0 0-1.5-1.5h-13A1.5 1.5 0 0 0 0 6v7zm1.5.5A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-13z" />
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
             최근 운동 목록 가져오기
-          </SecondaryButton>
-        </ButtonContainer>
+          </RecentWorkoutsButton>
+        </CardHeader>
 
-        {isLoadingDetails && (
-          <LoadingMessage>운동 상세 정보를 불러오는 중...</LoadingMessage>
-        )}
+        <CardBody>
+          {isLoadingDetails && (
+            <Message>운동 상세 정보를 불러오는 중...</Message>
+          )}
 
-        {exerciseRecords.map((record, index) => (
-          <DraggableItem
-            key={record.id}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, index)}
-            onDragEnd={handleDragEnd}
-            isDragging={index === draggedIndex}
-          >
-            <ExerciseSetFormMemo
-              exercise={record.exercise}
-              onRemove={() => handleRemoveExercise(index)}
-              onChange={(sets) => handleSetsChange(index, sets)}
-              setCount={record.setCount}
-              initialSets={record.sets}
-            />
-          </DraggableItem>
-        ))}
+          {exerciseRecords.map((record, index) => (
+            <DraggableExercise
+              key={record.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, index)}
+              onDragEnd={handleDragEnd}
+              isDragging={index === draggedIndex}
+            >
+              <ExerciseSetFormMemo
+                exercise={record.exercise}
+                onRemove={() => handleRemoveExercise(index)}
+                onChange={(sets) => handleSetsChange(index, sets)}
+                setCount={record.setCount}
+                initialSets={record.sets}
+              />
+            </DraggableExercise>
+          ))}
 
-        <AddExerciseButton onClick={() => setShowExerciseSelector(true)}>
-          + 운동 추가하기
-        </AddExerciseButton>
-      </ExercisesContainer>
+          {exerciseRecords.length === 0 && (
+            <Message>아직 추가된 운동이 없습니다. 운동을 추가해보세요.</Message>
+          )}
 
-      <SubmitButton
+          <AddExerciseButton onClick={() => setShowExerciseSelector(true)}>
+            + 운동 추가하기
+          </AddExerciseButton>
+        </CardBody>
+      </Card>
+
+      {/* 저장 버튼 */}
+      <SaveButton
         disabled={isSubmitting || !isButtonEnabled}
         onClick={handleSubmit}
       >
         {isSubmitting ? "저장 중..." : "기록 저장하기"}
-      </SubmitButton>
+      </SaveButton>
 
       {/* 운동 선택 모달 */}
       {showExerciseSelector && (
         <Modal>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent>
             <ModalHeader>
               <ModalTitle>운동 선택</ModalTitle>
               <CloseButton onClick={() => setShowExerciseSelector(false)}>
                 ×
               </CloseButton>
             </ModalHeader>
-            <ExerciseSelector
-              onSelectExercises={handleAddExercises}
-              onCancel={() => setShowExerciseSelector(false)}
-            />
+            <ModalBody>
+              <ExerciseSelector
+                onSelectExercises={handleAddExercises}
+                onCancel={() => setShowExerciseSelector(false)}
+              />
+            </ModalBody>
           </ModalContent>
         </Modal>
       )}
@@ -992,14 +1366,16 @@ const WorkoutRecordPage: React.FC = () => {
       {/* 장소 선택 모달 */}
       {showLocationModal && (
         <Modal>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent>
             <ModalHeader>
               <ModalTitle>운동 장소 선택</ModalTitle>
               <CloseButton onClick={() => setShowLocationModal(false)}>
                 ×
               </CloseButton>
             </ModalHeader>
-            <KakaoMapPlaceSelector onPlaceSelect={handleLocationSelect} />
+            <ModalBody>
+              <KakaoMapPlaceSelector onPlaceSelect={handleLocationSelect} />
+            </ModalBody>
           </ModalContent>
         </Modal>
       )}
@@ -1007,101 +1383,106 @@ const WorkoutRecordPage: React.FC = () => {
       {/* 최근 운동 기록 모달 */}
       {showRecentWorkoutsModal && (
         <Modal>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
+          <ModalContent>
             <ModalHeader>
               <ModalTitle>최근 운동 목록</ModalTitle>
               <CloseButton onClick={() => setShowRecentWorkoutsModal(false)}>
                 ×
               </CloseButton>
             </ModalHeader>
-            {isLoadingRecentWorkouts ? (
-              <LoadingMessage>최근 운동 기록을 불러오는 중...</LoadingMessage>
-            ) : (
-              <RecentWorkoutsList>
-                {recentWorkouts.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "20px" }}>
-                    최근 저장한 운동 기록이 없습니다.
-                  </div>
-                ) : (
-                  recentWorkouts.map((workout) => (
-                    <RecentWorkoutItem
-                      key={workout.workoutOfTheDaySeq}
-                      onClick={() =>
-                        loadAndApplyWorkoutDetails(workout.workoutOfTheDaySeq)
-                      }
-                    >
-                      <WorkoutDate>
-                        {format(
-                          new Date(workout.recordDate),
-                          "yyyy년 MM월 dd일"
+            <ModalBody>
+              {isLoadingRecentWorkouts ? (
+                <Message>최근 운동 기록을 불러오는 중...</Message>
+              ) : (
+                <RecentWorkoutsList>
+                  {recentWorkouts.length === 0 ? (
+                    <Message>최근 저장한 운동 기록이 없습니다.</Message>
+                  ) : (
+                    recentWorkouts.map((workout) => (
+                      <RecentWorkoutItem
+                        key={workout.workoutOfTheDaySeq}
+                        onClick={() =>
+                          loadAndApplyWorkoutDetails(workout.workoutOfTheDaySeq)
+                        }
+                      >
+                        <WorkoutDate>
+                          {format(
+                            new Date(workout.recordDate),
+                            "yyyy년 MM월 dd일"
+                          )}
+                        </WorkoutDate>
+
+                        {workout.workoutPlace && (
+                          <WorkoutInfo>
+                            <WorkoutIcon>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                            </WorkoutIcon>
+                            {workout.workoutPlace.placeName}
+                          </WorkoutInfo>
                         )}
-                      </WorkoutDate>
 
-                      {workout.workoutPlace && (
-                        <WorkoutInfo>
-                          <WorkoutIcon>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              viewBox="0 0 16 16"
-                            >
-                              <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
-                            </svg>
-                          </WorkoutIcon>
-                          {workout.workoutPlace.placeName}
-                        </WorkoutInfo>
-                      )}
-
-                      {workout.mainExerciseType && (
-                        <WorkoutInfo>
-                          <WorkoutIcon>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              viewBox="0 0 16 16"
-                            >
-                              <path d="M1 11.5a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 0-1h-13a.5.5 0 0 0-.5.5ZM8 7.04a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0-4.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM6 13c-2.76 0-5-1.5-5-3v-.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 .5.5V10c0 1.971-2.5 3-5 3Z" />
-                            </svg>
-                          </WorkoutIcon>
-                          {workout.mainExerciseType}
-                        </WorkoutInfo>
-                      )}
-
-                      {workout.workoutDetails &&
-                        workout.workoutDetails.length > 0 && (
-                          <WorkoutExercises>
-                            {workout.workoutDetails
-                              .filter(
-                                (detail, index, self) =>
-                                  index ===
-                                  self.findIndex(
-                                    (d) =>
-                                      d.exercise.exerciseName ===
-                                      detail.exercise.exerciseName
-                                  )
-                              )
-                              .slice(0, 3)
-                              .map((detail, index) => (
-                                <ExerciseItem key={index}>
-                                  {detail.exercise.exerciseName}
-                                </ExerciseItem>
-                              ))}
-                            {workout.workoutDetails.length > 3 && (
-                              <ExerciseItem>
-                                외 {workout.workoutDetails.length - 3}개 운동
-                              </ExerciseItem>
-                            )}
-                          </WorkoutExercises>
+                        {workout.mainExerciseType && (
+                          <WorkoutInfo>
+                            <WorkoutIcon>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z" />
+                                <line x1="16" y1="8" x2="2" y2="22" />
+                                <line x1="17.5" y1="15" x2="9" y2="15" />
+                              </svg>
+                            </WorkoutIcon>
+                            {workout.mainExerciseType}
+                          </WorkoutInfo>
                         )}
-                    </RecentWorkoutItem>
-                  ))
-                )}
-              </RecentWorkoutsList>
-            )}
+
+                        {workout.workoutDetails &&
+                          workout.workoutDetails.length > 0 && (
+                            <WorkoutExercises>
+                              {workout.workoutDetails
+                                .filter(
+                                  (detail, index, self) =>
+                                    index ===
+                                    self.findIndex(
+                                      (d) =>
+                                        d.exercise.exerciseName ===
+                                        detail.exercise.exerciseName
+                                    )
+                                )
+                                .map((detail, index) => (
+                                  <ExerciseTag key={index}>
+                                    {detail.exercise.exerciseName}
+                                  </ExerciseTag>
+                                ))}
+                            </WorkoutExercises>
+                          )}
+                      </RecentWorkoutItem>
+                    ))
+                  )}
+                </RecentWorkoutsList>
+              )}
+            </ModalBody>
           </ModalContent>
         </Modal>
       )}
