@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
 import {
   FormControl,
@@ -7,6 +7,9 @@ import {
   InputLabel,
   Grid,
   CircularProgress,
+  Box,
+  Paper,
+  Typography,
 } from "@mui/material";
 import { Line } from "react-chartjs-2";
 import {
@@ -36,59 +39,75 @@ ChartJS.register(
   zoomPlugin
 );
 
-const Container = styled.div`
+// ===== 스타일 컴포넌트 =====
+const Container = styled(Box)`
   margin-top: 20px;
 `;
 
-const FiltersContainer = styled.div`
+const FiltersContainer = styled(Box)`
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 `;
 
-const ChartWrapper = styled.div`
-  background-color: #f5f5f5;
+const ChartWrapper = styled(Paper)`
   border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 16px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
-const ChartTitle = styled.h3`
-  margin: 0 0 10px 0;
-  font-size: 16px;
+const ChartTitle = styled(Typography)`
+  margin-bottom: 12px;
+  font-weight: 500;
   color: #333;
 `;
 
-const LoadingContainer = styled.div`
+const LoadingContainer = styled(Box)`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px;
+  padding: 40px;
   width: 100%;
 `;
 
-const ErrorMessage = styled.div`
+const ErrorMessage = styled(Typography)`
   color: #f44336;
   text-align: center;
   padding: 20px;
 `;
 
+// ===== 유틸리티 및 상수 =====
+const PERIOD_OPTIONS = [
+  { value: "1months", label: "최근 1개월" },
+  { value: "3months", label: "최근 3개월" },
+  { value: "6months", label: "최근 6개월" },
+  { value: "1year", label: "최근 1년" },
+  { value: "2years", label: "최근 2년" },
+  { value: "all", label: "전체 기간" },
+];
+
+const INTERVAL_OPTIONS = [
+  { value: "1week", label: "1주" },
+  { value: "2weeks", label: "2주" },
+  { value: "4weeks", label: "4주" },
+  { value: "3months", label: "3개월" },
+  { value: "all", label: "전체보기" },
+];
+
 // 추정치 정보를 툴팁에 표시하는 함수
 const customTooltipCallback = (context: any) => {
-  // 추정치 여부 데이터 가져오기 - 안전하게 접근
   const dataIndex = context.dataIndex;
   const datasetIndex = context.datasetIndex;
-
-  // 데이터셋에서 직접 isEstimatedData 배열 가져오기
   const dataset = context.chart.data.datasets[datasetIndex];
   const isEstimated = dataset?.isEstimatedData?.[dataIndex];
 
-  // 기본 표시 내용
-  let tooltipText = [`${context.dataset.label}: ${context.formattedValue}`];
+  const tooltipText = [`${context.dataset.label}: ${context.formattedValue}`];
 
-  // 추정치인 경우 안내 메시지 추가
   if (isEstimated) {
     tooltipText.push("(추정치)");
   }
@@ -96,8 +115,13 @@ const customTooltipCallback = (context: any) => {
   return tooltipText;
 };
 
-// 몸무게 차트 옵션
-const getBodyWeightChartOptions = (title: string): ChartOptions<"line"> => ({
+// ===== 차트 옵션 정의 =====
+const getChartOptions = (
+  title: string,
+  yAxisLabel: string,
+  yMin: number = 0,
+  yMax?: number
+): ChartOptions<"line"> => ({
   responsive: true,
   plugins: {
     legend: {
@@ -106,10 +130,29 @@ const getBodyWeightChartOptions = (title: string): ChartOptions<"line"> => ({
     title: {
       display: true,
       text: title,
+      font: {
+        size: 14,
+        weight: "bold",
+      },
     },
     tooltip: {
       callbacks: {
         label: customTooltipCallback,
+      },
+    },
+    zoom: {
+      pan: {
+        enabled: true,
+        mode: "x",
+      },
+      zoom: {
+        wheel: {
+          enabled: true,
+        },
+        pinch: {
+          enabled: true,
+        },
+        mode: "x",
       },
     },
   },
@@ -120,101 +163,151 @@ const getBodyWeightChartOptions = (title: string): ChartOptions<"line"> => ({
         display: true,
         text: "날짜",
       },
+      grid: {
+        display: false,
+      },
     },
     y: {
-      min: 30, // 최소값 30kg
+      min: yMin,
+      max: yMax,
       title: {
         display: true,
-        text: "체중 (kg)",
+        text: yAxisLabel,
+      },
+      grid: {
+        color: "rgba(0, 0, 0, 0.05)",
       },
     },
   },
   maintainAspectRatio: false,
 });
 
-// 골격근량 차트 옵션
-const getMuscleMassChartOptions = (title: string): ChartOptions<"line"> => ({
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top" as const,
-    },
-    title: {
-      display: true,
-      text: title,
-    },
-    tooltip: {
-      callbacks: {
-        label: customTooltipCallback,
-      },
-    },
-  },
-  scales: {
-    x: {
-      type: "category",
-      title: {
-        display: true,
-        text: "날짜",
-      },
-    },
-    y: {
-      min: 10, // 최소값 10kg
-      max: 80, // 최대값 80kg
-      title: {
-        display: true,
-        text: "골격근량 (kg)",
-      },
-    },
-  },
-  maintainAspectRatio: false,
-});
+// ===== 컴포넌트 =====
+// 로딩 컴포넌트
+const LoadingIndicator = () => (
+  <LoadingContainer>
+    <CircularProgress size={40} thickness={4} />
+  </LoadingContainer>
+);
 
-// 체지방률 차트 옵션
-const getBodyFatChartOptions = (title: string): ChartOptions<"line"> => ({
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top" as const,
-    },
-    title: {
-      display: true,
-      text: title,
-    },
-    tooltip: {
-      callbacks: {
-        label: customTooltipCallback,
-      },
-    },
-  },
-  scales: {
-    x: {
-      type: "category",
-      title: {
-        display: true,
-        text: "날짜",
-      },
-    },
-    y: {
-      min: 0, // 최소값 10%
-      max: 40, // 최대값 50%
-      title: {
-        display: true,
-        text: "체지방률 (%)",
-      },
-    },
-  },
-  maintainAspectRatio: false,
-});
+// 필터 컴포넌트
+interface FiltersProps {
+  period: string;
+  setPeriod: (period: string) => void;
+  interval: string;
+  setInterval: (interval: string) => void;
+}
 
-const BodyLogTab: React.FC = () => {
-  // 상태 관리
-  const [period, setPeriod] = useState("3months");
-  const [interval, setInterval] = useState("all");
+const Filters: React.FC<FiltersProps> = ({
+  period,
+  setPeriod,
+  interval,
+  setInterval,
+}) => (
+  <FiltersContainer>
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>기간</InputLabel>
+      <Select
+        value={period}
+        onChange={(e) => setPeriod(e.target.value as string)}
+        label="기간"
+      >
+        {PERIOD_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>주기</InputLabel>
+      <Select
+        value={interval}
+        onChange={(e) => setInterval(e.target.value as string)}
+        label="주기"
+      >
+        {INTERVAL_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </FiltersContainer>
+);
+
+// 차트 컴포넌트
+interface ChartProps {
+  title: string;
+  label: string;
+  data: BodyLogDataPoint[];
+  yAxisLabel: string;
+  yMin?: number;
+  yMax?: number;
+  height?: string;
+  color: {
+    borderColor: string;
+    backgroundColor: string;
+  };
+}
+
+const BodyLogChart: React.FC<ChartProps> = ({
+  title,
+  label,
+  data,
+  yAxisLabel,
+  yMin,
+  yMax,
+  height = "300px",
+  color,
+}) => {
+  const chartData = useMemo(
+    () => ({
+      labels: data.map((item) => item.date),
+      datasets: [
+        {
+          label,
+          data: data.map((item) => item.value),
+          borderColor: color.borderColor,
+          backgroundColor: color.backgroundColor,
+          tension: 0.2,
+          isEstimatedData: data.map((item) => item.isEstimated),
+          pointStyle: data.map((item) =>
+            item.isEstimated ? "triangle" : "circle"
+          ),
+          pointRadius: data.map((item) => (item.isEstimated ? 5 : 3)),
+          borderWidth: 2,
+        },
+      ],
+    }),
+    [data, label, color]
+  );
+
+  return (
+    <ChartWrapper elevation={1}>
+      <ChartTitle variant="h6">{title}</ChartTitle>
+      <Box sx={{ height }}>
+        <Line
+          options={getChartOptions(`${label} 추이`, yAxisLabel, yMin, yMax)}
+          data={chartData}
+        />
+      </Box>
+    </ChartWrapper>
+  );
+};
+
+// ===== 커스텀 훅 =====
+interface UseBodyLogDataProps {
+  period: string;
+  interval: string;
+}
+
+const useBodyLogData = ({ period, interval }: UseBodyLogDataProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<BodyLogStatsDTO | null>(null);
 
-  // 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -236,120 +329,93 @@ const BodyLogTab: React.FC = () => {
     fetchData();
   }, [period, interval]);
 
-  // 차트 데이터 가공
-  const getChartData = (label: string, data: BodyLogDataPoint[]) => {
-    return {
-      labels: data.map((item) => item.date),
-      datasets: [
-        {
-          label,
-          data: data.map((item) => item.value),
-          borderColor:
-            label === "체중 (kg)"
-              ? "rgb(53, 162, 235)"
-              : label === "골격근량 (kg)"
-              ? "rgb(75, 192, 192)"
-              : "rgb(255, 99, 132)",
-          backgroundColor:
-            label === "체중 (kg)"
-              ? "rgba(53, 162, 235, 0.5)"
-              : label === "골격근량 (kg)"
-              ? "rgba(75, 192, 192, 0.5)"
-              : "rgba(255, 99, 132, 0.5)",
-          tension: 0.2,
-          // 추정치 정보를 내부 속성으로 저장
-          isEstimatedData: data.map((item) => item.isEstimated),
-          // 추정치에 대한 시각적 표현
-          pointStyle: data.map(
-            (item) =>
-              item.isEstimated
-                ? "triangle" // 추정치는 삼각형으로 표시
-                : "circle" // 실제 데이터는 원으로 표시
-          ),
-          pointRadius: data.map((item) => (item.isEstimated ? 5 : 3)), // 추정치는 약간 더 크게
-        },
-      ],
-    };
-  };
+  return { loading, error, stats };
+};
 
+// 차트 색상 정의
+const CHART_COLORS = {
+  bodyWeight: {
+    borderColor: "rgb(53, 162, 235)",
+    backgroundColor: "rgba(53, 162, 235, 0.3)",
+  },
+  muscleMass: {
+    borderColor: "rgb(75, 192, 192)",
+    backgroundColor: "rgba(75, 192, 192, 0.3)",
+  },
+  bodyFat: {
+    borderColor: "rgb(255, 99, 132)",
+    backgroundColor: "rgba(255, 99, 132, 0.3)",
+  },
+};
+
+// ===== 메인 컴포넌트 =====
+const BodyLogTab: React.FC = () => {
+  // 상태 관리
+  const [period, setPeriod] = useState("3months");
+  const [interval, setInterval] = useState("all");
+
+  // 데이터 로드
+  const { loading, error, stats } = useBodyLogData({ period, interval });
+
+  // 렌더링
   return (
     <Container>
-      <FiltersContainer>
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>기간</InputLabel>
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as string)}
-            label="기간"
-          >
-            <MenuItem value="1months">최근 1개월</MenuItem>
-            <MenuItem value="3months">최근 3개월</MenuItem>
-            <MenuItem value="6months">최근 6개월</MenuItem>
-            <MenuItem value="1year">최근 1년</MenuItem>
-            <MenuItem value="2years">최근 2년</MenuItem>
-            <MenuItem value="all">전체 기간</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>주기</InputLabel>
-          <Select
-            value={interval}
-            onChange={(e) => setInterval(e.target.value as string)}
-            label="주기"
-          >
-            <MenuItem value="1week">1주</MenuItem>
-            <MenuItem value="2weeks">2주</MenuItem>
-            <MenuItem value="4weeks">4주</MenuItem>
-            <MenuItem value="3months">3개월</MenuItem>
-            <MenuItem value="all">전체보기</MenuItem>
-          </Select>
-        </FormControl>
-      </FiltersContainer>
+      <Filters
+        period={period}
+        setPeriod={setPeriod}
+        interval={interval}
+        setInterval={setInterval}
+      />
 
       {loading ? (
-        <LoadingContainer>
-          <CircularProgress />
-        </LoadingContainer>
+        <LoadingIndicator />
       ) : error ? (
-        <ErrorMessage>{error}</ErrorMessage>
+        <ErrorMessage variant="body1">{error}</ErrorMessage>
       ) : stats ? (
         <Grid container spacing={2}>
           {/* 몸무게 차트 */}
           <Grid item xs={12}>
-            <ChartWrapper style={{ height: "300px" }}>
-              <ChartTitle>몸무게 변화</ChartTitle>
-              <Line
-                options={getBodyWeightChartOptions("체중 추이")}
-                data={getChartData("체중 (kg)", stats.bodyWeight)}
-              />
-            </ChartWrapper>
+            <BodyLogChart
+              title="몸무게 변화"
+              label="체중 (kg)"
+              data={stats.bodyWeight}
+              yAxisLabel="체중 (kg)"
+              yMin={30}
+              height="320px"
+              color={CHART_COLORS.bodyWeight}
+            />
           </Grid>
 
           {/* 골격근량 차트 */}
           <Grid item xs={12} md={6}>
-            <ChartWrapper style={{ height: "250px" }}>
-              <ChartTitle>골격근량 변화</ChartTitle>
-              <Line
-                options={getMuscleMassChartOptions("골격근량 추이")}
-                data={getChartData("골격근량 (kg)", stats.muscleMass)}
-              />
-            </ChartWrapper>
+            <BodyLogChart
+              title="골격근량 변화"
+              label="골격근량 (kg)"
+              data={stats.muscleMass}
+              yAxisLabel="골격근량 (kg)"
+              yMin={10}
+              yMax={80}
+              height="260px"
+              color={CHART_COLORS.muscleMass}
+            />
           </Grid>
 
           {/* 체지방량 차트 */}
           <Grid item xs={12} md={6}>
-            <ChartWrapper style={{ height: "250px" }}>
-              <ChartTitle>체지방량 변화</ChartTitle>
-              <Line
-                options={getBodyFatChartOptions("체지방률 추이")}
-                data={getChartData("체지방률 (%)", stats.bodyFat)}
-              />
-            </ChartWrapper>
+            <BodyLogChart
+              title="체지방률 변화"
+              label="체지방률 (%)"
+              data={stats.bodyFat}
+              yAxisLabel="체지방률 (%)"
+              yMin={0}
+              yMax={40}
+              height="260px"
+              color={CHART_COLORS.bodyFat}
+            />
           </Grid>
         </Grid>
       ) : (
-        <ErrorMessage>
+        <ErrorMessage variant="body1">
           데이터가 없습니다. 바디로그를 먼저 기록해주세요.
         </ErrorMessage>
       )}

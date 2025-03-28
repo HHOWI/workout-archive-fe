@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
 import {
   FormControl,
@@ -6,6 +6,10 @@ import {
   MenuItem,
   InputLabel,
   CircularProgress,
+  Box,
+  Paper,
+  Typography,
+  useTheme,
 } from "@mui/material";
 import { Bar } from "react-chartjs-2";
 import {
@@ -34,64 +38,59 @@ ChartJS.register(
   Legend
 );
 
-const Container = styled.div`
+// ===== 스타일 컴포넌트 =====
+const Container = styled(Box)`
   margin-top: 20px;
 `;
 
-const FiltersContainer = styled.div`
+const FiltersContainer = styled(Box)`
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 20px;
 `;
 
-const ChartContainer = styled.div`
+const ChartContainer = styled(Paper)`
   height: 400px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
   padding: 20px;
   display: flex;
   flex-direction: column;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
-const ChartTitle = styled.h3`
-  margin: 0 0 10px 0;
-  font-size: 18px;
+const ChartTitle = styled(Typography)`
+  margin-bottom: 12px;
+  font-weight: 500;
   color: #333;
 `;
 
-const ChartPlaceholder = styled.div`
+const NoDataMessage = styled(Box)`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
-  background-color: white;
+  background-color: rgba(0, 0, 0, 0.02);
   border-radius: 4px;
-  border: 1px dashed #ccc;
 `;
 
-const LoadingContainer = styled.div`
+const LoadingContainer = styled(Box)`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px;
+  padding: 40px;
   width: 100%;
 `;
 
-const ErrorMessage = styled.div`
+const ErrorMessage = styled(Typography)`
   color: #f44336;
   text-align: center;
   padding: 20px;
 `;
 
-const NoDataMessage = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-`;
+// ===== 상수 및 유틸리티 =====
 
 // 차트 옵션 설정
 const getChartOptions = (title: string): ChartOptions<"bar"> => ({
@@ -104,6 +103,10 @@ const getChartOptions = (title: string): ChartOptions<"bar"> => ({
     title: {
       display: true,
       text: title,
+      font: {
+        size: 14,
+        weight: "bold",
+      },
     },
   },
   scales: {
@@ -117,6 +120,12 @@ const getChartOptions = (title: string): ChartOptions<"bar"> => ({
       title: {
         display: true,
         text: "볼륨 (무게×횟수×세트 kg)",
+        padding: {
+          bottom: 10,
+        },
+      },
+      grid: {
+        color: "rgba(0, 0, 0, 0.05)",
       },
     },
   },
@@ -124,12 +133,14 @@ const getChartOptions = (title: string): ChartOptions<"bar"> => ({
   datasets: {
     bar: {
       barThickness: 30,
+      maxBarThickness: 38,
+      borderRadius: 4,
     },
   },
 });
 
 // 운동 부위 옵션
-const bodyPartOptions = [
+const BODY_PART_OPTIONS = [
   { value: "chest", label: "가슴" },
   { value: "back", label: "등" },
   { value: "legs", label: "하체" },
@@ -140,7 +151,7 @@ const bodyPartOptions = [
 ];
 
 // 주기 옵션
-const intervalOptions = [
+const INTERVAL_OPTIONS = [
   { value: "1week", label: "1주" },
   { value: "2weeks", label: "2주" },
   { value: "1month", label: "1개월" },
@@ -149,7 +160,7 @@ const intervalOptions = [
 ];
 
 // 기간 옵션
-const periodOptions = [
+const PERIOD_OPTIONS = [
   { value: "1months", label: "최근 1개월" },
   { value: "3months", label: "최근 3개월" },
   { value: "6months", label: "최근 6개월" },
@@ -158,16 +169,192 @@ const periodOptions = [
   { value: "all", label: "전체 기간" },
 ];
 
-const BodyPartVolumeTab: React.FC = () => {
-  // 상태 관리
-  const [period, setPeriod] = useState("1months");
-  const [interval, setInterval] = useState("all");
-  const [bodyPart, setBodyPart] = useState("all");
+// ===== 컴포넌트 =====
+
+// 로딩 컴포넌트
+const LoadingIndicator = () => (
+  <LoadingContainer>
+    <CircularProgress size={40} thickness={4} />
+  </LoadingContainer>
+);
+
+// 필터 컴포넌트
+interface FiltersProps {
+  period: string;
+  setPeriod: (value: string) => void;
+  interval: string;
+  setInterval: (value: string) => void;
+  bodyPart: string;
+  setBodyPart: (value: string) => void;
+}
+
+const Filters: React.FC<FiltersProps> = ({
+  period,
+  setPeriod,
+  interval,
+  setInterval,
+  bodyPart,
+  setBodyPart,
+}) => (
+  <FiltersContainer>
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>기간</InputLabel>
+      <Select
+        value={period}
+        onChange={(e) => setPeriod(e.target.value as string)}
+        label="기간"
+      >
+        {PERIOD_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>주기</InputLabel>
+      <Select
+        value={interval}
+        onChange={(e) => setInterval(e.target.value as string)}
+        label="주기"
+      >
+        {INTERVAL_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
+      <InputLabel>운동 부위</InputLabel>
+      <Select
+        value={bodyPart}
+        onChange={(e) => setBodyPart(e.target.value as string)}
+        label="운동 부위"
+      >
+        {BODY_PART_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </FiltersContainer>
+);
+
+// 볼륨 차트 컴포넌트
+interface VolumeChartProps {
+  stats: BodyPartVolumeStatsDTO | null;
+  bodyPart: string;
+}
+
+const VolumeChart: React.FC<VolumeChartProps> = ({ stats, bodyPart }) => {
+  const theme = useTheme();
+
+  // 운동 부위 한글 이름 가져오기
+  const getBodyPartLabel = (bodyPartValue: string): string => {
+    const option = BODY_PART_OPTIONS.find(
+      (option) => option.value === bodyPartValue
+    );
+    return option ? option.label : bodyPartValue;
+  };
+
+  // 차트 데이터 생성
+  const chartData = useMemo(() => {
+    if (!stats || stats.volumeData.length === 0) return null;
+
+    // 색상 설정 - 부위별로 다른 색상 사용
+    let backgroundColor, borderColor;
+
+    switch (stats.bodyPart) {
+      case "chest":
+        backgroundColor = "rgba(54, 162, 235, 0.6)";
+        borderColor = "rgba(54, 162, 235, 1)";
+        break;
+      case "back":
+        backgroundColor = "rgba(75, 192, 192, 0.6)";
+        borderColor = "rgba(75, 192, 192, 1)";
+        break;
+      case "legs":
+        backgroundColor = "rgba(255, 159, 64, 0.6)";
+        borderColor = "rgba(255, 159, 64, 1)";
+        break;
+      case "shoulders":
+        backgroundColor = "rgba(153, 102, 255, 0.6)";
+        borderColor = "rgba(153, 102, 255, 1)";
+        break;
+      case "triceps":
+        backgroundColor = "rgba(255, 99, 132, 0.6)";
+        borderColor = "rgba(255, 99, 132, 1)";
+        break;
+      case "biceps":
+        backgroundColor = "rgba(255, 205, 86, 0.6)";
+        borderColor = "rgba(255, 205, 86, 1)";
+        break;
+      default:
+        backgroundColor = "rgba(54, 162, 235, 0.6)";
+        borderColor = "rgba(54, 162, 235, 1)";
+    }
+
+    return {
+      labels: stats.volumeData.map((point) => point.date),
+      datasets: [
+        {
+          label: "볼륨",
+          data: stats.volumeData.map((point) => point.value),
+          backgroundColor,
+          borderColor,
+          borderWidth: 1,
+          hoverBackgroundColor: borderColor,
+          hoverBorderWidth: 2,
+        },
+      ],
+    };
+  }, [stats]);
+
+  const bodyPartLabel = getBodyPartLabel(stats?.bodyPart || bodyPart);
+  const chartTitle = `${bodyPartLabel} 부위 운동 볼륨`;
+
+  if (!stats || stats.volumeData.length === 0) {
+    return (
+      <ChartContainer elevation={1}>
+        <ChartTitle variant="h6">{chartTitle}</ChartTitle>
+        <NoDataMessage>
+          <Typography variant="body1" color="textSecondary">
+            선택한 기간에 {bodyPartLabel} 부위 운동 데이터가 없습니다.
+          </Typography>
+        </NoDataMessage>
+      </ChartContainer>
+    );
+  }
+
+  return (
+    <ChartContainer elevation={1}>
+      <ChartTitle variant="h6">{chartTitle}</ChartTitle>
+      <Box sx={{ flex: 1, position: "relative" }}>
+        <Bar
+          options={getChartOptions(`${bodyPartLabel} 부위 운동 볼륨 추이`)}
+          data={chartData!}
+        />
+      </Box>
+    </ChartContainer>
+  );
+};
+
+// ===== 커스텀 훅 =====
+interface UseVolumeDataProps {
+  period: string;
+  interval: string;
+  bodyPart: string;
+}
+
+const useVolumeData = ({ period, interval, bodyPart }: UseVolumeDataProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<BodyPartVolumeStatsDTO | null>(null);
 
-  // 통계 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -191,105 +378,40 @@ const BodyPartVolumeTab: React.FC = () => {
     fetchData();
   }, [period, interval, bodyPart]);
 
-  // 차트 데이터 생성
-  const getChartData = (volumeData: VolumeDataPoint[]) => {
-    return {
-      labels: volumeData.map((point) => point.date),
-      datasets: [
-        {
-          label: "볼륨",
-          data: volumeData.map((point) => point.value),
-          backgroundColor: "rgba(54, 162, 235, 0.6)",
-          borderColor: "rgba(54, 162, 235, 1)",
-          borderWidth: 1,
-        },
-      ],
-    };
-  };
+  return { loading, error, stats };
+};
 
-  // 운동 부위 한글 이름 가져오기
-  const getBodyPartLabel = (bodyPartValue: string): string => {
-    const option = bodyPartOptions.find(
-      (option) => option.value === bodyPartValue
-    );
-    return option ? option.label : bodyPartValue;
-  };
+// ===== 메인 컴포넌트 =====
+const BodyPartVolumeTab: React.FC = () => {
+  // 상태 관리
+  const [period, setPeriod] = useState("1months");
+  const [interval, setInterval] = useState("all");
+  const [bodyPart, setBodyPart] = useState("all");
+
+  // 통계 데이터 로드
+  const { loading, error, stats } = useVolumeData({
+    period,
+    interval,
+    bodyPart,
+  });
 
   return (
     <Container>
-      <FiltersContainer>
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>기간</InputLabel>
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as string)}
-            label="기간"
-          >
-            {periodOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>주기</InputLabel>
-          <Select
-            value={interval}
-            onChange={(e) => setInterval(e.target.value as string)}
-            label="주기"
-          >
-            {intervalOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl variant="outlined" size="small" style={{ minWidth: 150 }}>
-          <InputLabel>운동 부위</InputLabel>
-          <Select
-            value={bodyPart}
-            onChange={(e) => setBodyPart(e.target.value as string)}
-            label="운동 부위"
-          >
-            {bodyPartOptions.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </FiltersContainer>
+      <Filters
+        period={period}
+        setPeriod={setPeriod}
+        interval={interval}
+        setInterval={setInterval}
+        bodyPart={bodyPart}
+        setBodyPart={setBodyPart}
+      />
 
       {loading ? (
-        <LoadingContainer>
-          <CircularProgress />
-        </LoadingContainer>
+        <LoadingIndicator />
       ) : error ? (
-        <ErrorMessage>{error}</ErrorMessage>
-      ) : stats && stats.volumeData.length > 0 ? (
-        <ChartContainer>
-          <ChartTitle>
-            {getBodyPartLabel(stats.bodyPart)} 부위 운동 볼륨
-          </ChartTitle>
-          <Bar
-            options={getChartOptions(
-              `${getBodyPartLabel(stats.bodyPart)} 부위 운동 볼륨 추이`
-            )}
-            data={getChartData(stats.volumeData)}
-          />
-        </ChartContainer>
+        <ErrorMessage variant="body1">{error}</ErrorMessage>
       ) : (
-        <ChartContainer>
-          <ChartTitle>{getBodyPartLabel(bodyPart)} 부위 운동 볼륨</ChartTitle>
-          <NoDataMessage>
-            선택한 기간에 {getBodyPartLabel(bodyPart)} 부위 운동 데이터가
-            없습니다.
-          </NoDataMessage>
-        </ChartContainer>
+        <VolumeChart stats={stats} bodyPart={bodyPart} />
       )}
     </Container>
   );

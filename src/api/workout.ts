@@ -5,7 +5,7 @@ import type {
   ExerciseWeightStats,
   ExerciseWeightStatsDTO,
 } from "./statistics";
-import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
+import { WorkoutOfTheDayDTO, WorkoutPlaceDTO } from "../dtos/WorkoutDTO";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
@@ -133,14 +133,7 @@ export const getWorkoutsByPlaceAPI = async (
 ): Promise<{
   workouts: WorkoutOfTheDayDTO[];
   nextCursor: number | null;
-  placeInfo: {
-    placeName: string;
-    addressName: string | null;
-    roadAddressName: string | null;
-    kakaoPlaceId?: string | null;
-    x?: string | null;
-    y?: string | null;
-  };
+  placeInfo: WorkoutPlaceDTO;
 }> => {
   const params: any = { limit };
   if (cursor) {

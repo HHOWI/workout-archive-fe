@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import styled from "@emotion/styled";
 import {
   FormControl,
@@ -10,7 +10,18 @@ import {
   Box,
   CircularProgress,
   Grid,
+  Paper,
+  Typography,
+  Chip,
+  TextField,
+  Divider,
+  IconButton,
+  useTheme,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckIcon from "@mui/icons-material/Check";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -22,7 +33,6 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  TooltipItem,
 } from "chart.js";
 import { fetchExercisesAPI } from "../../api/exercise";
 import {
@@ -32,6 +42,7 @@ import {
   ExerciseWeightDataPoint,
 } from "../../api/statistics";
 import { ExerciseDTO } from "../../dtos/WorkoutDTO";
+import zoomPlugin from "chartjs-plugin-zoom";
 
 // Chart.js 컴포넌트 등록
 ChartJS.register(
@@ -41,47 +52,39 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  zoomPlugin
 );
 
-const Container = styled.div`
+// ===== 스타일 컴포넌트 =====
+const Container = styled(Box)`
   margin-top: 20px;
 `;
 
-const FiltersContainer = styled.div`
+const FiltersContainer = styled(Box)`
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
   margin-bottom: 20px;
 `;
 
-const ChartContainer = styled.div`
-  height: 400px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  padding: 20px;
+const ChartWrapper = styled(Paper)`
+  padding: 16px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
-const ChartTitle = styled.h3`
-  margin: 0 0 10px 0;
-  font-size: 18px;
+const ChartTitle = styled(Typography)`
+  margin-bottom: 12px;
+  font-weight: 500;
   color: #333;
 `;
 
-const ChartPlaceholder = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  background-color: white;
-  border-radius: 4px;
-  border: 1px dashed #ccc;
-`;
-
-const ModalContent = styled(Box)`
+const ModalContent = styled(Paper)`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -90,69 +93,133 @@ const ModalContent = styled(Box)`
   max-width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding: 20px;
+  padding: 24px;
 `;
 
-const SelectedExerciseContainer = styled.div`
+const ModalHeader = styled(Box)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const SelectedExerciseContainer = styled(Box)`
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 15px;
 `;
 
-const ExerciseTag = styled.div`
-  display: flex;
-  align-items: center;
-  background-color: #e6f7ff;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 14px;
-`;
-
-const RemoveButton = styled.span`
-  margin-left: 8px;
-  color: #999;
-  cursor: pointer;
-  font-weight: bold;
-  &:hover {
-    color: #ff4d4f;
-  }
-`;
-
-const LoadingContainer = styled.div`
+const LoadingContainer = styled(Box)`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px;
+  padding: 40px;
   width: 100%;
 `;
 
-const ErrorMessage = styled.div`
+const ErrorMessage = styled(Typography)`
   color: #f44336;
   text-align: center;
   padding: 20px;
 `;
 
-const ChartWrapper = styled.div`
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  height: 300px;
-`;
-
-const NoDataMessage = styled.div`
+const NoDataMessage = styled(Box)`
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   color: #666;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
 `;
+
+// 검색 모달 컴포넌트
+const SearchInputContainer = styled(Box)`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 16px;
+`;
+
+const CategoryFilterContainer = styled(Box)`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+`;
+
+const ExerciseList = styled(Paper)`
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid #eee;
+`;
+
+const ExerciseItem = styled(Box)<{ isSelected: boolean }>`
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: ${(props) =>
+    props.isSelected ? "rgba(25, 118, 210, 0.08)" : "transparent"};
+
+  &:hover {
+    background-color: ${(props) =>
+      props.isSelected ? "rgba(25, 118, 210, 0.12)" : "rgba(0, 0, 0, 0.04)"};
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ActionButtonContainer = styled(Box)`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+`;
+
+// ===== 상수 및 유틸리티 =====
+
+// 기간 옵션
+const PERIOD_OPTIONS = [
+  { value: "1months", label: "최근 1개월" },
+  { value: "3months", label: "최근 3개월" },
+  { value: "6months", label: "최근 6개월" },
+  { value: "1year", label: "최근 1년" },
+  { value: "2years", label: "최근 2년" },
+  { value: "all", label: "전체 기간" },
+];
+
+// 주기 옵션
+const INTERVAL_OPTIONS = [
+  { value: "1week", label: "1주" },
+  { value: "2weeks", label: "2주" },
+  { value: "4weeks", label: "4주" },
+  { value: "3months", label: "3개월" },
+  { value: "all", label: "전체보기" },
+];
+
+// RM 옵션
+const RM_OPTIONS = [
+  { value: "1RM", label: "1RM" },
+  { value: "5RM", label: "5RM" },
+  { value: "over8RM", label: "본세트" },
+];
 
 // 추정치 정보를 툴팁에 표시하는 함수
 const customTooltipCallback = (context: any) => {
@@ -181,178 +248,337 @@ const getChartOptions = (title: string): ChartOptions<"line"> => ({
   plugins: {
     legend: {
       position: "top" as const,
+      labels: {
+        boxWidth: 12,
+        usePointStyle: true,
+      },
     },
     title: {
       display: true,
       text: title,
+      font: {
+        size: 14,
+        weight: "bold",
+      },
     },
     tooltip: {
       callbacks: {
         label: customTooltipCallback,
       },
     },
+    zoom: {
+      pan: {
+        enabled: true,
+        mode: "x",
+      },
+      zoom: {
+        wheel: {
+          enabled: true,
+        },
+        pinch: {
+          enabled: true,
+        },
+        mode: "x",
+      },
+    },
   },
   scales: {
     x: {
-      type: "category", // x축을 카테고리 타입으로 설정
-      title: {
+      type: "category",
+      grid: {
         display: false,
-        text: "날짜",
       },
     },
     y: {
-      beginAtZero: true, // y축을 0부터 시작하도록 설정
+      beginAtZero: true,
       title: {
         display: true,
         text: "무게 (kg)",
+      },
+      grid: {
+        color: "rgba(0, 0, 0, 0.05)",
       },
     },
   },
   maintainAspectRatio: false,
 });
 
-// 검색 모달 컴포넌트
-const ExerciseSearchModal = styled.div`
-  width: 100%;
-`;
-
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 10px;
-`;
-
-const CategoryFilter = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  overflow-x: auto;
-  padding-bottom: 5px;
-`;
-
-const CategoryButton = styled.button<{ isActive: boolean }>`
-  padding: 8px 12px;
-  border: none;
-  border-radius: 20px;
-  background: ${(props) => (props.isActive ? "#4a90e2" : "#f0f0f0")};
-  color: ${(props) => (props.isActive ? "white" : "#333")};
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover {
-    background: ${(props) => (props.isActive ? "#4a90e2" : "#e0e0e0")};
+// RM 타입에 따른 제목 생성
+const getRmTitle = (rmType: string) => {
+  switch (rmType) {
+    case "1RM":
+      return "1회 최대 무게 (측정하지 않았다면 추정치 제공)";
+    case "5RM":
+      return "5회 최대 무게 (측정하지 않았다면 추정치 제공)";
+    case "over8RM":
+      return "본세트 무게 (8회 이상 최대 무게)";
+    default:
+      return "운동 무게";
   }
-`;
+};
 
-const ExerciseList = styled.div`
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 15px;
-`;
+// 랜덤 색상 배열 정의
+const CHART_COLORS = [
+  {
+    borderColor: "rgb(255, 99, 132)",
+    backgroundColor: "rgba(255, 99, 132, 0.3)",
+  },
+  {
+    borderColor: "rgb(53, 162, 235)",
+    backgroundColor: "rgba(53, 162, 235, 0.3)",
+  },
+  {
+    borderColor: "rgb(75, 192, 192)",
+    backgroundColor: "rgba(75, 192, 192, 0.3)",
+  },
+  {
+    borderColor: "rgb(255, 159, 64)",
+    backgroundColor: "rgba(255, 159, 64, 0.5)",
+  },
+  {
+    borderColor: "rgb(153, 102, 255)",
+    backgroundColor: "rgba(153, 102, 255, 0.5)",
+  },
+];
 
-const ExerciseItem = styled.div<{ isSelected: boolean }>`
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: ${(props) =>
-    props.isSelected ? "#e6f7ff" : "transparent"};
+// ===== 컴포넌트 =====
 
-  &:hover {
-    background-color: ${(props) => (props.isSelected ? "#d6f0ff" : "#f5f5f5")};
-  }
+// 로딩 컴포넌트
+const LoadingIndicator = () => (
+  <LoadingContainer>
+    <CircularProgress size={40} thickness={4} />
+  </LoadingContainer>
+);
 
-  &:last-child {
-    border-bottom: none;
-  }
-`;
+// 필터 컴포넌트
+interface FiltersProps {
+  period: string;
+  setPeriod: (period: string) => void;
+  interval: string;
+  setInterval: (interval: string) => void;
+  rm: string;
+  setRm: (rm: string) => void;
+  onExerciseSelect: () => void;
+}
 
-const ActionButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 15px;
-`;
+const Filters: React.FC<FiltersProps> = ({
+  period,
+  setPeriod,
+  interval,
+  setInterval,
+  rm,
+  setRm,
+  onExerciseSelect,
+}) => (
+  <FiltersContainer>
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>기간</InputLabel>
+      <Select
+        value={period}
+        onChange={(e) => setPeriod(e.target.value as string)}
+        label="기간"
+      >
+        {PERIOD_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
 
-const ActionButton = styled.button`
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-`;
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>주기</InputLabel>
+      <Select
+        value={interval}
+        onChange={(e) => setInterval(e.target.value as string)}
+        label="주기"
+      >
+        {INTERVAL_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
 
-const ConfirmButton = styled(ActionButton)`
-  background-color: #4a90e2;
-  color: white;
+    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+      <InputLabel>RM</InputLabel>
+      <Select
+        value={rm}
+        onChange={(e) => setRm(e.target.value as string)}
+        label="RM"
+      >
+        {RM_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
 
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-`;
+    <Button
+      variant="outlined"
+      color="primary"
+      onClick={onExerciseSelect}
+      size="small"
+      startIcon={<SearchIcon />}
+    >
+      운동 선택
+    </Button>
+  </FiltersContainer>
+);
 
-const CancelButton = styled(ActionButton)`
-  background-color: #f0f0f0;
-  color: #333;
-`;
+// 선택된 운동 표시 컴포넌트
+interface SelectedExercisesProps {
+  exercises: ExerciseDTO[];
+  onRemove: (seq: number) => void;
+}
 
-const ExerciseWeightTab: React.FC = () => {
-  // 상태 관리
-  const [period, setPeriod] = useState("3months");
-  const [interval, setInterval] = useState("all");
-  const [rm, setRm] = useState("over8RM");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedExercises, setSelectedExercises] = useState<ExerciseDTO[]>([]);
+const SelectedExercises: React.FC<SelectedExercisesProps> = ({
+  exercises,
+  onRemove,
+}) => {
+  if (exercises.length === 0) return null;
 
-  // 검색 모달 관련 상태
-  const [exercises, setExercises] = useState<ExerciseDTO[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<ExerciseDTO[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [tempSelectedExercises, setTempSelectedExercises] = useState<
-    ExerciseDTO[]
-  >([]);
+  return (
+    <SelectedExerciseContainer>
+      {exercises.map((exercise) => (
+        <Chip
+          key={exercise.exerciseSeq}
+          label={exercise.exerciseName}
+          color="primary"
+          variant="outlined"
+          onDelete={() => onRemove(exercise.exerciseSeq)}
+          sx={{ borderRadius: "16px" }}
+        />
+      ))}
+    </SelectedExerciseContainer>
+  );
+};
 
-  // 통계 데이터 관련 상태 추가
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<ExerciseWeightStatsDTO | null>(null);
+// 차트 컴포넌트
+interface WeightChartProps {
+  exerciseStats: ExerciseWeightStats;
+  rm: string;
+}
 
-  // 운동 데이터 로드
-  useEffect(() => {
-    const loadExercises = async () => {
-      try {
-        const data = await fetchExercisesAPI();
-        // 유산소 운동 제외
-        const strengthExercises = data.filter(
-          (ex) => ex.exerciseType !== "유산소"
-        );
+const WeightChart: React.FC<WeightChartProps> = ({ exerciseStats, rm }) => {
+  const theme = useTheme();
 
-        setExercises(strengthExercises);
-        setFilteredExercises(strengthExercises);
+  // 차트 데이터 생성
+  const chartData = useMemo(() => {
+    // 운동 타입별로 색상 선택
+    const exerciseType = exerciseStats.exerciseType || "";
+    let colorIndex = 0;
 
-        // 카테고리 추출
-        const uniqueCategories = [
-          ...new Set(strengthExercises.map((ex) => ex.exerciseType)),
-        ];
-        setCategories(uniqueCategories);
-      } catch (error) {
-        console.error("운동 목록을 불러오는데 실패했습니다:", error);
-      }
+    if (exerciseType.includes("가슴")) colorIndex = 0;
+    else if (exerciseType.includes("등")) colorIndex = 1;
+    else if (exerciseType.includes("하체")) colorIndex = 2;
+    else if (exerciseType.includes("어깨")) colorIndex = 3;
+    else if (exerciseType.includes("팔")) colorIndex = 4;
+    else colorIndex = exerciseStats.exerciseSeq % CHART_COLORS.length;
+
+    // 서버 데이터에서 null 값 제외 및 날짜순 정렬
+    const sortedData = exerciseStats.data
+      .filter((point) => point.value !== null) // null 값 제거
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return {
+      labels: sortedData.map((point) => point.date),
+      datasets: [
+        {
+          label: `${exerciseStats.exerciseName} (kg)`,
+          data: sortedData.map((point) => point.value),
+          borderColor: CHART_COLORS[colorIndex].borderColor,
+          backgroundColor: CHART_COLORS[colorIndex].backgroundColor,
+          tension: 0.2,
+          isEstimatedData: sortedData.map((point) => point.isEstimated),
+          pointStyle: sortedData.map((point) =>
+            point.isEstimated ? "triangle" : "circle"
+          ),
+          pointRadius: sortedData.map((point) => (point.isEstimated ? 5 : 3)),
+          borderWidth: 2,
+        },
+      ],
     };
+  }, [exerciseStats]);
 
-    loadExercises();
-  }, []);
+  // 타이틀 생성
+  const chartTitle = `${exerciseStats.exerciseName} ${getRmTitle(rm)}`;
+
+  if (exerciseStats.data.length === 0) {
+    return (
+      <ChartWrapper elevation={1}>
+        <ChartTitle variant="subtitle1">{chartTitle}</ChartTitle>
+        <NoDataMessage sx={{ height: "300px" }}>
+          <Typography variant="body1" color="textSecondary">
+            해당 기간에 {exerciseStats.exerciseName}의 무게 데이터가 없습니다.
+          </Typography>
+        </NoDataMessage>
+      </ChartWrapper>
+    );
+  }
+
+  return (
+    <ChartWrapper elevation={1}>
+      <ChartTitle variant="subtitle1">{chartTitle}</ChartTitle>
+      <Box sx={{ height: "300px" }}>
+        <Line
+          options={getChartOptions(`${exerciseStats.exerciseName} 무게 변화`)}
+          data={chartData}
+        />
+      </Box>
+    </ChartWrapper>
+  );
+};
+
+// 빈 상태 컴포넌트
+interface NoSelectionProps {
+  message: string;
+}
+
+const NoSelection: React.FC<NoSelectionProps> = ({ message }) => (
+  <ChartWrapper elevation={1}>
+    <ChartTitle variant="h6">운동별 무게 변화</ChartTitle>
+    <NoDataMessage sx={{ height: "300px" }}>
+      <Typography variant="body1" color="textSecondary">
+        {message}
+      </Typography>
+    </NoDataMessage>
+  </ChartWrapper>
+);
+
+// 운동 검색 모달 컴포넌트
+interface ExerciseModalProps {
+  open: boolean;
+  onClose: () => void;
+  exercises: ExerciseDTO[];
+  selectedExercises: ExerciseDTO[];
+  categories: string[];
+  onCategorySelect: (category: string) => void;
+  selectedCategory: string | null;
+  onExerciseSelect: (exercise: ExerciseDTO) => void;
+  onConfirm: () => void;
+}
+
+const ExerciseSelectionModal: React.FC<ExerciseModalProps> = ({
+  open,
+  onClose,
+  exercises,
+  selectedExercises,
+  categories,
+  onCategorySelect,
+  selectedCategory,
+  onExerciseSelect,
+  onConfirm,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredExercises, setFilteredExercises] = useState<ExerciseDTO[]>([]);
 
   // 검색 및 필터링
   useEffect(() => {
+    if (!exercises) return;
+
     let result = exercises;
 
     // 카테고리 필터링
@@ -370,7 +596,166 @@ const ExerciseWeightTab: React.FC = () => {
     setFilteredExercises(result);
   }, [searchTerm, selectedCategory, exercises]);
 
-  // 통계 데이터 로드
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="exercise-search-modal"
+    >
+      <ModalContent elevation={3}>
+        <ModalHeader>
+          <Typography variant="h6">운동 검색</Typography>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </ModalHeader>
+
+        <SearchInputContainer>
+          <TextField
+            fullWidth
+            placeholder="운동 이름 검색..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            variant="outlined"
+            size="small"
+            InputProps={{
+              startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1 }} />,
+            }}
+          />
+        </SearchInputContainer>
+
+        <CategoryFilterContainer>
+          {categories.map((category) => (
+            <Chip
+              key={category}
+              label={category}
+              onClick={() => onCategorySelect(category)}
+              color={selectedCategory === category ? "primary" : "default"}
+              variant={selectedCategory === category ? "filled" : "outlined"}
+              icon={
+                selectedCategory === category ? <FilterAltIcon /> : undefined
+              }
+              sx={{ borderRadius: "16px" }}
+            />
+          ))}
+        </CategoryFilterContainer>
+
+        <ExerciseList elevation={0}>
+          {filteredExercises.length > 0 ? (
+            filteredExercises.map((exercise) => {
+              const isSelected = selectedExercises.some(
+                (ex) => ex.exerciseSeq === exercise.exerciseSeq
+              );
+              return (
+                <ExerciseItem
+                  key={exercise.exerciseSeq}
+                  onClick={() => onExerciseSelect(exercise)}
+                  isSelected={isSelected}
+                >
+                  <Typography>
+                    {exercise.exerciseName}
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ ml: 1 }}
+                    >
+                      ({exercise.exerciseType})
+                    </Typography>
+                  </Typography>
+                  {isSelected && <CheckIcon color="primary" fontSize="small" />}
+                </ExerciseItem>
+              );
+            })
+          ) : (
+            <ExerciseItem isSelected={false}>
+              <Typography color="textSecondary">
+                검색 결과가 없습니다
+              </Typography>
+            </ExerciseItem>
+          )}
+        </ExerciseList>
+
+        <Divider sx={{ my: 2 }} />
+        <ActionButtonContainer>
+          <Button variant="outlined" onClick={onClose}>
+            취소
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onConfirm}
+            disabled={selectedExercises.length === 0}
+            startIcon={<CheckIcon />}
+          >
+            {selectedExercises.length > 0
+              ? `${selectedExercises.length}개 운동 선택하기`
+              : "운동 선택하기"}
+          </Button>
+        </ActionButtonContainer>
+      </ModalContent>
+    </Modal>
+  );
+};
+
+// ===== 커스텀 훅 =====
+
+// 운동 목록 로드 훅
+const useExercises = () => {
+  const [exercises, setExercises] = useState<ExerciseDTO[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadExercises = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchExercisesAPI();
+        // 유산소 운동 제외
+        const strengthExercises = data.filter(
+          (ex) => ex.exerciseType !== "유산소"
+        );
+
+        setExercises(strengthExercises);
+
+        // 카테고리 추출
+        const uniqueCategories = [
+          ...new Set(strengthExercises.map((ex) => ex.exerciseType)),
+        ];
+        setCategories(uniqueCategories);
+      } catch (err: any) {
+        console.error("운동 목록을 불러오는데 실패했습니다:", err);
+        setError("운동 목록을 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExercises();
+  }, []);
+
+  return { exercises, categories, loading, error };
+};
+
+// 통계 데이터 로드 훅
+interface UseWeightStatsProps {
+  period: string;
+  interval: string;
+  rm: string;
+  selectedExercises: ExerciseDTO[];
+}
+
+const useWeightStats = ({
+  period,
+  interval,
+  rm,
+  selectedExercises,
+}: UseWeightStatsProps) => {
+  const [stats, setStats] = useState<ExerciseWeightStatsDTO | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (selectedExercises.length === 0) {
@@ -399,26 +784,52 @@ const ExerciseWeightTab: React.FC = () => {
     fetchData();
   }, [selectedExercises, period, interval, rm]);
 
+  return { stats, loading, error };
+};
+
+// ===== 메인 컴포넌트 =====
+const ExerciseWeightTab: React.FC = () => {
+  // 상태 관리
+  const [period, setPeriod] = useState("3months");
+  const [interval, setInterval] = useState("all");
+  const [rm, setRm] = useState("over8RM");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedExercises, setSelectedExercises] = useState<ExerciseDTO[]>([]);
+  const [tempSelectedExercises, setTempSelectedExercises] = useState<
+    ExerciseDTO[]
+  >([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // 운동 데이터 로드
+  const { exercises, categories } = useExercises();
+
+  // 통계 데이터 로드
+  const { stats, loading, error } = useWeightStats({
+    period,
+    interval,
+    rm,
+    selectedExercises,
+  });
+
   // 모달 열기
-  const handleOpenModal = () => {
+  const handleOpenModal = useCallback(() => {
     setTempSelectedExercises([...selectedExercises]);
     setModalOpen(true);
-  };
+  }, [selectedExercises]);
 
   // 모달 닫기
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setModalOpen(false);
-    setSearchTerm("");
     setSelectedCategory(null);
-  };
+  }, []);
 
   // 카테고리 선택
-  const handleCategoryClick = (category: string) => {
+  const handleCategoryClick = useCallback((category: string) => {
     setSelectedCategory((prev) => (prev === category ? null : category));
-  };
+  }, []);
 
   // 운동 선택/해제
-  const handleExerciseClick = (exercise: ExerciseDTO) => {
+  const handleExerciseClick = useCallback((exercise: ExerciseDTO) => {
     setTempSelectedExercises((prev) => {
       const isSelected = prev.some(
         (ex) => ex.exerciseSeq === exercise.exerciseSeq
@@ -433,287 +844,67 @@ const ExerciseWeightTab: React.FC = () => {
         return [...prev, exercise];
       }
     });
-  };
+  }, []);
 
   // 선택 확정
-  const handleConfirmSelection = () => {
+  const handleConfirmSelection = useCallback(() => {
     setSelectedExercises(tempSelectedExercises);
     handleCloseModal();
-  };
+  }, [tempSelectedExercises, handleCloseModal]);
 
   // 선택된 운동 제거
-  const removeSelectedExercise = (exerciseSeq: number) => {
+  const removeSelectedExercise = useCallback((exerciseSeq: number) => {
     setSelectedExercises((prev) =>
       prev.filter((ex) => ex.exerciseSeq !== exerciseSeq)
     );
-  };
-
-  // 차트 데이터 생성 - 단일 운동용
-  const getChartDataForSingleExercise = (
-    exerciseStats: ExerciseWeightStats
-  ) => {
-    const randomColors = [
-      {
-        borderColor: "rgb(255, 99, 132)",
-        backgroundColor: "rgba(255, 99, 132, 0.5)",
-      },
-      {
-        borderColor: "rgb(53, 162, 235)",
-        backgroundColor: "rgba(53, 162, 235, 0.5)",
-      },
-      {
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(75, 192, 192, 0.5)",
-      },
-      {
-        borderColor: "rgb(255, 159, 64)",
-        backgroundColor: "rgba(255, 159, 64, 0.5)",
-      },
-      {
-        borderColor: "rgb(153, 102, 255)",
-        backgroundColor: "rgba(153, 102, 255, 0.5)",
-      },
-    ];
-
-    // 운동 타입별로 색상 선택
-    const exerciseType = exerciseStats.exerciseType || "";
-    let colorIndex = 0;
-
-    if (exerciseType.includes("가슴")) colorIndex = 0;
-    else if (exerciseType.includes("등")) colorIndex = 1;
-    else if (exerciseType.includes("하체")) colorIndex = 2;
-    else if (exerciseType.includes("어깨")) colorIndex = 3;
-    else if (exerciseType.includes("팔")) colorIndex = 4;
-    else colorIndex = exerciseStats.exerciseSeq % randomColors.length;
-
-    // 서버 데이터에서 null 값 제외 및 날짜순 정렬
-    const sortedData = exerciseStats.data
-      .filter((point) => point.value !== null) // null 값 제거
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    return {
-      labels: sortedData.map((point) => point.date),
-      datasets: [
-        {
-          label: `${exerciseStats.exerciseName} (kg)`,
-          data: sortedData.map((point) => point.value),
-          borderColor: randomColors[colorIndex].borderColor,
-          backgroundColor: randomColors[colorIndex].backgroundColor,
-          tension: 0.2,
-          isEstimatedData: sortedData.map((point) => point.isEstimated),
-          pointStyle: sortedData.map((point) =>
-            point.isEstimated ? "triangle" : "circle"
-          ),
-          pointRadius: sortedData.map((point) => (point.isEstimated ? 5 : 3)),
-        },
-      ],
-    };
-  };
-
-  // RM 타입에 따른 제목 생성
-  const getRmTitle = (rmType: string) => {
-    switch (rmType) {
-      case "1RM":
-        return "1회 최대 무게 (측정하지 않았다면 추정치 제공)";
-      case "5RM":
-        return "5회 최대 무게 (측정하지 않았다면 추정치 제공)";
-      case "over8RM":
-        return "본세트 무게 (8회 이상 최대 무게)";
-      default:
-        return "운동 무게";
-    }
-  };
+  }, []);
 
   return (
     <Container>
-      <FiltersContainer>
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>기간</InputLabel>
-          <Select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as string)}
-            label="기간"
-          >
-            <MenuItem value="1months">최근 1개월</MenuItem>
-            <MenuItem value="3months">최근 3개월</MenuItem>
-            <MenuItem value="6months">최근 6개월</MenuItem>
-            <MenuItem value="1year">최근 1년</MenuItem>
-            <MenuItem value="2years">최근 2년</MenuItem>
-            <MenuItem value="all">전체 기간</MenuItem>
-          </Select>
-        </FormControl>
+      <Filters
+        period={period}
+        setPeriod={setPeriod}
+        interval={interval}
+        setInterval={setInterval}
+        rm={rm}
+        setRm={setRm}
+        onExerciseSelect={handleOpenModal}
+      />
 
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>주기</InputLabel>
-          <Select
-            value={interval}
-            onChange={(e) => setInterval(e.target.value as string)}
-            label="주기"
-          >
-            <MenuItem value="1week">1주</MenuItem>
-            <MenuItem value="2weeks">2주</MenuItem>
-            <MenuItem value="4weeks">4주</MenuItem>
-            <MenuItem value="3months">3개월</MenuItem>
-            <MenuItem value="all">전체보기</MenuItem>
-          </Select>
-        </FormControl>
+      <SelectedExercises
+        exercises={selectedExercises}
+        onRemove={removeSelectedExercise}
+      />
 
-        <FormControl variant="outlined" size="small" style={{ minWidth: 120 }}>
-          <InputLabel>RM</InputLabel>
-          <Select
-            value={rm}
-            onChange={(e) => setRm(e.target.value as string)}
-            label="rm"
-          >
-            <MenuItem value="1RM">1RM</MenuItem>
-            <MenuItem value="5RM">5RM</MenuItem>
-            <MenuItem value="over8RM">본세트</MenuItem>
-          </Select>
-        </FormControl>
-
-        <Button
-          variant="outlined"
-          color="primary"
-          onClick={handleOpenModal}
-          size="small"
-        >
-          운동 선택
-        </Button>
-      </FiltersContainer>
-
-      {/* 선택된 운동 표시 */}
-      {selectedExercises.length > 0 && (
-        <SelectedExerciseContainer>
-          {selectedExercises.map((exercise) => (
-            <ExerciseTag key={exercise.exerciseSeq}>
-              {exercise.exerciseName}
-              <RemoveButton
-                onClick={() => removeSelectedExercise(exercise.exerciseSeq)}
-              >
-                ×
-              </RemoveButton>
-            </ExerciseTag>
-          ))}
-        </SelectedExerciseContainer>
-      )}
-
-      {/* 무게 변화 차트 */}
       {loading ? (
-        <LoadingContainer>
-          <CircularProgress />
-        </LoadingContainer>
+        <LoadingIndicator />
       ) : error ? (
         <ErrorMessage>{error}</ErrorMessage>
       ) : selectedExercises.length === 0 ? (
-        <ChartContainer>
-          <ChartTitle>운동별 무게 변화</ChartTitle>
-          <ChartPlaceholder>
-            운동을 선택하여 무게 변화 추이를 확인하세요
-          </ChartPlaceholder>
-        </ChartContainer>
+        <NoSelection message="운동을 선택하여 무게 변화 추이를 확인하세요" />
       ) : stats && stats.exercises.length > 0 ? (
         <Grid container spacing={2}>
           {stats.exercises.map((exerciseStats) => (
             <Grid item xs={12} key={exerciseStats.exerciseSeq}>
-              <ChartWrapper>
-                <ChartTitle>
-                  {exerciseStats.exerciseName} {getRmTitle(rm)}
-                </ChartTitle>
-                {exerciseStats.data.length > 0 ? (
-                  <Line
-                    options={getChartOptions(
-                      `${exerciseStats.exerciseName} 무게 변화`
-                    )}
-                    data={getChartDataForSingleExercise(exerciseStats)}
-                  />
-                ) : (
-                  <NoDataMessage>
-                    해당 기간에 {exerciseStats.exerciseName}의 무게 데이터가
-                    없습니다.
-                  </NoDataMessage>
-                )}
-              </ChartWrapper>
+              <WeightChart exerciseStats={exerciseStats} rm={rm} />
             </Grid>
           ))}
         </Grid>
       ) : (
-        <ChartContainer>
-          <ChartTitle>운동별 무게 변화</ChartTitle>
-          <ChartPlaceholder>
-            선택한 운동의 무게 데이터가 없습니다. 다른 운동을 선택하거나 기간을
-            변경해보세요.
-          </ChartPlaceholder>
-        </ChartContainer>
+        <NoSelection message="선택한 운동의 무게 데이터가 없습니다. 다른 운동을 선택하거나 기간을 변경해보세요." />
       )}
 
-      {/* 운동 선택 모달 */}
-      <Modal
+      <ExerciseSelectionModal
         open={modalOpen}
         onClose={handleCloseModal}
-        aria-labelledby="exercise-search-modal"
-      >
-        <ModalContent>
-          <h3>운동 검색</h3>
-          <ExerciseSearchModal>
-            <SearchInput
-              type="text"
-              placeholder="운동 이름 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-
-            <CategoryFilter>
-              {categories.map((category) => (
-                <CategoryButton
-                  key={category}
-                  isActive={selectedCategory === category}
-                  onClick={() => handleCategoryClick(category)}
-                >
-                  {category}
-                </CategoryButton>
-              ))}
-            </CategoryFilter>
-
-            <ExerciseList>
-              {filteredExercises.length > 0 ? (
-                filteredExercises.map((exercise) => {
-                  const isSelected = tempSelectedExercises.some(
-                    (ex) => ex.exerciseSeq === exercise.exerciseSeq
-                  );
-                  return (
-                    <ExerciseItem
-                      key={exercise.exerciseSeq}
-                      onClick={() => handleExerciseClick(exercise)}
-                      isSelected={isSelected}
-                    >
-                      <span>{exercise.exerciseName}</span>
-                      {isSelected && (
-                        <span style={{ color: "#4a90e2" }}>✓</span>
-                      )}
-                    </ExerciseItem>
-                  );
-                })
-              ) : (
-                <ExerciseItem isSelected={false}>
-                  검색 결과가 없습니다
-                </ExerciseItem>
-              )}
-            </ExerciseList>
-
-            <ActionButtonContainer>
-              <CancelButton onClick={handleCloseModal}>취소</CancelButton>
-              <ConfirmButton
-                onClick={handleConfirmSelection}
-                disabled={tempSelectedExercises.length === 0}
-              >
-                {tempSelectedExercises.length > 0
-                  ? `${tempSelectedExercises.length}개 운동 선택하기`
-                  : "운동 선택하기"}
-              </ConfirmButton>
-            </ActionButtonContainer>
-          </ExerciseSearchModal>
-        </ModalContent>
-      </Modal>
+        exercises={exercises}
+        selectedExercises={tempSelectedExercises}
+        categories={categories}
+        onCategorySelect={handleCategoryClick}
+        selectedCategory={selectedCategory}
+        onExerciseSelect={handleExerciseClick}
+        onConfirm={handleConfirmSelection}
+      />
     </Container>
   );
 };

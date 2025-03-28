@@ -1,68 +1,105 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import styled from "@emotion/styled";
+import { keyframes } from "@emotion/react";
 import {
   getWorkoutOfTheDayCountByPlaceIdAPI,
   getWorkoutsByPlaceAPI,
 } from "../api/workout";
-import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
+import { WorkoutOfTheDayDTO, WorkoutPlaceDTO } from "../dtos/WorkoutDTO";
 import WorkoutDetailModal from "../components/WorkoutDetailModal";
 import WorkoutCard from "../components/WorkoutCard";
 import { useParams, useNavigate } from "react-router-dom";
 import { debounce } from "lodash";
 import {
   FaMapMarkerAlt,
-  FaPhone,
-  FaClock,
-  FaTag,
-  FaDumbbell,
   FaDirections,
   FaExpand,
-  FaCalendarAlt,
-  FaFire,
-  FaMedal,
+  FaDumbbell,
+  FaSpinner,
 } from "react-icons/fa";
 
+// 카카오맵 타입 선언
 declare global {
   interface Window {
     kakao: any;
   }
 }
 
-// 장소 정보 인터페이스 정의
-interface PlaceInfo {
-  id: string; // 카카오플레이스ID
-  placeName: string; // 장소명
-  address: string; // 주소
-  roadAddress: string; // 도로명 주소
-  category: string; // 카테고리
-  phone: string; // 전화번호
-  url: string; // 상세 페이지 URL
-  openingHours: string; // 영업시간
-  x: number; // 경도
-  y: number; // 위도
-}
+// ===== 애니메이션 효과 =====
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
 
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+`;
+
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+// ===== 색상 테마 =====
+const theme = {
+  primary: "#4a90e2",
+  primaryDark: "#3a7bc8",
+  secondary: "#f5f7fa",
+  accent: "#6c5ce7",
+  background: "#ffffff",
+  text: "#333333",
+  textLight: "#666666",
+  border: "#eaeaea",
+  shadow: "rgba(0, 0, 0, 0.08)",
+  success: "#27ae60",
+  error: "#e74c3c",
+};
+
+// ===== 스타일 컴포넌트 그룹화 =====
+
+// 레이아웃 스타일
 const Container = styled.div`
   max-width: 935px;
   margin: 0 auto;
   padding: 30px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  color: ${theme.text};
+  animation: ${fadeIn} 0.5s ease-out;
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+  }
 `;
 
 const PlaceHeader = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 44px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #eaeaea;
+  border-radius: 16px;
+  padding: 28px;
+  background-color: ${theme.background};
+  box-shadow: 0 4px 20px ${theme.shadow};
+  border: 1px solid ${theme.border};
+  position: relative;
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  }
 
   @media (max-width: 768px) {
-    text-align: center;
+    padding: 22px;
+    margin-bottom: 32px;
   }
 `;
 
 const PlaceInfoContainer = styled.div`
   display: flex;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  gap: 30px;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -70,124 +107,97 @@ const PlaceInfoContainer = styled.div`
   }
 `;
 
+// 지도 관련 스타일
 const MapContainer = styled.div`
-  width: 350px;
-  height: 250px;
+  width: 330px;
+  height: 220px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-right: 30px;
+  box-shadow: 0 4px 10px ${theme.shadow};
   flex-shrink: 0;
-  position: relative;
+  border: 1px solid ${theme.border};
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
 
   @media (max-width: 768px) {
     width: 100%;
-    max-width: 350px;
-    margin-right: 0;
-    margin-bottom: 20px;
+    max-width: 380px;
+    margin-bottom: 24px;
   }
 `;
 
-const MapPlaceholder = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f9fa;
-  color: #757575;
-  font-size: 14px;
-`;
-
-const InfoContent = styled.div`
-  flex-grow: 1;
+// 장소 정보 관련 스타일
+const PlaceDetailsWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  flex: 1;
+  position: relative;
+  height: 220px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+  }
+`;
+
+const PlaceDetailsContainer = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 60px;
+
+  @media (max-width: 768px) {
+    align-items: center;
+    text-align: center;
+    margin-bottom: 0;
+  }
 `;
 
 const PlaceName = styled.h1`
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 600;
-  margin-bottom: 16px;
-  color: #292929;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  color: ${theme.text};
+  letter-spacing: -0.5px;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+    font-size: 24px;
+  }
+`;
+
+const PlaceIcon = styled.span`
+  margin-right: 10px;
+  color: ${theme.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
 `;
 
 const PlaceAddress = styled.div`
-  display: flex;
-  align-items: center;
-  color: #757575;
-  font-size: 16px;
-  margin-bottom: 16px;
-
-  svg {
-    margin-right: 8px;
-    min-width: 16px;
-  }
-`;
-
-const PlaceDetail = styled.div`
-  display: flex;
-  align-items: center;
-  color: #757575;
+  color: ${theme.textLight};
   font-size: 15px;
-  margin-bottom: 10px;
-
-  svg {
-    margin-right: 8px;
-    min-width: 16px;
-    color: #4a90e2;
-  }
+  margin-bottom: 20px;
+  line-height: 1.5;
 `;
 
-const PlaceActions = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-`;
-
-const ActionButton = styled.a`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 16px;
-  background: #4a90e2;
-  color: white;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
-
-  svg {
-    margin-right: 6px;
-  }
-
-  &:hover {
-    background: #357bd8;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
-  }
-`;
-
+// 통계 관련 스타일
 const StatsContainer = styled.div`
-  display: flex;
-  gap: 24px;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  margin-bottom: 30px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
 
   @media (max-width: 768px) {
-    justify-content: center;
-    padding: 16px;
-    flex-wrap: wrap;
+    position: static;
+    margin-top: 20px;
+    align-self: center;
   }
 `;
 
@@ -195,64 +205,165 @@ const StatItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 12px;
+  justify-content: center;
+  background-color: ${theme.secondary};
+  border-radius: 12px;
+  padding: 10px 16px;
+  min-width: 90px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid ${theme.border};
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    animation: ${pulse} 0.6s ease-in-out;
+  }
 `;
 
 const StatValue = styled.div`
-  font-size: 24px;
-  font-weight: bold;
-  color: #292929;
-  margin-bottom: 4px;
+  font-size: 22px;
+  font-weight: 600;
+  color: ${theme.primary};
 `;
 
 const StatLabel = styled.div`
+  font-size: 13px;
+  color: ${theme.textLight};
+  font-weight: 500;
+  margin-top: 2px;
+`;
+
+const StatIcon = styled.div`
+  color: ${theme.primary};
+  font-size: 20px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// 버튼 관련 스타일
+const ButtonsContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+
+  @media (max-width: 768px) {
+    position: static;
+    margin-top: 20px;
+    justify-content: center;
+  }
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: ${theme.primary};
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
   font-size: 14px;
-  color: #757575;
-  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3);
+
+  &:hover {
+    background-color: ${theme.primaryDark};
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(74, 144, 226, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const SecondaryButton = styled(ActionButton)`
+  background-color: ${theme.secondary};
+  color: ${theme.textLight};
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background-color: #e9ecf2;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+// 운동 기록 관련 스타일
+const WorkoutSection = styled.div`
+  padding-top: 16px;
+  animation: ${fadeIn} 0.7s ease-out;
 `;
 
 const SectionTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
-  margin: 30px 0 16px;
-  color: #292929;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
+  color: ${theme.text};
 
-  svg {
-    margin-right: 8px;
-    color: #4a90e2;
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background-color: ${theme.border};
+    margin-left: 16px;
   }
 `;
 
-// 인스타그램 스타일의 운동 기록 그리드
 const WorkoutGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 20px;
 
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 `;
 
+// 로딩 및 메시지 관련 스타일
 const NoDataMessage = styled.div`
   text-align: center;
-  padding: 50px;
-  color: #757575;
-  background-color: #f8f9fa;
+  padding: 60px 20px;
+  color: ${theme.textLight};
+  background-color: ${theme.secondary};
   border-radius: 12px;
-  font-size: 16px;
+  margin-top: 20px;
+  font-size: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid ${theme.border};
+  animation: ${fadeIn} 0.5s ease-out;
 `;
 
 const LoadingSpinner = styled.div`
   text-align: center;
-  padding: 50px;
-  color: #757575;
+  padding: 60px;
+  color: ${theme.textLight};
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const SpinnerIcon = styled(FaSpinner)`
+  font-size: 32px;
+  color: ${theme.primary};
+  animation: ${spin} 1s linear infinite;
 `;
 
 const LoaderContainer = styled.div`
@@ -262,214 +373,292 @@ const LoaderContainer = styled.div`
   justify-content: center;
   align-items: center;
   margin: 20px 0;
-  color: #757575;
-  font-size: 15px;
+  color: ${theme.textLight};
+  font-size: 14px;
+  gap: 10px;
 `;
 
-const WorkoutPlacePage: React.FC = () => {
-  const [workoutOfTheDays, setWorkoutOfTheDays] = useState<
-    WorkoutOfTheDayDTO[]
-  >([]);
-  const [totalWorkoutCount, setTotalWorkoutCount] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
-  const [selectedWorkoutOfTheDaySeq, setSelectedWorkoutOfTheDaySeq] = useState<
-    number | null
-  >(null);
-  const [showModal, setShowModal] = useState(false);
-  const [nextCursor, setNextCursor] = useState<number | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const observerTarget = useRef<HTMLDivElement>(null);
-  const mapContainer = useRef<HTMLDivElement>(null);
+// ===== 컴포넌트 분리 =====
 
-  // 장소 정보 상태를 하나의 객체로 관리
-  const [placeInfo, setPlaceInfo] = useState<PlaceInfo>({
-    id: "",
-    placeName: "",
-    address: "",
-    roadAddress: "",
-    category: "",
-    phone: "",
-    url: "",
-    openingHours: "",
-    x: 0,
-    y: 0,
-  });
+// 로딩 인디케이터 컴포넌트
+const LoadingIndicator = () => (
+  <LoadingSpinner>
+    <SpinnerIcon />
+    <span>데이터를 불러오는 중입니다...</span>
+  </LoadingSpinner>
+);
 
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [popularExerciseTypes, setPopularExerciseTypes] = useState<string[]>(
-    []
-  );
-  const [mostActiveTime, setMostActiveTime] = useState<string>("");
+// 지도 컴포넌트
+const KakaoMap = React.memo(({ placeInfo }: { placeInfo: WorkoutPlaceDTO }) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const { placeSeq } = useParams<{ placeSeq: string }>();
-  const navigate = useNavigate();
+  // 카카오맵 초기화 함수
+  const initializeMap = useCallback(() => {
+    if (!mapContainerRef.current || !window.kakao) return;
 
-  // 카카오맵 API로 장소 정보 조회
-  const fetchPlaceInfo = useCallback(async (placeId: string) => {
-    if (!placeId || !window.kakao?.maps?.services) return;
+    // 기본 지도 생성 (임시 좌표)
+    const options = {
+      center: new window.kakao.maps.LatLng(37.566826, 126.9786567), // 서울시청 기본값
+      level: 3,
+    };
+    const map = new window.kakao.maps.Map(mapContainerRef.current, options);
 
-    // 카카오맵 API services 생성
-    const places = new window.kakao.maps.services.Places();
-
-    // 장소 상세 정보 조회
-    places.getDetails({ placeId }, (result: any, status: any) => {
+    // Places API로 장소 검색
+    const ps = new window.kakao.maps.services.Places();
+    ps.keywordSearch(placeInfo.placeName, (data: any[], status: any) => {
       if (status === window.kakao.maps.services.Status.OK) {
-        const place = result[0];
+        // kakaoPlaceId와 일치하는 장소 찾기 (있는 경우)
+        let place = null;
+        if (placeInfo.kakaoPlaceId) {
+          place = data.find((item) => item.id === placeInfo.kakaoPlaceId);
+        }
 
-        // 장소 정보 업데이트
-        setPlaceInfo({
-          id: place.id,
-          placeName: place.place_name,
-          address: place.address_name,
-          roadAddress: place.road_address_name,
-          category: place.category_name,
-          phone: place.phone || "",
-          url: place.place_url,
-          openingHours: "", // 상세 정보에서는 영업시간을 제공하지 않음
-          x: parseFloat(place.x),
-          y: parseFloat(place.y),
+        // ID로 찾지 못했거나 ID가 없는 경우 첫 번째 결과 사용
+        if (!place && data.length > 0) {
+          place = data[0];
+        }
+
+        let lat, lng;
+
+        if (place) {
+          lat = parseFloat(place.y);
+          lng = parseFloat(place.x);
+        } else if (placeInfo.x && placeInfo.y) {
+          // 검색 실패 시 서버 좌표 사용
+          lat =
+            typeof placeInfo.y === "string"
+              ? parseFloat(placeInfo.y)
+              : placeInfo.y;
+          lng =
+            typeof placeInfo.x === "string"
+              ? parseFloat(placeInfo.x)
+              : placeInfo.x;
+        } else {
+          console.error("유효한 좌표를 찾을 수 없음");
+          return;
+        }
+
+        const placeLatLng = new window.kakao.maps.LatLng(lat, lng);
+        map.setCenter(placeLatLng);
+
+        // 마커 생성
+        const marker = new window.kakao.maps.Marker({
+          position: placeLatLng,
         });
+        marker.setMap(map);
+      } else if (placeInfo.x && placeInfo.y) {
+        // Places API 실패 시 좌표로 대체
+        const lat =
+          typeof placeInfo.y === "string"
+            ? parseFloat(placeInfo.y)
+            : placeInfo.y;
+        const lng =
+          typeof placeInfo.x === "string"
+            ? parseFloat(placeInfo.x)
+            : placeInfo.x;
+        const placeLatLng = new window.kakao.maps.LatLng(lat, lng);
+        map.setCenter(placeLatLng);
 
-        // 지도 로드 시작
-        initializeMap(
-          parseFloat(place.y),
-          parseFloat(place.x),
-          place.place_name
-        );
+        const marker = new window.kakao.maps.Marker({
+          position: placeLatLng,
+        });
+        marker.setMap(map);
+      } else {
+        console.error("지도 생성 실패:", status);
       }
     });
-  }, []);
+  }, [placeInfo.kakaoPlaceId, placeInfo.placeName, placeInfo.x, placeInfo.y]);
 
-  // 지도 생성 공통 함수 - 좌표를 매개변수로 받도록 수정
-  const initializeMap = useCallback(
-    (lat: number, lng: number, placeName: string) => {
-      if (!mapContainer.current || !lat || !lng) return;
+  // 카카오맵 SDK 로드 및 지도 생성
+  useEffect(() => {
+    // 장소명과 좌표 중 하나라도 있으면 지도 로드
+    if (placeInfo.placeName || (placeInfo.x && placeInfo.y)) {
+      const loadKakaoMap = () => {
+        if (window.kakao && window.kakao.maps) {
+          initializeMap();
+        } else {
+          const script = document.createElement("script");
+          script.async = true;
+          script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.REACT_APP_KAKAO_MAP_API_KEY}&libraries=services&autoload=false`;
+          script.onload = () => {
+            window.kakao.maps.load(() => {
+              initializeMap();
+            });
+          };
+          script.onerror = () => console.error("카카오맵 SDK 로드 실패");
+          document.head.appendChild(script);
 
-      if (!window.kakao || !window.kakao.maps) {
-        // 카카오맵 스크립트 로드
-        const script = document.createElement("script");
-        script.async = true;
-        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.REACT_APP_KAKAO_MAP_API_KEY}&libraries=services&autoload=false`;
-
-        script.onload = () => {
-          window.kakao.maps.load(() => {
-            // 지도 생성
-            createMap(lat, lng, placeName);
-            setMapLoaded(true);
-          });
-        };
-
-        document.head.appendChild(script);
-        return () => {
-          document.head.removeChild(script);
-        };
-      } else {
-        // 이미 로드된 경우
-        createMap(lat, lng, placeName);
-        setMapLoaded(true);
-      }
-    },
-    []
-  );
-
-  // 지도 생성 함수 - 좌표를 직접 매개변수로 받음
-  const createMap = useCallback(
-    (lat: number, lng: number, placeName: string) => {
-      if (!mapContainer.current) return;
-
-      const options = {
-        center: new window.kakao.maps.LatLng(lat, lng),
-        level: 3,
+          return () => {
+            if (document.head.contains(script)) {
+              document.head.removeChild(script);
+            }
+          };
+        }
       };
 
-      const map = new window.kakao.maps.Map(mapContainer.current, options);
-
-      // 마커 생성
-      const markerPosition = new window.kakao.maps.LatLng(lat, lng);
-      const marker = new window.kakao.maps.Marker({
-        position: markerPosition,
-      });
-
-      // 마커 지도에 표시
-      marker.setMap(map);
-
-      // 장소 이름이 표시된 인포윈도우 생성
-      const infowindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:8px;font-size:14px;font-weight:bold;">${placeName}</div>`,
-      });
-
-      // 인포윈도우 표시
-      infowindow.open(map, marker);
-    },
-    []
-  );
-
-  // 운동 데이터로부터 통계 계산
-  const calculateStats = useCallback((workouts: WorkoutOfTheDayDTO[]) => {
-    // 가장 많은 운동 유형 계산
-    const exerciseTypeCounts: Record<string, number> = {};
-    workouts.forEach((workout) => {
-      const type = workout.mainExerciseType;
-      if (type) {
-        exerciseTypeCounts[type] = (exerciseTypeCounts[type] || 0) + 1;
-      }
-    });
-
-    // 상위 3개 운동 유형 추출
-    const sortedExerciseTypes = Object.entries(exerciseTypeCounts)
-      .sort(([, countA], [, countB]) => countB - countA)
-      .slice(0, 3)
-      .map(([type]) => type);
-
-    setPopularExerciseTypes(sortedExerciseTypes);
-
-    // 가장 활발한 시간대 계산 (예: 아침, 오후, 저녁)
-    const hourCounts: Record<string, number> = {
-      "아침 (6-10시)": 0,
-      "오전 (10-12시)": 0,
-      "오후 (12-18시)": 0,
-      "저녁 (18-22시)": 0,
-      "밤 (22-6시)": 0,
-    };
-
-    workouts.forEach((workout) => {
-      if (workout.recordDate) {
-        const date = new Date(workout.recordDate);
-        const hour = date.getHours();
-
-        if (hour >= 6 && hour < 10) hourCounts["아침 (6-10시)"]++;
-        else if (hour >= 10 && hour < 12) hourCounts["오전 (10-12시)"]++;
-        else if (hour >= 12 && hour < 18) hourCounts["오후 (12-18시)"]++;
-        else if (hour >= 18 && hour < 22) hourCounts["저녁 (18-22시)"]++;
-        else hourCounts["밤 (22-6시)"]++;
-      }
-    });
-
-    // 가장 많은 시간대 찾기
-    const mostActive = Object.entries(hourCounts).sort(
-      ([, countA], [, countB]) => countB - countA
-    )[0];
-
-    if (mostActive) {
-      setMostActiveTime(mostActive[0]);
+      loadKakaoMap();
     }
-  }, []);
+  }, [placeInfo.placeName, placeInfo.x, placeInfo.y, initializeMap]);
+
+  return <MapContainer ref={mapContainerRef} />;
+});
+
+// 장소 정보 컴포넌트
+interface PlaceInfoProps {
+  placeInfo: WorkoutPlaceDTO;
+  totalWorkoutCount: number;
+  onDirectionsClick: () => void;
+  onExpandMapClick: () => void;
+}
+
+const PlaceInfo = React.memo(
+  ({
+    placeInfo,
+    totalWorkoutCount,
+    onDirectionsClick,
+    onExpandMapClick,
+  }: PlaceInfoProps) => {
+    return (
+      <PlaceDetailsWrapper>
+        <PlaceDetailsContainer>
+          <PlaceName>
+            <PlaceIcon>
+              <FaMapMarkerAlt />
+            </PlaceIcon>
+            {placeInfo.placeName}
+          </PlaceName>
+          <PlaceAddress>
+            {placeInfo.roadAddressName || placeInfo.addressName}
+          </PlaceAddress>
+        </PlaceDetailsContainer>
+
+        <ButtonsContainer>
+          <ActionButton onClick={onDirectionsClick}>
+            <FaDirections />
+            길찾기
+          </ActionButton>
+          <SecondaryButton onClick={onExpandMapClick}>
+            <FaExpand />
+            지도 크게보기
+          </SecondaryButton>
+        </ButtonsContainer>
+
+        <StatsContainer>
+          <StatItem>
+            <StatIcon>
+              <FaDumbbell />
+            </StatIcon>
+            <StatValue>{totalWorkoutCount}</StatValue>
+            <StatLabel>게시물</StatLabel>
+          </StatItem>
+        </StatsContainer>
+      </PlaceDetailsWrapper>
+    );
+  }
+);
+
+// 운동 목록 컴포넌트
+interface WorkoutListProps {
+  workouts: WorkoutOfTheDayDTO[];
+  hasMore: boolean;
+  loading: boolean;
+  observerRef: React.RefObject<HTMLDivElement>;
+  onWorkoutClick: (seq: number) => void;
+}
+
+const WorkoutList = React.memo(
+  ({
+    workouts,
+    hasMore,
+    loading,
+    observerRef,
+    onWorkoutClick,
+  }: WorkoutListProps) => {
+    if (workouts.length === 0) {
+      return (
+        <NoDataMessage>이 장소에 저장된 운동 기록이 없습니다.</NoDataMessage>
+      );
+    }
+
+    return (
+      <>
+        <WorkoutGrid>
+          {workouts.map((workout) => (
+            <WorkoutCard
+              key={workout.workoutOfTheDaySeq}
+              workout={workout}
+              onClick={() => onWorkoutClick(workout.workoutOfTheDaySeq)}
+            />
+          ))}
+        </WorkoutGrid>
+        {hasMore && (
+          <LoaderContainer ref={observerRef}>
+            {loading && (
+              <>
+                <SpinnerIcon />
+                <span>더 불러오는 중...</span>
+              </>
+            )}
+          </LoaderContainer>
+        )}
+      </>
+    );
+  }
+);
+
+// ===== 커스텀 훅 =====
+
+// 장소 데이터 관련 훅
+const usePlaceData = (placeSeq: string | undefined) => {
+  const [placeInfo, setPlaceInfo] = useState<WorkoutPlaceDTO>({
+    workoutPlaceSeq: 0,
+    placeName: "",
+    addressName: "",
+    roadAddressName: "",
+    x: "",
+    y: "",
+    kakaoPlaceId: "",
+  });
+  const [totalWorkoutCount, setTotalWorkoutCount] = useState<number>(0);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // 초기 데이터 로드 및 상태 초기화
   const initializeData = useCallback(async () => {
     if (!placeSeq) return;
-    setLoading(true);
+    setInitialLoading(true);
     try {
-      const [countResponse] = await Promise.all([
-        getWorkoutOfTheDayCountByPlaceIdAPI(placeSeq),
-      ]);
+      const response = await getWorkoutsByPlaceAPI(placeSeq, 12, null);
+
+      if (response.placeInfo) {
+        setPlaceInfo(response.placeInfo);
+      }
+
+      const countResponse = await getWorkoutOfTheDayCountByPlaceIdAPI(placeSeq);
       setTotalWorkoutCount(countResponse.count);
     } catch (error) {
       console.error("초기 데이터 로드 실패:", error);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
   }, [placeSeq]);
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    initializeData();
+  }, [initializeData]);
+
+  return { placeInfo, totalWorkoutCount, initialLoading };
+};
+
+// 운동 데이터 관련 훅
+const useWorkoutData = (placeSeq: string | undefined) => {
+  const [workoutOfTheDays, setWorkoutOfTheDays] = useState<
+    WorkoutOfTheDayDTO[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // 무한 스크롤을 위한 데이터 로드 함수
   const fetchWorkouts = useCallback(
@@ -480,26 +669,6 @@ const WorkoutPlacePage: React.FC = () => {
       try {
         const response = await getWorkoutsByPlaceAPI(placeSeq, 12, cursor);
         const workouts = response.workouts || [];
-
-        // 첫 데이터 로드 시에만 통계 계산 및 장소 ID 추출
-        if (!cursor && workouts.length > 0) {
-          calculateStats(workouts);
-
-          // 장소 정보가 있고 placeInfo.id가 비어있으면 카카오맵 API로 조회
-          if (response.placeInfo?.kakaoPlaceId && !placeInfo.id) {
-            fetchPlaceInfo(response.placeInfo.kakaoPlaceId);
-          } else {
-            // 임시 장소 정보 설정 (API 응답에 기본 정보가 포함된 경우)
-            setPlaceInfo((prev) => ({
-              ...prev,
-              placeName: response.placeInfo?.placeName || prev.placeName,
-              address: response.placeInfo?.addressName || prev.address,
-              roadAddress:
-                response.placeInfo?.roadAddressName || prev.roadAddress,
-            }));
-          }
-        }
-
         setWorkoutOfTheDays((prev) =>
           cursor ? [...prev, ...workouts] : workouts
         );
@@ -507,20 +676,20 @@ const WorkoutPlacePage: React.FC = () => {
         setHasMore(!!response.nextCursor);
       } catch (error) {
         console.error("운동 기록 로드 실패:", error);
-        alert("운동 기록을 불러오지 못했습니다.");
         setHasMore(false);
       } finally {
         setLoading(false);
       }
     }, 300),
-    [placeSeq, loading, hasMore, calculateStats, fetchPlaceInfo, placeInfo.id]
+    [placeSeq, loading, hasMore]
   );
 
   // 초기 데이터 로드
   useEffect(() => {
-    initializeData();
-    fetchWorkouts(null);
-  }, [initializeData, fetchWorkouts]);
+    if (placeSeq) {
+      fetchWorkouts(null);
+    }
+  }, [placeSeq, fetchWorkouts]);
 
   // 무한 스크롤 설정
   useEffect(() => {
@@ -541,170 +710,110 @@ const WorkoutPlacePage: React.FC = () => {
     };
   }, [fetchWorkouts, loading, hasMore, nextCursor]);
 
-  // 운동 카드 클릭 핸들러
-  const handleWorkoutCardClick = (seq: number) => {
+  return { workoutOfTheDays, loading, hasMore, observerTarget };
+};
+
+// ===== 메인 컴포넌트 =====
+const WorkoutPlacePage: React.FC = () => {
+  // 라우터 관련
+  const { placeSeq } = useParams<{ placeSeq: string }>();
+  const navigate = useNavigate();
+
+  // 커스텀 훅 사용
+  const { placeInfo, totalWorkoutCount, initialLoading } =
+    usePlaceData(placeSeq);
+  const { workoutOfTheDays, loading, hasMore, observerTarget } =
+    useWorkoutData(placeSeq);
+
+  // 모달 관련 상태
+  const [selectedWorkoutOfTheDaySeq, setSelectedWorkoutOfTheDaySeq] = useState<
+    number | null
+  >(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // 이벤트 핸들러
+  const handleWorkoutCardClick = useCallback((seq: number) => {
     setSelectedWorkoutOfTheDaySeq(seq);
     setShowModal(true);
-  };
+  }, []);
 
-  // 모달 닫기 핸들러
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setShowModal(false);
     setSelectedWorkoutOfTheDaySeq(null);
-  };
+  }, []);
 
-  // 길찾기 링크 생성
-  const getDirectionsLink = () => {
-    if (placeInfo.y && placeInfo.x) {
-      return `https://map.kakao.com/link/to/${placeInfo.placeName},${placeInfo.y},${placeInfo.x}`;
-    } else if (placeInfo.roadAddress || placeInfo.address) {
-      // 좌표는 없지만 주소가 있으면 주소로 검색 링크 생성
-      const address = encodeURIComponent(
-        placeInfo.roadAddress || placeInfo.address
+  const handleDirectionsClick = useCallback(() => {
+    if (placeInfo.kakaoPlaceId) {
+      window.open(
+        `https://map.kakao.com/link/to/${placeInfo.kakaoPlaceId}`,
+        "_blank"
       );
-      return `https://map.kakao.com/link/search/${address}`;
-    }
-    return "#";
-  };
-
-  // 지도 크게 보기 링크 생성
-  const getMapViewLink = () => {
-    if (placeInfo.y && placeInfo.x) {
-      return `https://map.kakao.com/link/map/${placeInfo.placeName},${placeInfo.y},${placeInfo.x}`;
-    } else if (placeInfo.id) {
-      // 장소 ID가 있으면 카카오맵 장소 페이지로 이동
-      return `https://map.kakao.com/link/place/${placeInfo.id}`;
-    } else if (placeInfo.roadAddress || placeInfo.address) {
-      // 좌표는 없지만 주소가 있으면 주소로 검색 링크 생성
-      const address = encodeURIComponent(
-        placeInfo.roadAddress || placeInfo.address
+    } else if (placeInfo.x && placeInfo.y) {
+      window.open(
+        `https://map.kakao.com/link/to/${placeInfo.placeName},${placeInfo.y},${placeInfo.x}`,
+        "_blank"
       );
-      return `https://map.kakao.com/link/search/${address}`;
+    } else {
+      window.open(
+        `https://map.kakao.com/link/search/${placeInfo.placeName}`,
+        "_blank"
+      );
     }
-    return "#";
-  };
+  }, [placeInfo]);
 
-  if (loading && workoutOfTheDays.length === 0) {
+  const handleExpandMapClick = useCallback(() => {
+    if (placeInfo.kakaoPlaceId) {
+      window.open(
+        `https://map.kakao.com/link/map/${placeInfo.kakaoPlaceId}`,
+        "_blank"
+      );
+    } else if (placeInfo.x && placeInfo.y) {
+      window.open(
+        `https://map.kakao.com/link/map/${placeInfo.placeName},${placeInfo.y},${placeInfo.x}`,
+        "_blank"
+      );
+    } else {
+      window.open(
+        `https://map.kakao.com/link/search/${placeInfo.placeName}`,
+        "_blank"
+      );
+    }
+  }, [placeInfo]);
+
+  // 로딩 중 표시
+  if (initialLoading) {
     return (
       <Container>
-        <LoadingSpinner>데이터를 불러오는 중입니다...</LoadingSpinner>
+        <LoadingIndicator />
       </Container>
     );
   }
 
+  // 렌더링
   return (
     <Container>
       <PlaceHeader>
         <PlaceInfoContainer>
-          <MapContainer ref={mapContainer}>
-            {(!placeInfo.x || !placeInfo.y) && (
-              <MapPlaceholder>위치 정보가 없습니다</MapPlaceholder>
-            )}
-          </MapContainer>
-          <InfoContent>
-            <div>
-              <PlaceName>{placeInfo.placeName}</PlaceName>
-              <PlaceAddress>
-                <FaMapMarkerAlt />
-                {placeInfo.roadAddress || placeInfo.address}
-              </PlaceAddress>
-              {placeInfo.category && (
-                <PlaceDetail>
-                  <FaTag />
-                  {placeInfo.category}
-                </PlaceDetail>
-              )}
-              {placeInfo.phone && (
-                <PlaceDetail>
-                  <FaPhone />
-                  {placeInfo.phone}
-                </PlaceDetail>
-              )}
-              {placeInfo.openingHours && (
-                <PlaceDetail>
-                  <FaClock />
-                  {placeInfo.openingHours}
-                </PlaceDetail>
-              )}
-              {placeInfo.url && (
-                <PlaceDetail>
-                  <a
-                    href={placeInfo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#4a90e2", textDecoration: "none" }}
-                  >
-                    상세 정보 보기
-                  </a>
-                </PlaceDetail>
-              )}
-            </div>
-            <PlaceActions>
-              <ActionButton
-                href={getDirectionsLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <FaDirections />
-                길찾기
-              </ActionButton>
-              <ActionButton
-                href={getMapViewLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <FaExpand />
-                지도 크게 보기
-              </ActionButton>
-            </PlaceActions>
-          </InfoContent>
+          <KakaoMap placeInfo={placeInfo} />
+          <PlaceInfo
+            placeInfo={placeInfo}
+            totalWorkoutCount={totalWorkoutCount}
+            onDirectionsClick={handleDirectionsClick}
+            onExpandMapClick={handleExpandMapClick}
+          />
         </PlaceInfoContainer>
-
-        <StatsContainer>
-          <StatItem>
-            <StatValue>{totalWorkoutCount}</StatValue>
-            <StatLabel>운동 기록</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatValue>
-              {popularExerciseTypes.length > 0 ? popularExerciseTypes[0] : "-"}
-            </StatValue>
-            <StatLabel>인기 운동</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatValue>{mostActiveTime || "-"}</StatValue>
-            <StatLabel>인기 시간대</StatLabel>
-          </StatItem>
-        </StatsContainer>
       </PlaceHeader>
 
-      <SectionTitle>
-        <FaDumbbell />
-        운동 기록
-      </SectionTitle>
-
-      {workoutOfTheDays.length > 0 ? (
-        <>
-          <WorkoutGrid>
-            {workoutOfTheDays.map((workout) => (
-              <WorkoutCard
-                key={workout.workoutOfTheDaySeq}
-                workout={workout}
-                onClick={() =>
-                  handleWorkoutCardClick(workout.workoutOfTheDaySeq)
-                }
-              />
-            ))}
-          </WorkoutGrid>
-          {hasMore && (
-            <LoaderContainer ref={observerTarget}>
-              {loading ? "더 불러오는 중..." : ""}
-            </LoaderContainer>
-          )}
-        </>
-      ) : (
-        <NoDataMessage>이 장소에 저장된 운동 기록이 없습니다.</NoDataMessage>
-      )}
+      <WorkoutSection>
+        <SectionTitle>운동 기록</SectionTitle>
+        <WorkoutList
+          workouts={workoutOfTheDays}
+          hasMore={hasMore}
+          loading={loading}
+          observerRef={observerTarget}
+          onWorkoutClick={handleWorkoutCardClick}
+        />
+      </WorkoutSection>
 
       {showModal && selectedWorkoutOfTheDaySeq && (
         <WorkoutDetailModal
