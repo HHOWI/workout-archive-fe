@@ -35,3 +35,17 @@ export const checkProfileOwnershipAPI = async (userNickname: string) => {
   );
   return response.data;
 };
+
+// 닉네임으로 사용자 시퀀스 조회 API
+export const getUserSeqByNicknameAPI = async (
+  userNickname: string
+): Promise<number> => {
+  const response = await publicAPI.get(`/users/seq/${userNickname}`);
+  return response.data.userSeq;
+};
+
+// 통합 프로필 정보 조회 API
+export const getProfileInfoAPI = async (userNickname: string) => {
+  const response = await authAPI.get(`/users/profile-info/${userNickname}`);
+  return response.data;
+};

@@ -159,3 +159,23 @@ export const getWorkoutOfTheDayCountByPlaceIdAPI = async (
   );
   return response.data;
 };
+
+// 워크아웃 좋아요 토글 API
+export const toggleWorkoutLikeAPI = async (
+  workoutId: number
+): Promise<{ isLiked: boolean; likeCount: number }> => {
+  const response = await authAPI.post(
+    `/workouts/workout-records/${workoutId}/like`
+  );
+  return response.data;
+};
+
+// 워크아웃 좋아요 상태 조회 API
+export const getWorkoutLikeStatusAPI = async (
+  workoutId: number
+): Promise<{ isLiked: boolean }> => {
+  const response = await publicAPI.get(
+    `/workouts/workout-records/${workoutId}/like`
+  );
+  return response.data;
+};

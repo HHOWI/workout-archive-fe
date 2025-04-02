@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import styled from "@emotion/styled";
 import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { format } from "date-fns";
@@ -7,6 +7,8 @@ import {
   getWorkoutRecordDetailsAPI,
   deleteWorkoutRecordAPI,
   updateWorkoutRecordAPI,
+  toggleWorkoutLikeAPI,
+  getWorkoutLikeStatusAPI,
 } from "../api/workout";
 import { getImageUrl } from "../utils/imageUtils";
 import { useSelector } from "react-redux";
@@ -481,12 +483,16 @@ const groupExerciseDetails = (
 // 댓글 컴포넌트
 const CommentComponent: React.FC<{
   workoutId: number;
-}> = ({ workoutId }) => {
+  targetCommentId?: number;
+}> = ({ workoutId, targetCommentId }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
   const userInfo = useSelector((state: any) => state.auth.userInfo);
+
+  // 댓글 요소의 참조를 저장하기 위한 refs 맵
+  const commentRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   // 댓글 불러오기
   const fetchComments = async () => {
@@ -508,6 +514,28 @@ const CommentComponent: React.FC<{
       fetchComments();
     }
   }, [workoutId]);
+
+  // 댓글 로드 후 특정 댓글로 스크롤
+  useEffect(() => {
+    if (!loading && targetCommentId && comments.length > 0) {
+      // 잠시 지연 후 스크롤 (DOM 업데이트 확인)
+      setTimeout(() => {
+        const commentElement = commentRefs.current[targetCommentId];
+        if (commentElement) {
+          commentElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          // 시각적으로 강조
+          commentElement.style.backgroundColor = "rgba(74, 144, 226, 0.1)";
+          setTimeout(() => {
+            commentElement.style.transition = "background-color 1s ease";
+            commentElement.style.backgroundColor = "";
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [loading, targetCommentId, comments]);
 
   // 댓글 작성
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -607,7 +635,15 @@ const CommentComponent: React.FC<{
           </NoCommentsMessage>
         ) : (
           comments.map((comment) => (
-            <CommentItem key={comment.workoutCommentSeq}>
+            <CommentItem
+              key={comment.workoutCommentSeq}
+              ref={(el) =>
+                (commentRefs.current[comment.workoutCommentSeq] = el)
+              }
+              style={{
+                transition: "background-color 0.5s ease",
+              }}
+            >
               <CommentHeader>
                 <UserInfo>
                   <AvatarStyled src={comment.user.profileImageUrl || ""}>
@@ -712,11 +748,38 @@ const ExerciseAccordion: React.FC<{
   );
 };
 
+// 좋아요 버튼 스타일
+const LikeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+`;
+
+const LikeButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+  font-weight: 500;
+  color: #333;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+`;
+
 // Props 타입 정의
 interface WorkoutDetailModalProps {
   workoutOfTheDaySeq: number;
   onClose: () => void;
   onDelete?: () => void;
+  commentId?: number;
 }
 
 // 메인 컴포넌트
@@ -724,6 +787,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   workoutOfTheDaySeq,
   onClose,
   onDelete,
+  commentId,
 }) => {
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const [workout, setWorkout] = useState<WorkoutOfTheDayDTO | null>(null);
@@ -734,6 +798,9 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [editDiary, setEditDiary] = useState<string>("");
   const [exercisesExpanded, setExercisesExpanded] = useState(false);
+  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const [likeCount, setLikeCount] = useState<number>(0);
+  const [likesLoading, setLikesLoading] = useState<boolean>(false);
 
   // 운동 상세 정보 가져오기
   useEffect(() => {
@@ -752,6 +819,30 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     };
     fetchWorkoutDetail();
   }, [workoutOfTheDaySeq]);
+
+  // 좋아요 상태 가져오기
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!workoutOfTheDaySeq) return;
+
+      try {
+        setLikesLoading(true);
+        const response = await getWorkoutLikeStatusAPI(workoutOfTheDaySeq);
+        setIsLiked(response.isLiked);
+        if (workout) {
+          setLikeCount(workout.likeCount || workout.workoutLikeCount || 0);
+        }
+      } catch (err) {
+        console.error("좋아요 상태를 가져오는 중 오류가 발생했습니다:", err);
+      } finally {
+        setLikesLoading(false);
+      }
+    };
+
+    if (workout) {
+      fetchLikeStatus();
+    }
+  }, [workoutOfTheDaySeq, workout]);
 
   // 소유자 확인
   const isOwner = useMemo(() => {
@@ -803,6 +894,22 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
       alert("운동 기록 수정에 실패했습니다.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // 좋아요 토글 핸들러
+  const handleToggleLike = async () => {
+    if (!userInfo || !workout) return;
+
+    try {
+      setLikesLoading(true);
+      const response = await toggleWorkoutLikeAPI(workoutOfTheDaySeq);
+      setIsLiked(response.isLiked);
+      setLikeCount(response.likeCount);
+    } catch (error) {
+      console.error("좋아요 처리 중 오류가 발생했습니다:", error);
+    } finally {
+      setLikesLoading(false);
     }
   };
 
@@ -894,6 +1001,26 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                   {workout.workoutDiary}
                 </WorkoutDiary>
               )}
+
+              {/* 좋아요 버튼 */}
+              <LikeContainer>
+                <LikeButton
+                  onClick={handleToggleLike}
+                  disabled={!userInfo || likesLoading}
+                >
+                  {isLiked ? (
+                    <Favorite fontSize="small" color="error" />
+                  ) : (
+                    <FavoriteBorder fontSize="small" />
+                  )}
+                  좋아요 {likeCount > 0 && likeCount}
+                </LikeButton>
+                {!userInfo && (
+                  <Typography variant="caption" color="textSecondary">
+                    로그인 후 좋아요를 남길 수 있습니다.
+                  </Typography>
+                )}
+              </LikeContainer>
             </ModalInfo>
           </ModalHeaderContent>
 
@@ -929,7 +1056,10 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
 
           <Divider sx={{ my: 3 }} />
 
-          <CommentComponent workoutId={workoutOfTheDaySeq} />
+          <CommentComponent
+            workoutId={workoutOfTheDaySeq}
+            targetCommentId={commentId}
+          />
         </ModalBody>
       </ModalContent>
 

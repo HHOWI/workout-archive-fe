@@ -20,6 +20,8 @@ export interface WorkoutOfTheDayDTO {
   };
   mainExerciseType?: string;
   workoutDetails?: WorkoutDetailDTO[];
+  likeCount?: number;
+  isLiked?: boolean;
 }
 
 export interface WorkoutDetailDTO {

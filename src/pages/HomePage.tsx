@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import WorkoutDetailModal from "../components/WorkoutDetailModal";
 
 const Container = styled.div`
   padding: 2rem;
@@ -69,7 +70,42 @@ const FeatureCard = styled.div`
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = useSelector((state: any) => state.auth.token);
+  const [selectedWorkoutSeq, setSelectedWorkoutSeq] = useState<number | null>(
+    null
+  );
+  const [selectedCommentId, setSelectedCommentId] = useState<number | null>(
+    null
+  );
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const workoutId = searchParams.get("workout");
+    const commentId = searchParams.get("comment");
+
+    if (workoutId) {
+      setSelectedWorkoutSeq(parseInt(workoutId, 10));
+
+      if (commentId) {
+        setSelectedCommentId(parseInt(commentId, 10));
+      }
+
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete("workout");
+      newSearchParams.delete("comment");
+      if (newSearchParams.toString()) {
+        navigate({ search: newSearchParams.toString() }, { replace: true });
+      } else {
+        navigate(location.pathname, { replace: true });
+      }
+    }
+  }, [location, navigate]);
+
+  const handleCloseModal = () => {
+    setSelectedWorkoutSeq(null);
+    setSelectedCommentId(null);
+  };
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
@@ -141,6 +177,14 @@ const HomePage: React.FC = () => {
           </p>
         </FeatureCard>
       </FeaturesGrid>
+
+      {selectedWorkoutSeq && (
+        <WorkoutDetailModal
+          workoutOfTheDaySeq={selectedWorkoutSeq}
+          commentId={selectedCommentId || undefined}
+          onClose={handleCloseModal}
+        />
+      )}
     </Container>
   );
 };

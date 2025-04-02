@@ -24,58 +24,59 @@ const COLORS = {
   shadowLight: "rgba(0, 0, 0, 0.05)",
 };
 
-// 간격 및 크기 상수화
+// 간격 및 크기 상수화 - 값 축소
 const SPACING = {
-  xs: "4px",
-  sm: "8px",
-  md: "16px",
-  lg: "24px",
-  xl: "32px",
+  xs: "3px",
+  sm: "6px",
+  md: "12px",
+  lg: "18px",
+  xl: "24px",
 };
 
 const BORDER_RADIUS = {
-  sm: "4px",
-  md: "8px",
-  lg: "12px",
+  sm: "3px",
+  md: "6px",
+  lg: "10px",
   round: "50%",
 };
 
 const Container = styled.div`
   border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
-  padding: ${SPACING.lg};
+  padding: ${SPACING.md};
   background-color: ${COLORS.cardBackground};
   box-shadow: 0 1px 3px ${COLORS.shadowLight};
   transition: all 0.2s ease;
+  margin-bottom: ${SPACING.md};
 `;
 
 const ExerciseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${SPACING.md};
-  padding-bottom: ${SPACING.sm};
+  margin-bottom: ${SPACING.sm};
+  padding-bottom: ${SPACING.xs};
   border-bottom: 1px solid ${COLORS.border};
 `;
 
 const ExerciseInfoContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: ${SPACING.sm};
+  gap: ${SPACING.xs};
 `;
 
 const ExerciseName = styled.h3`
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: ${COLORS.text};
 `;
 
 const ExerciseType = styled.span`
-  font-size: 14px;
+  font-size: 12px;
   color: ${COLORS.textSecondary};
   background-color: ${COLORS.secondary};
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: ${BORDER_RADIUS.sm};
 `;
 
@@ -84,8 +85,8 @@ const RemoveButton = styled.button`
   color: white;
   border: none;
   border-radius: ${BORDER_RADIUS.sm};
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 4px 8px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -95,16 +96,16 @@ const RemoveButton = styled.button`
 `;
 
 const SetContainer = styled.div`
-  margin-top: ${SPACING.md};
+  margin-top: ${SPACING.sm};
   display: flex;
   flex-direction: row;
-  gap: ${SPACING.md};
+  gap: ${SPACING.sm};
   overflow-x: auto;
-  padding-bottom: ${SPACING.md};
+  padding-bottom: ${SPACING.sm};
   scrollbar-width: thin;
 
   &::-webkit-scrollbar {
-    height: 6px;
+    height: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
@@ -123,38 +124,38 @@ const SetCard = styled.div`
   flex-direction: column;
   border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
-  padding: ${SPACING.md};
-  min-width: 120px;
-  max-width: 120px;
+  padding: ${SPACING.sm};
+  min-width: 100px;
+  max-width: 100px;
   background-color: ${COLORS.background};
   flex-shrink: 0;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+  box-shadow: 0 1px 2px ${COLORS.shadowLight};
 
   &:hover {
     border-color: ${COLORS.borderDark};
-    box-shadow: 0 3px 6px ${COLORS.shadow};
+    box-shadow: 0 2px 4px ${COLORS.shadow};
   }
 `;
 
 const SetNumber = styled.div`
   font-weight: 600;
-  font-size: 13px;
-  margin-bottom: ${SPACING.sm};
+  font-size: 12px;
+  margin-bottom: ${SPACING.xs};
   text-align: center;
-  padding: 4px;
+  padding: 3px;
   background-color: ${COLORS.secondary};
   border-radius: ${BORDER_RADIUS.sm};
   color: ${COLORS.text};
 `;
 
 const InputField = styled.input<{ isRequired?: boolean }>`
-  padding: 8px 10px;
+  padding: 6px;
   border: 1px solid ${(props) => (props.isRequired ? "#ffebee" : COLORS.border)};
   border-radius: ${BORDER_RADIUS.sm};
   width: 100%;
-  margin-top: 4px;
-  font-size: 14px;
+  margin-top: 2px;
+  font-size: 13px;
   box-sizing: border-box;
   background-color: ${({ isRequired }) => (isRequired ? "#fff8f8" : "white")};
   color: ${COLORS.text};
@@ -174,13 +175,13 @@ const InputField = styled.input<{ isRequired?: boolean }>`
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  margin-bottom: ${SPACING.sm};
+  margin-bottom: ${SPACING.xs};
 `;
 
 const InputLabel = styled.label`
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   color: ${COLORS.textSecondary};
   display: flex;
   align-items: center;
@@ -188,15 +189,15 @@ const InputLabel = styled.label`
 
 const RequiredText = styled.span`
   color: ${COLORS.danger};
-  font-size: 10px;
+  font-size: 9px;
   margin-left: ${SPACING.xs};
 `;
 
 const CardioContainer = styled.div`
-  margin-top: ${SPACING.md};
+  margin-top: ${SPACING.sm};
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${SPACING.md};
+  gap: ${SPACING.sm};
 `;
 
 const CardioCard = styled.div`
@@ -204,36 +205,36 @@ const CardioCard = styled.div`
   flex-direction: column;
   border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
-  padding: ${SPACING.md};
+  padding: ${SPACING.sm};
   background-color: ${COLORS.background};
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+  box-shadow: 0 1px 2px ${COLORS.shadowLight};
 
   &:hover {
     border-color: ${COLORS.borderDark};
-    box-shadow: 0 3px 6px ${COLORS.shadow};
+    box-shadow: 0 2px 4px ${COLORS.shadow};
   }
 `;
 
 const CardioCardTitle = styled.div`
   font-weight: 600;
-  font-size: 13px;
-  margin-bottom: ${SPACING.sm};
+  font-size: 12px;
+  margin-bottom: ${SPACING.xs};
   text-align: center;
-  padding: 4px;
+  padding: 3px;
   background-color: ${COLORS.secondary};
   border-radius: ${BORDER_RADIUS.sm};
   color: ${COLORS.text};
 `;
 
 const CardioInfoText = styled.small`
-  margin-top: ${SPACING.sm};
+  margin-top: ${SPACING.xs};
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   text-align: center;
   color: ${COLORS.textSecondary};
   background-color: ${COLORS.secondary};
-  padding: 4px;
+  padding: 3px;
   border-radius: ${BORDER_RADIUS.sm};
 `;
 
@@ -248,12 +249,12 @@ const Tooltip = styled.div`
     transform: translateX(-50%);
     background: ${COLORS.text};
     color: white;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: ${BORDER_RADIUS.sm};
-    font-size: 12px;
+    font-size: 11px;
     white-space: nowrap;
     z-index: 10;
-    box-shadow: 0 3px 6px ${COLORS.shadow};
+    box-shadow: 0 2px 4px ${COLORS.shadow};
   }
 `;
 

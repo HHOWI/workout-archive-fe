@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { clearUserInfo } from "../store/slices/authSlice";
 import { logoutUserAPI } from "../api/user";
 import { RootState } from "../store/store";
 import SearchComponent from "./SearchComponent";
+import NotificationDropdown from "./common/NotificationDropdown";
+import SocketService, { SocketStatus } from "../services/socketService";
 
 // Material UI 컴포넌트
 import {
@@ -34,6 +36,7 @@ import MonitorWeightIcon from "@mui/icons-material/MonitorWeight";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
+import RssFeedIcon from "@mui/icons-material/RssFeed";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -41,11 +44,32 @@ const Header: React.FC = () => {
   const userInfo = useSelector((state: RootState) => state.auth.userInfo);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const socketService = SocketService.getInstance();
 
   // 모바일 드로어 상태
   const [mobileOpen, setMobileOpen] = useState(false);
   // 사용자 메뉴 상태
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+
+  // 소켓 연결
+  useEffect(() => {
+    if (userInfo) {
+      // 소켓 연결 및 인증
+      socketService.connect();
+
+      // 상태 로깅만 하는 간단한 핸들러
+      const handleStatusChange = (status: SocketStatus) => {
+        console.log("소켓 연결 상태:", status);
+      };
+
+      socketService.addStatusChangeHandler(handleStatusChange);
+
+      return () => {
+        socketService.removeStatusChangeHandler(handleStatusChange);
+        // 컴포넌트 언마운트 시 연결 해제하지 않음 (다른 페이지에서도 사용)
+      };
+    }
+  }, [userInfo]);
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -63,6 +87,7 @@ const Header: React.FC = () => {
     try {
       await logoutUserAPI();
       dispatch(clearUserInfo());
+      socketService.disconnect();
       navigate("/");
       handleCloseUserMenu();
     } catch (error) {
@@ -72,6 +97,12 @@ const Header: React.FC = () => {
 
   // 네비게이션 아이템 리스트
   const navItems = [
+    {
+      name: "피드",
+      icon: <RssFeedIcon fontSize="small" />,
+      path: "/feed",
+      requiresAuth: true,
+    },
     {
       name: "오운완",
       icon: <FitnessCenterIcon fontSize="small" />,
@@ -239,6 +270,9 @@ const Header: React.FC = () => {
             >
               <SearchComponent />
             </Box>
+
+            {/* 알림 아이콘 - 로그인 시에만 표시 */}
+            {userInfo && <NotificationDropdown />}
 
             {/* 사용자 메뉴 */}
             {!isMobile && (

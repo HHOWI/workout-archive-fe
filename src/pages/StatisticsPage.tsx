@@ -162,7 +162,6 @@ interface ChartConfig {
   label: string;
   icon: React.ReactNode;
   component: React.ReactNode;
-  description: string;
 }
 
 // 차트 설정 배열 정의
@@ -174,32 +173,24 @@ const useChartConfigs = (): ChartConfig[] => {
         label: "바디로그",
         icon: <FaWeight />,
         component: <BodyLogTab />,
-        description:
-          "체중, 골격근량, 체지방률 데이터를 트래킹하고 변화 추이를 확인하세요.",
       },
       {
         value: "exerciseWeight",
         label: "웨이트 기록 변화",
         icon: <FaChartLine />,
         component: <ExerciseWeightTab />,
-        description:
-          "각 운동별 무게 기록의 변화를 확인하고 진행 상황을 분석하세요.",
       },
       {
         value: "cardio",
         label: "유산소 기록",
         icon: <FaRunning />,
         component: <CardioRecordTab />,
-        description:
-          "유산소 운동의 거리, 시간, 속도 데이터를 그래프로 확인하세요.",
       },
       {
         value: "bodyPartVolume",
         label: "운동 볼륨",
         icon: <FaDumbbell />,
         component: <BodyPartVolumeTab />,
-        description:
-          "부위별 운동 볼륨을 분석하고 균형 잡힌 트레이닝을 계획하세요.",
       },
     ],
     []
@@ -230,14 +221,6 @@ const StatisticsPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader>
-        <PageTitle>운동 통계</PageTitle>
-        <PageDescription>
-          {activeConfig?.description ||
-            "다양한 운동 데이터를 시각화하여 진행 상황을 분석하세요."}
-        </PageDescription>
-      </PageHeader>
-
       <StatsContainer elevation={0}>
         <TabContainer>
           <StyledTabs
