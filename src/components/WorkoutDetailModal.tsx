@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
 import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { format } from "date-fns";
@@ -8,10 +8,10 @@ import {
   deleteWorkoutRecordAPI,
   updateWorkoutRecordAPI,
   toggleWorkoutLikeAPI,
-  getWorkoutLikeStatusAPI,
 } from "../api/workout";
 import { getImageUrl } from "../utils/imageUtils";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import ActionMenu from "./common/ActionMenu";
 import {
   Avatar,
@@ -28,33 +28,24 @@ import {
 import {
   KeyboardArrowDown,
   KeyboardArrowUp,
-  Send,
   FavoriteBorder,
   Favorite,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   LocationOn,
   CalendarToday,
-  FitnessCenter,
 } from "@mui/icons-material";
-import {
-  getCommentsAPI,
-  createCommentAPI,
-  deleteCommentAPI,
-  toggleCommentLikeAPI,
-  CommentListResponse,
-  Comment,
-} from "../api/comment";
-import { formatDistanceToNow } from "date-fns";
+import CommentSection from "./workout/CommentSection";
+import ExerciseList from "./workout/ExerciseList";
 
-// 모달 스타일
+// =============== 스타일 컴포넌트 ===============
+
+// 모달 기본 스타일
 const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -63,14 +54,26 @@ const Modal = styled.div`
   backdrop-filter: blur(5px);
 `;
 
-const ModalContent = styled(Paper)`
-  width: 90%;
-  max-width: 800px;
+const ActionModal = styled(Modal)`
+  z-index: 10000;
+  background-color: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.2s ease;
+`;
+
+// 스크롤 관련 스타일
+const ScrollableContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   max-height: 90vh;
+  border-radius: 20px;
+  overflow: hidden;
+`;
+
+const ScrollableContent = styled.div`
+  flex: 1;
   overflow-y: auto;
-  position: relative;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: #d0d0d0 #f5f5f5;
 
@@ -80,12 +83,35 @@ const ModalContent = styled(Paper)`
 
   &::-webkit-scrollbar-track {
     background: #f5f5f5;
-    border-radius: 10px;
+    margin: 10px 0;
   }
 
   &::-webkit-scrollbar-thumb {
     background-color: #d0d0d0;
     border-radius: 10px;
+    border: 2px solid #f5f5f5;
+  }
+`;
+
+// 모달 컨텐츠 스타일
+const ModalContent = styled(Paper)`
+  width: 90%;
+  max-width: 850px;
+  position: relative;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease;
+  overflow: hidden;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @media (max-width: 768px) {
@@ -93,62 +119,87 @@ const ModalContent = styled(Paper)`
   }
 `;
 
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  z-index: 10;
-`;
+const ActionModalContent = styled(Paper)`
+  padding: 32px;
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  animation: modalIn 0.3s ease;
 
-const CloseButton = styled(IconButton)`
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background-color: rgba(255, 255, 255, 0.9);
-  z-index: 20;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 1);
+  @keyframes modalIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 `;
 
+// 레이아웃 컴포넌트
+const ActionMenuContainer = styled.div`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+`;
+
 const ModalBody = styled.div`
-  padding: 30px;
+  padding: 36px;
+  padding-right: 40px;
 
   @media (max-width: 768px) {
-    padding: 20px 16px;
+    padding: 24px 16px;
+    padding-right: 24px;
   }
 `;
 
 const ModalHeaderContent = styled.div`
   display: flex;
-  margin-bottom: 24px;
-  gap: 24px;
+  margin-bottom: 20px;
+  gap: 32px;
+  position: relative;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
+    margin-bottom: 24px;
   }
 `;
 
-const ModalImage = styled.div<{ url?: string }>`
+// 이미지 관련 스타일
+const ModalImageContainer = styled.div`
   width: 50%;
   aspect-ratio: 1/1;
-  background-image: url(${(props) => props.url || ""});
-  background-size: cover;
-  background-position: center;
-  background-color: #f0f0f0;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  position: relative;
+  background-color: #222;
 
   @media (max-width: 768px) {
     width: 100%;
   }
 `;
 
+const ModalImage = styled.div<{ url?: string }>`
+  width: 100%;
+  height: 100%;
+  background-image: url(${(props) => props.url || ""});
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.03);
+  }
+`;
+
+// 정보 영역 스타일
 const ModalInfo = styled.div`
   flex: 1;
   display: flex;
@@ -157,14 +208,33 @@ const ModalInfo = styled.div`
 
 const HeaderDivider = styled(Divider)`
   margin: 16px 0;
+  background-color: rgba(0, 0, 0, 0.08);
 `;
 
 const InfoItem = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: 16px;
+  gap: 10px;
   color: #555;
+  font-size: 15px;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+  margin-bottom: 16px;
+`;
+
+const ClickableInfoItem = styled(InfoItem)`
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #4a90e2;
+  }
 `;
 
 const InfoIcon = styled.span`
@@ -174,291 +244,128 @@ const InfoIcon = styled.span`
 `;
 
 const WorkoutDiary = styled(Typography)`
-  margin-top: 16px;
-  line-height: 1.7;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  line-height: 1.5;
   white-space: pre-wrap;
-  color: #333;
-  font-size: 15px;
-  padding: 12px 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #4a90e2;
+  color: #262626;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.1px;
 `;
 
+// 타이틀 스타일
 const SectionTitle = styled(Typography)`
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
-  margin: 24px 0 12px;
+  margin: 28px 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: #333;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
 
   &:first-of-type {
     margin-top: 0;
   }
 `;
 
-const ExerciseContainer = styled(Paper)`
-  padding: 16px;
+const ActionModalTitle = styled(Typography)`
   margin-bottom: 16px;
-  border-radius: 12px;
-  border: 1px solid #eee;
-`;
-
-const ExerciseHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-`;
-
-const ExerciseTitle = styled(Typography)`
-  font-size: 16px;
   font-weight: 600;
+  font-size: 20px;
   color: #333;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 `;
 
-const ExerciseTypeChip = styled.span`
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background-color: #e8f2ff;
-  color: #4a90e2;
-  font-weight: 500;
-  white-space: nowrap;
-`;
-
-const ExerciseSets = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-`;
-
-const SetItem = styled.div`
-  background-color: #f8f8f8;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #555;
-  border: 1px solid #eee;
-`;
-
+// 로딩 표시
 const LoadingContainer = styled.div`
-  padding: 40px;
+  padding: 60px 40px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 `;
 
-// 공통 모달 스타일
-const ActionModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-  backdrop-filter: blur(3px);
-`;
-
-const ActionModalContent = styled(Paper)`
-  padding: 24px;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  border-radius: 16px;
-`;
-
-const ActionModalTitle = styled(Typography)`
-  margin-bottom: 16px;
-  font-weight: 600;
-  font-size: 18px;
-`;
-
+// 버튼 스타일
 const ActionModalButtons = styled.div`
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 16px;
+  margin-top: 28px;
 `;
 
 const TextArea = styled(TextField)`
   .MuiInputBase-root {
     border-radius: 12px;
+    background-color: #f9f9f9;
   }
 `;
 
-// 댓글 섹션 스타일
-const CommentSection = styled.div`
-  margin-top: 32px;
-`;
-
-const CommentCount = styled(Typography)`
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 16px;
-  span {
-    color: #4a90e2;
-    margin-left: 4px;
-  }
-`;
-
-const CommentList = styled.div`
-  margin-top: 20px;
-`;
-
-const CommentItem = styled.div`
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f0f0;
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const CommentHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-`;
-
-const UserInfo = styled.div`
+// 좋아요 버튼 스타일
+const LikeContainer = styled.div`
+  position: absolute;
+  right: 0;
+  bottom: -10px;
   display: flex;
   align-items: center;
   gap: 12px;
+
+  @media (max-width: 768px) {
+    position: relative;
+    bottom: 0;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
 `;
 
-const UserName = styled(Typography)`
-  font-weight: 600;
-  font-size: 15px;
-`;
-
-const CommentDate = styled(Typography)`
-  color: #777;
-  font-size: 13px;
-`;
-
-const CommentText = styled(Typography)`
-  font-size: 15px;
-  line-height: 1.5;
-  margin: 8px 0;
-  color: #333;
-  word-break: break-word;
-`;
-
-const CommentActions = styled.div`
+const LikeButton = styled.button`
   display: flex;
-  gap: 16px;
-  margin-top: 8px;
-`;
-
-const ActionButton = styled.button`
+  align-items: center;
+  gap: 8px;
   background: none;
   border: none;
-  font-size: 13px;
-  color: #666;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 0;
+  padding: 8px 14px;
+  border-radius: 20px;
+  transition: all 0.2s;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
 
   &:hover {
-    color: #333;
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &.active {
+    color: #e53935;
   }
 `;
 
-const CommentFormContainer = styled.div`
+// 사용자 정보 스타일
+const UserInfoContainer = styled.div`
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-top: 24px;
-`;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 
-const CommentField = styled(TextField)`
-  flex: 1;
-  .MuiOutlinedInput-root {
-    border-radius: 20px;
-    background-color: #f9f9f9;
-
-    &:hover {
-      background-color: #f5f5f5;
-    }
-
-    &.Mui-focused {
-      background-color: #fff;
-    }
+  &:hover {
+    transform: translateY(-2px);
   }
 `;
 
-const NoCommentsMessage = styled(Typography)`
-  text-align: center;
-  color: #777;
-  padding: 24px 0;
+const UserAvatar = styled(Avatar)`
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
-const AvatarStyled = styled(Avatar)`
-  width: 38px;
-  height: 38px;
-  background-color: #4a90e2;
-`;
-
-// 유틸리티 함수
-const formatDate = (dateString: string) => {
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return "날짜 정보 없음";
-    }
-    return format(date, "yyyy년 MM월 dd일 EEEE", { locale: ko });
-  } catch (error) {
-    return "날짜 정보 없음";
-  }
-};
-
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs < 10 ? "0" + secs : secs}`;
-};
-
-const formatCommentDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return formatDistanceToNow(date, { addSuffix: true, locale: ko });
-};
+// =============== 유틸리티 함수 ===============
 
 // 운동 세부 정보 그룹화
-const groupExerciseDetails = (
-  details: WorkoutDetailDTO[]
-): {
-  exercise: string;
-  type: string;
-  sets: {
-    weight: number | null;
-    reps: number | null;
-    distance: number | null;
-    recordTime: number | null;
-  }[];
-}[] => {
+const groupExerciseDetails = (details: WorkoutDetailDTO[]) => {
   const exerciseGroups = details.reduce((acc, detail) => {
     const key = `${detail.exercise.exerciseName}`;
     if (!acc[key]) {
@@ -480,301 +387,9 @@ const groupExerciseDetails = (
   return Object.values(exerciseGroups);
 };
 
-// 댓글 컴포넌트
-const CommentComponent: React.FC<{
-  workoutId: number;
-  targetCommentId?: number;
-}> = ({ workoutId, targetCommentId }) => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const userInfo = useSelector((state: any) => state.auth.userInfo);
+const isValidDate = (date: any) => date && !isNaN(new Date(date).getTime());
 
-  // 댓글 요소의 참조를 저장하기 위한 refs 맵
-  const commentRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-
-  // 댓글 불러오기
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      const response: CommentListResponse = await getCommentsAPI(workoutId);
-      setComments(response.comments);
-      setTotalCount(response.totalCount);
-    } catch (error) {
-      console.error("댓글을 불러오는 중 오류가 발생했습니다:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 초기 로딩
-  useEffect(() => {
-    if (workoutId) {
-      fetchComments();
-    }
-  }, [workoutId]);
-
-  // 댓글 로드 후 특정 댓글로 스크롤
-  useEffect(() => {
-    if (!loading && targetCommentId && comments.length > 0) {
-      // 잠시 지연 후 스크롤 (DOM 업데이트 확인)
-      setTimeout(() => {
-        const commentElement = commentRefs.current[targetCommentId];
-        if (commentElement) {
-          commentElement.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-          // 시각적으로 강조
-          commentElement.style.backgroundColor = "rgba(74, 144, 226, 0.1)";
-          setTimeout(() => {
-            commentElement.style.transition = "background-color 1s ease";
-            commentElement.style.backgroundColor = "";
-          }, 2000);
-        }
-      }, 100);
-    }
-  }, [loading, targetCommentId, comments]);
-
-  // 댓글 작성
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim() || !userInfo) return;
-
-    try {
-      await createCommentAPI(workoutId, commentText);
-      setCommentText("");
-      fetchComments();
-    } catch (error) {
-      console.error("댓글 작성 중 오류가 발생했습니다:", error);
-    }
-  };
-
-  // 댓글 삭제
-  const handleDeleteComment = async (commentId: number) => {
-    if (!window.confirm("이 댓글을 삭제하시겠습니까?")) return;
-
-    try {
-      await deleteCommentAPI(commentId);
-      fetchComments();
-    } catch (error) {
-      console.error("댓글 삭제 중 오류가 발생했습니다:", error);
-    }
-  };
-
-  // 좋아요 토글
-  const handleToggleLike = async (commentId: number) => {
-    if (!userInfo) return;
-
-    try {
-      const response = await toggleCommentLikeAPI(commentId);
-
-      // 상태 업데이트
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment.workoutCommentSeq === commentId
-            ? {
-                ...comment,
-                isLiked: response.isLiked,
-                commentLikes: response.likeCount,
-              }
-            : comment
-        )
-      );
-    } catch (error) {
-      console.error("좋아요 처리 중 오류가 발생했습니다:", error);
-    }
-  };
-
-  return (
-    <CommentSection>
-      <CommentCount variant="h6">
-        댓글<span>{totalCount}</span>
-      </CommentCount>
-
-      {userInfo && (
-        <CommentFormContainer>
-          <AvatarStyled src={userInfo.profileImageUrl}>
-            {!userInfo.profileImageUrl &&
-              userInfo.userNickname?.substring(0, 1)}
-          </AvatarStyled>
-          <form
-            onSubmit={handleSubmitComment}
-            style={{ flex: 1, display: "flex", gap: "8px" }}
-          >
-            <CommentField
-              fullWidth
-              placeholder="댓글을 작성해보세요..."
-              variant="outlined"
-              size="small"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              disabled={!commentText.trim()}
-              type="submit"
-              sx={{ borderRadius: "20px" }}
-            >
-              <Send fontSize="small" />
-            </Button>
-          </form>
-        </CommentFormContainer>
-      )}
-
-      <CommentList>
-        {loading ? (
-          <LoadingContainer>
-            <CircularProgress size={30} />
-          </LoadingContainer>
-        ) : comments.length === 0 ? (
-          <NoCommentsMessage>
-            아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
-          </NoCommentsMessage>
-        ) : (
-          comments.map((comment) => (
-            <CommentItem
-              key={comment.workoutCommentSeq}
-              ref={(el) =>
-                (commentRefs.current[comment.workoutCommentSeq] = el)
-              }
-              style={{
-                transition: "background-color 0.5s ease",
-              }}
-            >
-              <CommentHeader>
-                <UserInfo>
-                  <AvatarStyled src={comment.user.profileImageUrl || ""}>
-                    {!comment.user.profileImageUrl &&
-                      comment.user.userNickname?.substring(0, 1)}
-                  </AvatarStyled>
-                  <div>
-                    <UserName>{comment.user.userNickname}</UserName>
-                    <CommentDate>
-                      {formatCommentDate(comment.commentCreatedAt)}
-                    </CommentDate>
-                  </div>
-                </UserInfo>
-                {userInfo && userInfo.userSeq === comment.user.userSeq && (
-                  <IconButton
-                    size="small"
-                    onClick={() =>
-                      handleDeleteComment(comment.workoutCommentSeq)
-                    }
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </CommentHeader>
-
-              <CommentText>{comment.commentContent}</CommentText>
-
-              <CommentActions>
-                <ActionButton
-                  onClick={() => handleToggleLike(comment.workoutCommentSeq)}
-                >
-                  {comment.isLiked ? (
-                    <Favorite fontSize="small" color="error" />
-                  ) : (
-                    <FavoriteBorder fontSize="small" />
-                  )}
-                  {comment.commentLikes > 0 && comment.commentLikes}
-                </ActionButton>
-              </CommentActions>
-            </CommentItem>
-          ))
-        )}
-      </CommentList>
-    </CommentSection>
-  );
-};
-
-// 운동 접기/펼치기 컴포넌트
-const ExerciseAccordion: React.FC<{
-  exercise: string;
-  type: string;
-  sets: any[];
-}> = ({ exercise, type, sets }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <ExerciseContainer elevation={0}>
-      <ExerciseHeader onClick={() => setExpanded(!expanded)}>
-        <ExerciseTitle>
-          <FitnessCenter fontSize="small" color="primary" />
-          {exercise}
-          <ExerciseTypeChip>{type}</ExerciseTypeChip>
-        </ExerciseTitle>
-        <IconButton size="small">
-          {expanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-        </IconButton>
-      </ExerciseHeader>
-
-      <Collapse in={expanded}>
-        <ExerciseSets>
-          {type === "유산소" ? (
-            <>
-              {sets.map((set, index) => (
-                <SetItem key={index}>
-                  {set.distance && (
-                    <span>
-                      {set.distance}m
-                      {set.distance >= 1000 &&
-                        ` (${(set.distance / 1000).toFixed(2)}km)`}
-                    </span>
-                  )}
-                  {set.recordTime && <span>{formatTime(set.recordTime)}</span>}
-                </SetItem>
-              ))}
-            </>
-          ) : (
-            <>
-              {sets.map((set, index) => (
-                <SetItem key={index}>
-                  {set.weight && set.reps && (
-                    <span>
-                      {set.weight}kg × {set.reps}회
-                    </span>
-                  )}
-                </SetItem>
-              ))}
-            </>
-          )}
-        </ExerciseSets>
-      </Collapse>
-    </ExerciseContainer>
-  );
-};
-
-// 좋아요 버튼 스타일
-const LikeContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-`;
-
-const LikeButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 20px;
-  transition: background-color 0.2s;
-  font-weight: 500;
-  color: #333;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-`;
-
-// Props 타입 정의
+// =============== Props 타입 ===============
 interface WorkoutDetailModalProps {
   workoutOfTheDaySeq: number;
   onClose: () => void;
@@ -782,14 +397,16 @@ interface WorkoutDetailModalProps {
   commentId?: number;
 }
 
-// 메인 컴포넌트
+// =============== 메인 컴포넌트 ===============
 const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   workoutOfTheDaySeq,
   onClose,
   onDelete,
   commentId,
 }) => {
+  // 상태 관리
   const userInfo = useSelector((state: any) => state.auth.userInfo);
+  const navigate = useNavigate();
   const [workout, setWorkout] = useState<WorkoutOfTheDayDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -797,7 +414,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [editDiary, setEditDiary] = useState<string>("");
-  const [exercisesExpanded, setExercisesExpanded] = useState(false);
+  const [exercisesExpanded, setExercisesExpanded] = useState(true);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(0);
   const [likesLoading, setLikesLoading] = useState<boolean>(false);
@@ -808,8 +425,13 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
       setLoading(true);
       try {
         const response = await getWorkoutRecordDetailsAPI(workoutOfTheDaySeq);
+        console.log("Workout details response:", response);
         setWorkout(response);
         setEditDiary(response.workoutDiary || "");
+
+        // 좋아요 정보 설정
+        setIsLiked(response.isLiked || false);
+        setLikeCount(response.workoutLikeCount);
       } catch (err) {
         console.error("운동 상세 정보를 가져오는 중 오류가 발생했습니다:", err);
         setError("운동 상세 정보를 불러올 수 없습니다.");
@@ -820,37 +442,34 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     fetchWorkoutDetail();
   }, [workoutOfTheDaySeq]);
 
-  // 좋아요 상태 가져오기
-  useEffect(() => {
-    const fetchLikeStatus = async () => {
-      if (!workoutOfTheDaySeq) return;
-
-      try {
-        setLikesLoading(true);
-        const response = await getWorkoutLikeStatusAPI(workoutOfTheDaySeq);
-        setIsLiked(response.isLiked);
-        if (workout) {
-          setLikeCount(workout.likeCount || workout.workoutLikeCount || 0);
-        }
-      } catch (err) {
-        console.error("좋아요 상태를 가져오는 중 오류가 발생했습니다:", err);
-      } finally {
-        setLikesLoading(false);
-      }
-    };
-
-    if (workout) {
-      fetchLikeStatus();
-    }
-  }, [workoutOfTheDaySeq, workout]);
-
   // 소유자 확인
   const isOwner = useMemo(() => {
     if (!userInfo || !workout || !workout.user) return false;
     return workout.user.userNickname === userInfo.userNickname;
   }, [userInfo, workout]);
 
-  // 삭제 핸들러
+  // 핸들러 함수
+  const handleUserProfileClick = () => {
+    if (workout?.user?.userNickname) {
+      onClose();
+      navigate(`/profile/${workout.user.userNickname}`);
+    }
+  };
+
+  const handlePlaceClick = () => {
+    if (workout?.workoutPlace) {
+      console.log("Workout place info:", workout.workoutPlace);
+      const placeId =
+        (workout.workoutPlace as any).workoutPlaceSeq ||
+        (workout.workoutPlace as any).placeSeq;
+
+      if (placeId) {
+        onClose();
+        navigate(`/workoutplace/${placeId}`);
+      }
+    }
+  };
+
   const handleDelete = async () => {
     if (!workout) return;
 
@@ -870,7 +489,6 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     }
   };
 
-  // 수정 핸들러
   const handleEdit = async () => {
     if (!workout) return;
 
@@ -897,7 +515,6 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     }
   };
 
-  // 좋아요 토글 핸들러
   const handleToggleLike = async () => {
     if (!userInfo || !workout) return;
 
@@ -913,21 +530,48 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     }
   };
 
+  // ActionMenu 항목 정의
+  const actionMenuItems = useMemo(() => {
+    const baseItems = [{ label: "닫기", onClick: onClose }];
+
+    if (isOwner) {
+      return [
+        {
+          label: "수정하기",
+          onClick: () => {
+            setEditDiary(workout?.workoutDiary || "");
+            setShowEditModal(true);
+          },
+        },
+        {
+          label: "삭제하기",
+          onClick: () => setShowDeleteConfirm(true),
+          color: "#e53935",
+        },
+        ...baseItems,
+      ];
+    }
+
+    return baseItems;
+  }, [isOwner, onClose, workout?.workoutDiary]);
+
   // 로딩 중 표시
   if (loading) {
     return (
       <Modal onClick={onClose}>
         <ModalContent onClick={(e) => e.stopPropagation()}>
           <LoadingContainer>
-            <CircularProgress size={40} />
-            <Typography>운동 정보를 불러오는 중...</Typography>
+            <CircularProgress size={48} color="primary" />
+            <Typography variant="h6" color="textSecondary">
+              운동 정보를 불러오는 중...
+            </Typography>
           </LoadingContainer>
         </ModalContent>
       </Modal>
     );
   }
 
-  const isValidDate = (date: any) => date && !isNaN(new Date(date).getTime());
+  // 운동 세부 정보
   const exerciseGroups = workout?.workoutDetails
     ? groupExerciseDetails(workout.workoutDetails)
     : [];
@@ -935,132 +579,161 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   return (
     <Modal onClick={onClose}>
       <ModalContent elevation={6} onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={onClose} size="small">
-          ×
-        </CloseButton>
+        <ActionMenuContainer>
+          <ActionMenu items={actionMenuItems} />
+        </ActionMenuContainer>
 
-        <ModalBody>
-          <ModalHeaderContent>
-            <ModalImage url={getImageUrl(workout?.workoutPhoto || null)} />
-            <ModalInfo>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography variant="h5" fontWeight={600}>
-                  {workout?.user?.userNickname}
-                </Typography>
-                {isOwner && (
-                  <ButtonContainer>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setEditDiary(workout?.workoutDiary || "");
-                        setShowEditModal(true);
-                      }}
-                      color="primary"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </ButtonContainer>
+        <ScrollableContainer>
+          <ScrollableContent>
+            <ModalBody>
+              <ModalHeaderContent>
+                {workout?.workoutPhoto && (
+                  <ModalImageContainer>
+                    <ModalImage url={getImageUrl(workout.workoutPhoto)} />
+                  </ModalImageContainer>
                 )}
-              </Box>
 
-              <HeaderDivider />
+                <ModalInfo>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <UserInfoContainer onClick={handleUserProfileClick}>
+                      <UserAvatar
+                        src={getImageUrl(
+                          workout?.user?.profileImageUrl || null
+                        )}
+                        alt={workout?.user?.userNickname || "프로필"}
+                      />
+                      <Typography variant="h5" fontWeight={600} color="#333">
+                        {workout?.user?.userNickname}
+                      </Typography>
+                    </UserInfoContainer>
+                  </Box>
 
-              <InfoItem>
-                <InfoIcon>
-                  <CalendarToday fontSize="small" />
-                </InfoIcon>
-                {isValidDate(workout?.recordDate)
-                  ? format(
-                      new Date(workout?.recordDate || ""),
-                      "yyyy년 MM월 dd일 EEEE",
-                      { locale: ko }
-                    )
-                  : "날짜 정보 없음"}
-              </InfoItem>
+                  <HeaderDivider />
 
-              <InfoItem>
-                <InfoIcon>
-                  <LocationOn fontSize="small" />
-                </InfoIcon>
-                {workout?.workoutPlace?.placeName || "장소 정보 없음"}
-              </InfoItem>
+                  {workout?.workoutPhoto ? (
+                    // 사진이 있을 때는 세로 정렬
+                    <>
+                      <InfoItem>
+                        <InfoIcon>
+                          <CalendarToday fontSize="small" />
+                        </InfoIcon>
+                        {isValidDate(workout?.recordDate)
+                          ? format(
+                              new Date(workout?.recordDate || ""),
+                              "yyyy년 MM월 dd일 EEEE",
+                              { locale: ko }
+                            )
+                          : "날짜 정보 없음"}
+                      </InfoItem>
 
-              {workout?.workoutDiary && (
-                <WorkoutDiary variant="body2">
-                  {workout.workoutDiary}
-                </WorkoutDiary>
-              )}
-
-              {/* 좋아요 버튼 */}
-              <LikeContainer>
-                <LikeButton
-                  onClick={handleToggleLike}
-                  disabled={!userInfo || likesLoading}
-                >
-                  {isLiked ? (
-                    <Favorite fontSize="small" color="error" />
+                      {workout?.workoutPlace?.placeName && (
+                        <ClickableInfoItem onClick={handlePlaceClick}>
+                          <InfoIcon>
+                            <LocationOn fontSize="small" />
+                          </InfoIcon>
+                          {workout.workoutPlace.placeName}
+                        </ClickableInfoItem>
+                      )}
+                    </>
                   ) : (
-                    <FavoriteBorder fontSize="small" />
+                    // 사진이 없을 때는 가로 정렬
+                    <InfoRow>
+                      <InfoItem style={{ marginBottom: 0 }}>
+                        <InfoIcon>
+                          <CalendarToday fontSize="small" />
+                        </InfoIcon>
+                        {isValidDate(workout?.recordDate)
+                          ? format(
+                              new Date(workout?.recordDate || ""),
+                              "yyyy년 MM월 dd일 EEEE",
+                              { locale: ko }
+                            )
+                          : "날짜 정보 없음"}
+                      </InfoItem>
+
+                      {workout?.workoutPlace?.placeName && (
+                        <ClickableInfoItem
+                          onClick={handlePlaceClick}
+                          style={{ marginBottom: 0 }}
+                        >
+                          <InfoIcon>
+                            <LocationOn fontSize="small" />
+                          </InfoIcon>
+                          {workout.workoutPlace.placeName}
+                        </ClickableInfoItem>
+                      )}
+                    </InfoRow>
                   )}
-                  좋아요 {likeCount > 0 && likeCount}
-                </LikeButton>
-                {!userInfo && (
-                  <Typography variant="caption" color="textSecondary">
-                    로그인 후 좋아요를 남길 수 있습니다.
+
+                  {workout?.workoutDiary && (
+                    <WorkoutDiary variant="body2">
+                      {workout.workoutDiary}
+                    </WorkoutDiary>
+                  )}
+                </ModalInfo>
+
+                {/* 좋아요 버튼 */}
+                <LikeContainer>
+                  <LikeButton
+                    onClick={handleToggleLike}
+                    disabled={!userInfo || likesLoading}
+                    className={isLiked ? "active" : ""}
+                  >
+                    {isLiked ? (
+                      <Favorite fontSize="small" color="error" />
+                    ) : (
+                      <FavoriteBorder fontSize="small" />
+                    )}
+                    {likeCount > 0 ? `좋아요 ${likeCount}` : "좋아요"}
+                  </LikeButton>
+                  {!userInfo && (
+                    <Typography variant="caption" color="textSecondary">
+                      로그인 후 좋아요를 남길 수 있습니다.
+                    </Typography>
+                  )}
+                </LikeContainer>
+              </ModalHeaderContent>
+
+              <SectionTitle>
+                운동 정보
+                <IconButton
+                  size="small"
+                  onClick={() => setExercisesExpanded(!exercisesExpanded)}
+                >
+                  {exercisesExpanded ? (
+                    <KeyboardArrowUp />
+                  ) : (
+                    <KeyboardArrowDown />
+                  )}
+                </IconButton>
+              </SectionTitle>
+
+              <Collapse in={exercisesExpanded}>
+                {exerciseGroups.length > 0 ? (
+                  <ExerciseList exercises={exerciseGroups} />
+                ) : (
+                  <Typography
+                    color="textSecondary"
+                    sx={{ textAlign: "center", py: 3 }}
+                  >
+                    운동 세부 정보가 없습니다.
                   </Typography>
                 )}
-              </LikeContainer>
-            </ModalInfo>
-          </ModalHeaderContent>
+              </Collapse>
 
-          <SectionTitle>
-            운동 정보
-            <IconButton
-              size="small"
-              onClick={() => setExercisesExpanded(!exercisesExpanded)}
-            >
-              {exercisesExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-            </IconButton>
-          </SectionTitle>
+              <Divider sx={{ my: 4 }} />
 
-          <Collapse in={exercisesExpanded}>
-            {exerciseGroups.length > 0 ? (
-              exerciseGroups.map((group, index) => (
-                <ExerciseAccordion
-                  key={index}
-                  exercise={group.exercise}
-                  type={group.type}
-                  sets={group.sets}
-                />
-              ))
-            ) : (
-              <Typography
-                color="textSecondary"
-                sx={{ textAlign: "center", py: 2 }}
-              >
-                운동 세부 정보가 없습니다.
-              </Typography>
-            )}
-          </Collapse>
-
-          <Divider sx={{ my: 3 }} />
-
-          <CommentComponent
-            workoutId={workoutOfTheDaySeq}
-            targetCommentId={commentId}
-          />
-        </ModalBody>
+              <CommentSection
+                workoutId={workoutOfTheDaySeq}
+                targetCommentId={commentId}
+              />
+            </ModalBody>
+          </ScrollableContent>
+        </ScrollableContainer>
       </ModalContent>
 
       {/* 삭제 확인 모달 */}
@@ -1070,12 +743,15 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
             <ActionModalTitle>
               이 운동 기록을 정말 삭제하시겠습니까?
             </ActionModalTitle>
-            <Typography>삭제된 운동 기록은 복구할 수 없습니다.</Typography>
+            <Typography color="text.secondary">
+              삭제된 운동 기록은 복구할 수 없습니다.
+            </Typography>
             <ActionModalButtons>
               <Button
                 variant="outlined"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isProcessing}
+                size="large"
               >
                 취소
               </Button>
@@ -1084,6 +760,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                 color="error"
                 onClick={handleDelete}
                 disabled={isProcessing}
+                size="large"
               >
                 {isProcessing ? "삭제 중..." : "삭제"}
               </Button>
@@ -1099,7 +776,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
             <ActionModalTitle>운동 일지 수정</ActionModalTitle>
             <TextArea
               multiline
-              rows={4}
+              rows={5}
               fullWidth
               variant="outlined"
               value={editDiary}
@@ -1111,6 +788,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                 variant="outlined"
                 onClick={() => setShowEditModal(false)}
                 disabled={isProcessing}
+                size="large"
               >
                 취소
               </Button>
@@ -1119,6 +797,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                 color="primary"
                 onClick={handleEdit}
                 disabled={isProcessing}
+                size="large"
               >
                 {isProcessing ? "저장 중..." : "저장"}
               </Button>

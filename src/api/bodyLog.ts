@@ -26,6 +26,7 @@ export const saveBodyLogAPI = async (data: {
 export const getBodyLogsAPI = async (params?: {
   startDate?: string;
   endDate?: string;
+  yearMonth?: string; // YYYY-MM 형식 (예: 2023-05)
   limit?: number;
   offset?: number;
 }): Promise<any> => {

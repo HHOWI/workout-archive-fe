@@ -3,6 +3,7 @@ import { ExerciseSchema } from "../schema/ExerciseSchema";
 import {
   CursorPaginationSchema,
   SaveWorkoutSchema,
+  DateCursorPaginationSchema,
 } from "../schema/WorkoutSchema";
 
 export interface WorkoutOfTheDayDTO {
@@ -20,7 +21,6 @@ export interface WorkoutOfTheDayDTO {
   };
   mainExerciseType?: string;
   workoutDetails?: WorkoutDetailDTO[];
-  likeCount?: number;
   isLiked?: boolean;
 }
 
@@ -75,3 +75,6 @@ export interface WorkoutDetailResponseDTO {
 
 export type SaveWorkoutDTO = z.infer<typeof SaveWorkoutSchema>;
 export type CursorPaginationDTO = z.infer<typeof CursorPaginationSchema>;
+export type DateCursorPaginationDTO = z.infer<
+  typeof DateCursorPaginationSchema
+>;

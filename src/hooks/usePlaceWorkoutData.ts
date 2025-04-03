@@ -11,13 +11,18 @@ import useInfiniteScroll from "./useInfiniteScroll";
 const usePlaceWorkoutData = (placeSeq: string | undefined) => {
   // fetchData 함수 정의
   const fetchWorkoutsFunction = useCallback(
-    async (cursor: number | null) => {
+    async (cursor: string | null) => {
       if (!placeSeq) {
         return { data: [], nextCursor: null };
       }
 
       try {
+        console.log("장소 운동 기록 가져오기:", { placeSeq, cursor });
         const response = await getWorkoutsByPlaceAPI(placeSeq, 12, cursor);
+        console.log("장소 운동 기록 응답:", {
+          data: response.workouts.length,
+          nextCursor: response.nextCursor,
+        });
         return {
           data: response.workouts || [],
           nextCursor: response.nextCursor,
@@ -36,12 +41,13 @@ const usePlaceWorkoutData = (placeSeq: string | undefined) => {
     loading,
     hasMore,
     observerTarget,
-  } = useInfiniteScroll<WorkoutOfTheDayDTO, number>({
+    resetData,
+  } = useInfiniteScroll<WorkoutOfTheDayDTO, string>({
     fetchData: fetchWorkoutsFunction,
     isItemEqual: (a, b) => a.workoutOfTheDaySeq === b.workoutOfTheDaySeq,
   });
 
-  return { workoutOfTheDays, loading, hasMore, observerTarget };
+  return { workoutOfTheDays, loading, hasMore, observerTarget, resetData };
 };
 
 export default usePlaceWorkoutData;

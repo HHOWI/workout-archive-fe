@@ -295,6 +295,7 @@ interface FollowModalProps {
   userSeq: number;
   onClose: () => void;
   currentUserSeq?: number;
+  onFollowStatusChange?: () => void;
 }
 
 const FollowModal: React.FC<FollowModalProps> = ({
@@ -302,6 +303,7 @@ const FollowModal: React.FC<FollowModalProps> = ({
   userSeq,
   onClose,
   currentUserSeq,
+  onFollowStatusChange,
 }) => {
   // 상태 관리
   const [activeTab, setActiveTab] = useState<"users" | "places">(
@@ -430,6 +432,11 @@ const FollowModal: React.FC<FollowModalProps> = ({
           [targetUserSeq]: true,
         }));
       }
+
+      // 콜백 함수 호출하여 부모 컴포넌트의 팔로잉 카운트 업데이트
+      if (onFollowStatusChange) {
+        onFollowStatusChange();
+      }
     } catch (error) {
       console.error(`사용자 팔로우 상태 변경 중 오류:`, error);
     }
@@ -456,6 +463,11 @@ const FollowModal: React.FC<FollowModalProps> = ({
           ...prev,
           [placeSeq]: true,
         }));
+      }
+
+      // 콜백 함수 호출하여 부모 컴포넌트의 팔로잉 카운트 업데이트
+      if (onFollowStatusChange) {
+        onFollowStatusChange();
       }
     } catch (error) {
       console.error(`장소 팔로우 상태 변경 중 오류:`, error);

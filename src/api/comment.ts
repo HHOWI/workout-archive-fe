@@ -5,10 +5,25 @@ export const getCommentsAPI = async (
   workoutId: number,
   page: number = 1,
   limit: number = 10
-): Promise<any> => {
-  const response = await publicAPI.get(`/workouts/${workoutId}/comments`, {
+): Promise<CommentListResponse> => {
+  const response = await authAPI.get(`/workouts/${workoutId}/comments`, {
     params: { page, limit },
   });
+  return response.data;
+};
+
+// 대댓글 목록 조회 API (커서 기반 페이징)
+export const getRepliesAPI = async (
+  commentId: number,
+  cursor?: number,
+  limit: number = 10
+): Promise<any> => {
+  const response = await authAPI.get(
+    `/workouts/comments/${commentId}/replies`,
+    {
+      params: { cursor, limit },
+    }
+  );
   return response.data;
 };
 
@@ -63,6 +78,7 @@ export interface Comment {
   isLiked?: boolean;
   user: CommentUser;
   childComments?: Comment[];
+  childCommentsCount?: number;
 }
 
 export interface CommentListResponse {
@@ -88,4 +104,11 @@ export interface CommentLikeResponse {
   message: string;
   isLiked: boolean;
   likeCount: number;
+}
+
+// 대댓글 목록 응답 인터페이스
+export interface RepliesResponse {
+  replies: Comment[];
+  nextCursor: number | null;
+  hasMore: boolean;
 }

@@ -10,7 +10,7 @@ import {
   getLatestBodyLogAPI,
   deleteBodyLogAPI,
 } from "../api/bodyLog";
-import { format, isValid } from "date-fns";
+import { format, isValid, getMonth, getYear } from "date-fns";
 import { ko } from "date-fns/locale";
 import { theme, fadeIn } from "../styles/theme";
 import {
@@ -25,6 +25,8 @@ import {
   FaExclamationCircle,
   FaChartLine,
   FaInfoCircle,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 
 // 타입 정의
@@ -57,7 +59,7 @@ interface FormInputProps {
   unit: string;
 }
 
-// 스타일 컴포넌트
+// 스타일 컴포넌트 - 공통 스타일
 const Container = styled.div`
   max-width: 800px;
   margin: 0 auto;
@@ -114,64 +116,6 @@ const FormGroup = styled.div`
   margin-bottom: 24px;
 `;
 
-const InputGroup = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: ${theme.text};
-  font-size: 15px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 12px 16px 12px 40px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: ${theme.primary};
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-  }
-
-  &::placeholder {
-    color: #bdbdbd;
-  }
-`;
-
-const InputUnit = styled.span`
-  position: absolute;
-  right: 12px;
-  color: #9e9e9e;
-  font-size: 14px;
-  pointer-events: none;
-`;
-
-const IconWrapper = styled.span`
-  position: absolute;
-  left: 12px;
-  color: #757575;
-  font-size: 16px;
-  pointer-events: none;
-`;
-
-const ErrorMessage = styled.div`
-  color: #e53935;
-  font-size: 13px;
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
 const Button = styled.button`
   background: ${theme.primary};
   color: white;
@@ -204,173 +148,6 @@ const Button = styled.button`
     transform: none;
     box-shadow: none;
   }
-`;
-
-const CustomDatePickerWrapper = styled.div`
-  position: relative;
-  .react-datepicker-wrapper {
-    width: 100%;
-  }
-
-  .react-datepicker__input-container {
-    display: flex;
-    align-items: center;
-  }
-
-  .react-datepicker__input-container input {
-    width: 100%;
-    padding: 12px 16px 12px 40px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: all 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: ${theme.primary};
-      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-    }
-  }
-
-  .react-datepicker {
-    border: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    border-radius: 8px;
-    font-family: inherit;
-  }
-
-  .react-datepicker__header {
-    background-color: ${theme.primary};
-    border-bottom: none;
-    padding-top: 10px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-  }
-
-  .react-datepicker__current-month,
-  .react-datepicker__day-name {
-    color: white;
-  }
-
-  .react-datepicker__day--selected {
-    background-color: ${theme.primary};
-    border-radius: 50%;
-  }
-
-  .react-datepicker__day:hover {
-    border-radius: 50%;
-  }
-`;
-
-const DatePickerIconWrapper = styled.span`
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #757575;
-  font-size: 16px;
-  z-index: 2;
-  pointer-events: none;
-`;
-
-const HistoryContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  animation: ${fadeIn} 0.3s ease-out;
-`;
-
-const HistoryItem = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const HistoryDate = styled.div`
-  font-weight: 600;
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: ${theme.text};
-  font-size: 16px;
-`;
-
-const DeleteButton = styled.button`
-  background: none;
-  border: none;
-  color: #e53935;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(229, 57, 53, 0.1);
-  }
-`;
-
-const StatsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-
-  @media (max-width: 500px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #f1f3f5;
-  }
-`;
-
-const StatIconWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: ${theme.primary};
-  color: white;
-  font-size: 16px;
-`;
-
-const StatContent = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const StatLabel = styled.span`
-  color: #757575;
-  font-size: 13px;
-`;
-
-const StatValue = styled.span`
-  font-weight: 600;
-  font-size: 16px;
-  color: ${theme.text};
 `;
 
 const NoData = styled.div`
@@ -435,6 +212,50 @@ const GeneralError = styled.div`
   font-size: 14px;
 `;
 
+// 월 선택기 스타일
+const MonthPickerContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  background-color: white;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+`;
+
+const MonthDisplay = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: ${theme.text};
+  margin: 0 16px;
+  width: 120px;
+  text-align: center;
+`;
+
+const MonthButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: ${theme.primary};
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+  }
+
+  &:active {
+    background-color: rgba(74, 144, 226, 0.2);
+  }
+`;
+
 // 유틸리티 함수
 const formatDate = (dateString: string): string => {
   try {
@@ -444,9 +265,40 @@ const formatDate = (dateString: string): string => {
     }
     return format(date, "yyyy년 MM월 dd일");
   } catch (error) {
-    console.error("날짜 포맷 오류:", error);
     return "날짜 정보 없음";
   }
+};
+
+// 월 선택기 컴포넌트
+const MonthPicker: React.FC<{
+  selectedMonth: Date;
+  onChange: (date: Date) => void;
+}> = ({ selectedMonth, onChange }) => {
+  const handlePrevMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() - 1);
+    onChange(newDate);
+  };
+
+  const handleNextMonth = () => {
+    const newDate = new Date(selectedMonth);
+    newDate.setMonth(newDate.getMonth() + 1);
+    onChange(newDate);
+  };
+
+  return (
+    <MonthPickerContainer>
+      <MonthButton onClick={handlePrevMonth}>
+        <FaChevronLeft />
+      </MonthButton>
+      <MonthDisplay>
+        {format(selectedMonth, "yyyy년 MM월", { locale: ko })}
+      </MonthDisplay>
+      <MonthButton onClick={handleNextMonth}>
+        <FaChevronRight />
+      </MonthButton>
+    </MonthPickerContainer>
+  );
 };
 
 // 폼 인풋 컴포넌트
@@ -460,30 +312,189 @@ const FormInput: React.FC<FormInputProps> = ({
   min,
   max,
   unit,
-}) => (
-  <FormGroup>
-    <Label>{label}</Label>
-    <InputGroup>
-      <IconWrapper>{icon}</IconWrapper>
-      <Input
-        type="number"
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        step="0.1"
-        min={min}
-        max={max}
-      />
-      <InputUnit>{unit}</InputUnit>
-    </InputGroup>
-    {error && (
-      <ErrorMessage>
-        <FaExclamationCircle />
-        {error}
-      </ErrorMessage>
-    )}
-  </FormGroup>
-);
+}) => {
+  const InputGroup = styled.div`
+    position: relative;
+    display: flex;
+    align-items: center;
+  `;
+
+  const Input = styled.input`
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: ${theme.primary};
+      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+
+    &::placeholder {
+      color: #bdbdbd;
+    }
+  `;
+
+  const InputUnit = styled.span`
+    position: absolute;
+    right: 12px;
+    color: #9e9e9e;
+    font-size: 14px;
+    pointer-events: none;
+  `;
+
+  const IconWrapper = styled.span`
+    position: absolute;
+    left: 12px;
+    color: #757575;
+    font-size: 16px;
+    pointer-events: none;
+  `;
+
+  const Label = styled.label`
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: ${theme.text};
+    font-size: 15px;
+  `;
+
+  const ErrorMessage = styled.div`
+    color: #e53935;
+    font-size: 13px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  `;
+
+  return (
+    <FormGroup>
+      <Label>{label}</Label>
+      <InputGroup>
+        <IconWrapper>{icon}</IconWrapper>
+        <Input
+          type="number"
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          step="0.1"
+          min={min}
+          max={max}
+        />
+        <InputUnit>{unit}</InputUnit>
+      </InputGroup>
+      {error && (
+        <ErrorMessage>
+          <FaExclamationCircle />
+          {error}
+        </ErrorMessage>
+      )}
+    </FormGroup>
+  );
+};
+
+// 날짜 선택기 컴포넌트
+const DatePickerInput: React.FC<{
+  date: Date;
+  setDate: (date: Date) => void;
+}> = ({ date, setDate }) => {
+  const CustomDatePickerWrapper = styled.div`
+    position: relative;
+    .react-datepicker-wrapper {
+      width: 100%;
+    }
+
+    .react-datepicker__input-container {
+      display: flex;
+      align-items: center;
+    }
+
+    .react-datepicker__input-container input {
+      width: 100%;
+      padding: 12px 16px 12px 40px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: ${theme.primary};
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+      }
+    }
+
+    .react-datepicker {
+      border: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      font-family: inherit;
+    }
+
+    .react-datepicker__header {
+      background-color: ${theme.primary};
+      border-bottom: none;
+      padding-top: 10px;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+
+    .react-datepicker__current-month,
+    .react-datepicker__day-name {
+      color: white;
+    }
+
+    .react-datepicker__day--selected {
+      background-color: ${theme.primary};
+      border-radius: 50%;
+    }
+
+    .react-datepicker__day:hover {
+      border-radius: 50%;
+    }
+  `;
+
+  const DatePickerIconWrapper = styled.span`
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #757575;
+    font-size: 16px;
+    z-index: 2;
+    pointer-events: none;
+  `;
+
+  const Label = styled.label`
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: ${theme.text};
+    font-size: 15px;
+  `;
+
+  return (
+    <FormGroup>
+      <Label>측정 날짜</Label>
+      <CustomDatePickerWrapper>
+        <DatePickerIconWrapper>
+          <FaCalendarAlt />
+        </DatePickerIconWrapper>
+        <DatePicker
+          selected={date}
+          onChange={(newDate: Date | null) => newDate && setDate(newDate)}
+          dateFormat="yyyy-MM-dd"
+          locale={ko}
+          maxDate={new Date()}
+        />
+      </CustomDatePickerWrapper>
+    </FormGroup>
+  );
+};
 
 // 바디로그 입력 폼 컴포넌트
 const BodyLogForm: React.FC<{
@@ -525,21 +536,7 @@ const BodyLogForm: React.FC<{
       </GeneralError>
     )}
 
-    <FormGroup>
-      <Label>측정 날짜</Label>
-      <CustomDatePickerWrapper>
-        <DatePickerIconWrapper>
-          <FaCalendarAlt />
-        </DatePickerIconWrapper>
-        <DatePicker
-          selected={date}
-          onChange={(newDate: Date | null) => newDate && setDate(newDate)}
-          dateFormat="yyyy-MM-dd"
-          locale={ko}
-          maxDate={new Date()}
-        />
-      </CustomDatePickerWrapper>
-    </FormGroup>
+    <DatePickerInput date={date} setDate={setDate} />
 
     <FormInput
       label="키 (cm)"
@@ -602,86 +599,207 @@ const BodyLogForm: React.FC<{
   </FormWrapper>
 );
 
+// 바디로그 항목 컴포넌트
+const BodyLogItem: React.FC<{
+  log: BodyLogType;
+  onDelete: (id: number) => void;
+}> = ({ log, onDelete }) => {
+  const HistoryItem = styled.div`
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+  `;
+
+  const HistoryDate = styled.div`
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: ${theme.text};
+    font-size: 16px;
+  `;
+
+  const DeleteButton = styled.button`
+    background: none;
+    border: none;
+    color: #e53935;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: rgba(229, 57, 53, 0.1);
+    }
+  `;
+
+  const StatsContainer = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+
+    @media (max-width: 500px) {
+      grid-template-columns: 1fr;
+    }
+  `;
+
+  const StatItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: #f1f3f5;
+    }
+  `;
+
+  const StatIconWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: ${theme.primary};
+    color: white;
+    font-size: 16px;
+  `;
+
+  const StatContent = styled.div`
+    display: flex;
+    flex-direction: column;
+  `;
+
+  const StatLabel = styled.span`
+    color: #757575;
+    font-size: 13px;
+  `;
+
+  const StatValue = styled.span`
+    font-weight: 600;
+    font-size: 16px;
+    color: ${theme.text};
+  `;
+
+  return (
+    <HistoryItem>
+      <HistoryDate>
+        <span>{formatDate(log.recordDate)}</span>
+        <DeleteButton onClick={() => onDelete(log.bodyLogSeq)}>
+          <FaTrashAlt />
+          삭제
+        </DeleteButton>
+      </HistoryDate>
+      <StatsContainer>
+        {log.height !== null && (
+          <StatItem>
+            <StatIconWrapper>
+              <FaRulerVertical />
+            </StatIconWrapper>
+            <StatContent>
+              <StatLabel>키</StatLabel>
+              <StatValue>{log.height.toFixed(1)} cm</StatValue>
+            </StatContent>
+          </StatItem>
+        )}
+        {log.bodyWeight !== null && (
+          <StatItem>
+            <StatIconWrapper>
+              <FaWeight />
+            </StatIconWrapper>
+            <StatContent>
+              <StatLabel>체중</StatLabel>
+              <StatValue>{log.bodyWeight.toFixed(1)} kg</StatValue>
+            </StatContent>
+          </StatItem>
+        )}
+        {log.muscleMass !== null && (
+          <StatItem>
+            <StatIconWrapper>
+              <FaDumbbell />
+            </StatIconWrapper>
+            <StatContent>
+              <StatLabel>골격근량</StatLabel>
+              <StatValue>{log.muscleMass.toFixed(1)} kg</StatValue>
+            </StatContent>
+          </StatItem>
+        )}
+        {log.bodyFat !== null && (
+          <StatItem>
+            <StatIconWrapper>
+              <FaPercentage />
+            </StatIconWrapper>
+            <StatContent>
+              <StatLabel>체지방률</StatLabel>
+              <StatValue>{log.bodyFat.toFixed(1)} %</StatValue>
+            </StatContent>
+          </StatItem>
+        )}
+      </StatsContainer>
+    </HistoryItem>
+  );
+};
+
 // 바디로그 이력 컴포넌트
 const BodyLogHistory: React.FC<{
   isLoading: boolean;
   bodyLogs: BodyLogType[];
   handleDelete: (id: number) => void;
-}> = ({ isLoading, bodyLogs, handleDelete }) => {
+  selectedMonth: Date;
+  onMonthChange: (date: Date) => void;
+}> = ({ isLoading, bodyLogs, handleDelete, selectedMonth, onMonthChange }) => {
+  const HistoryContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: ${fadeIn} 0.3s ease-out;
+  `;
+
   if (isLoading) {
     return <LoadingIndicator>바디로그를 불러오는 중입니다</LoadingIndicator>;
   }
 
-  if (bodyLogs.length === 0) {
-    return (
-      <NoData>
-        <FaInfoCircle />
-        <p>아직 기록된 측정 이력이 없습니다.</p>
-        <p>첫 바디로그를 등록해보세요!</p>
-      </NoData>
-    );
-  }
-
   return (
-    <HistoryContainer>
-      {bodyLogs.map((log) => (
-        <HistoryItem key={log.bodyLogSeq}>
-          <HistoryDate>
-            <span>{formatDate(log.recordDate)}</span>
-            <DeleteButton onClick={() => handleDelete(log.bodyLogSeq)}>
-              <FaTrashAlt />
-              삭제
-            </DeleteButton>
-          </HistoryDate>
-          <StatsContainer>
-            {log.height !== null && (
-              <StatItem>
-                <StatIconWrapper>
-                  <FaRulerVertical />
-                </StatIconWrapper>
-                <StatContent>
-                  <StatLabel>키</StatLabel>
-                  <StatValue>{log.height.toFixed(1)} cm</StatValue>
-                </StatContent>
-              </StatItem>
-            )}
-            {log.bodyWeight !== null && (
-              <StatItem>
-                <StatIconWrapper>
-                  <FaWeight />
-                </StatIconWrapper>
-                <StatContent>
-                  <StatLabel>체중</StatLabel>
-                  <StatValue>{log.bodyWeight.toFixed(1)} kg</StatValue>
-                </StatContent>
-              </StatItem>
-            )}
-            {log.muscleMass !== null && (
-              <StatItem>
-                <StatIconWrapper>
-                  <FaDumbbell />
-                </StatIconWrapper>
-                <StatContent>
-                  <StatLabel>골격근량</StatLabel>
-                  <StatValue>{log.muscleMass.toFixed(1)} kg</StatValue>
-                </StatContent>
-              </StatItem>
-            )}
-            {log.bodyFat !== null && (
-              <StatItem>
-                <StatIconWrapper>
-                  <FaPercentage />
-                </StatIconWrapper>
-                <StatContent>
-                  <StatLabel>체지방률</StatLabel>
-                  <StatValue>{log.bodyFat.toFixed(1)} %</StatValue>
-                </StatContent>
-              </StatItem>
-            )}
-          </StatsContainer>
-        </HistoryItem>
-      ))}
-    </HistoryContainer>
+    <>
+      <MonthPicker selectedMonth={selectedMonth} onChange={onMonthChange} />
+
+      {bodyLogs.length === 0 ? (
+        <NoData>
+          <FaInfoCircle />
+          <p>
+            {format(selectedMonth, "yyyy년 MM월", { locale: ko })}에 기록된 측정
+            이력이 없습니다.
+          </p>
+          <p>새로운 바디로그를 등록해보세요!</p>
+        </NoData>
+      ) : (
+        <HistoryContainer>
+          {bodyLogs.map((log) => (
+            <BodyLogItem
+              key={log.bodyLogSeq}
+              log={log}
+              onDelete={handleDelete}
+            />
+          ))}
+        </HistoryContainer>
+      )}
+    </>
   );
 };
 
@@ -690,6 +808,7 @@ const BodyLogPage: React.FC = () => {
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"input" | "history">("input");
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
 
   // 폼 상태
   const [date, setDate] = useState<Date>(new Date());
@@ -721,25 +840,29 @@ const BodyLogPage: React.FC = () => {
   }, []);
 
   // 바디로그 이력 불러오기
-  const loadBodyLogs = useCallback(async () => {
-    if (!userInfo) return;
+  const loadBodyLogs = useCallback(
+    async (month?: Date) => {
+      if (!userInfo) return;
 
-    setIsLoading(true);
-    try {
-      const data = await getBodyLogsAPI();
-      if (Array.isArray(data)) {
-        setBodyLogs(data);
-      } else {
-        console.error("예상치 못한 API 응답 형식:", data);
+      setIsLoading(true);
+      try {
+        const targetMonth = month || selectedMonth;
+        const yearMonth = format(targetMonth, "yyyy-MM");
+        const data = await getBodyLogsAPI({ yearMonth });
+
+        if (Array.isArray(data)) {
+          setBodyLogs(data);
+        } else {
+          setBodyLogs([]);
+        }
+      } catch (error) {
         setBodyLogs([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("바디로그 이력 불러오기 실패:", error);
-      setBodyLogs([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userInfo]);
+    },
+    [userInfo, selectedMonth]
+  );
 
   // 최근 바디로그 불러오기
   const loadLatestBodyLog = useCallback(async () => {
@@ -756,10 +879,19 @@ const BodyLogPage: React.FC = () => {
     } catch (error) {
       // 최근 바디로그가 없는 경우는 에러가 아님
       if ((error as any)?.response?.status !== 404) {
-        console.error("최근 바디로그 불러오기 실패:", error);
+        // 에러 처리를 필요에 따라 구현
       }
     }
   }, [userInfo]);
+
+  // 월 변경 핸들러
+  const handleMonthChange = useCallback(
+    (newMonth: Date) => {
+      setSelectedMonth(newMonth);
+      loadBodyLogs(newMonth);
+    },
+    [loadBodyLogs]
+  );
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -844,12 +976,33 @@ const BodyLogPage: React.FC = () => {
       });
 
       alert("바디로그가 성공적으로 저장되었습니다!");
-      // 이력 새로고침
-      await loadBodyLogs();
+
+      // 입력 날짜의 월이 현재 선택된 월과 같다면 이력 새로고침
+      const inputMonth = getMonth(date);
+      const inputYear = getYear(date);
+      const selectedMonthValue = getMonth(selectedMonth);
+      const selectedYearValue = getYear(selectedMonth);
+
+      if (
+        inputMonth === selectedMonthValue &&
+        inputYear === selectedYearValue
+      ) {
+        await loadBodyLogs();
+      }
+
       // 입력 탭에서 이력 탭으로 전환
       setActiveTab("history");
+
+      // 입력된 날짜의 월을 선택
+      if (
+        inputMonth !== selectedMonthValue ||
+        inputYear !== selectedYearValue
+      ) {
+        const newSelectedMonth = new Date(date);
+        setSelectedMonth(newSelectedMonth);
+        await loadBodyLogs(newSelectedMonth);
+      }
     } catch (error: any) {
-      console.error("바디로그 저장 실패:", error);
       const errorMessage =
         error.response?.data?.message ||
         "바디로그 저장에 실패했습니다. 다시 시도해주세요.";
@@ -860,22 +1013,29 @@ const BodyLogPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [validateInputs, height, weight, muscleMass, bodyFat, date, loadBodyLogs]);
+  }, [
+    validateInputs,
+    height,
+    weight,
+    muscleMass,
+    bodyFat,
+    date,
+    loadBodyLogs,
+    selectedMonth,
+  ]);
 
   // 바디로그 삭제 핸들러
   const handleDelete = useCallback(
-    async (userInfoRecordSeq: number) => {
+    async (bodyLogSeq: number) => {
       if (!window.confirm("정말 이 기록을 삭제하시겠습니까?")) {
         return;
       }
 
       try {
-        await deleteBodyLogAPI(userInfoRecordSeq);
+        await deleteBodyLogAPI(bodyLogSeq);
         alert("바디로그가 삭제되었습니다.");
-        // 이력 새로고침
         await loadBodyLogs();
       } catch (error) {
-        console.error("바디로그 삭제 실패:", error);
         alert("바디로그 삭제에 실패했습니다. 다시 시도해주세요.");
       }
     },
@@ -958,6 +1118,8 @@ const BodyLogPage: React.FC = () => {
           isLoading={isLoading}
           bodyLogs={bodyLogs}
           handleDelete={handleDelete}
+          selectedMonth={selectedMonth}
+          onMonthChange={handleMonthChange}
         />
       )}
     </Container>

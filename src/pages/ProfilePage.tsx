@@ -2,7 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
 import { updateProfileImageAPI, getProfileInfoAPI } from "../api/user";
-import { getUserWorkoutOfTheDaysByNicknameAPI } from "../api/workout";
+import {
+  getUserWorkoutOfTheDaysByNicknameAPI,
+  getUserWorkoutTotalCountByNicknameAPI,
+} from "../api/workout";
 import {
   getFollowCountsAPI,
   followUserAPI,
@@ -446,6 +449,11 @@ const ProfileInfoSection: React.FC<ProfileInfoSectionProps> = ({
   onFollowersClick,
   onFollowingClick,
 }) => {
+  // 디버깅을 위한 로깅
+  useEffect(() => {
+    console.log("ProfileInfoSection에 전달된 followCounts:", followCounts);
+  }, [followCounts]);
+
   return (
     <ProfileInfo>
       <Username>
@@ -690,34 +698,59 @@ const useProfileData = (nickname: string | undefined, userInfo: any) => {
 // 운동 데이터 관련 훅
 const useWorkoutData = (nickname: string | undefined, activeTab: TabType) => {
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+
+  // 총 운동 개수 조회
+  useEffect(() => {
+    if (!nickname || activeTab !== "workout") return;
+
+    const fetchTotalCount = async () => {
+      try {
+        const response = await getUserWorkoutTotalCountByNicknameAPI(nickname);
+        setTotalCount(response.count);
+        console.log("총 운동 기록 수:", response.count);
+      } catch (err) {
+        console.error("총 운동 기록 수 조회 중 오류:", err);
+      }
+    };
+
+    fetchTotalCount();
+  }, [nickname, activeTab]);
 
   // fetchData 함수 정의
   const fetchWorkoutsFunction = useCallback(
-    async (cursor: number | null) => {
+    async (cursor: string | null) => {
       if (!nickname) {
         return { data: [], nextCursor: null };
       }
 
       try {
-        console.log("운동 기록 가져오기 시작:", { nickname, cursor });
+        console.log("🔄 운동 기록 가져오기 시작:", { nickname, cursor });
         const response = await getUserWorkoutOfTheDaysByNicknameAPI(
           nickname,
           12,
           cursor
         );
 
-        console.log("API 응답:", response);
-
+        // 응답 구조 검증
         if (!response || typeof response !== "object") {
+          console.error("서버 응답이 올바르지 않습니다:", response);
           throw new Error("서버 응답이 올바르지 않습니다");
         }
+
+        console.log(`📊 API 응답 (${response.workouts?.length || 0}개 항목):`, {
+          workouts: response.workouts,
+          cursor: cursor,
+          nextCursor: response.nextCursor,
+          totalCount: totalCount,
+        });
 
         return {
           data: response.workouts || [],
           nextCursor: response.nextCursor,
         };
       } catch (error) {
-        console.error("운동 기록 로드 실패:", error);
+        console.error("❌ 운동 기록 로드 실패:", error);
         setError(
           error instanceof Error
             ? error.message
@@ -726,7 +759,7 @@ const useWorkoutData = (nickname: string | undefined, activeTab: TabType) => {
         throw error;
       }
     },
-    [nickname]
+    [nickname, totalCount]
   );
 
   // useInfiniteScroll 훅 사용
@@ -738,20 +771,34 @@ const useWorkoutData = (nickname: string | undefined, activeTab: TabType) => {
     resetData,
     loadingRef,
     cursor: nextCursor,
-  } = useInfiniteScroll<WorkoutOfTheDayDTO, number>({
+  } = useInfiniteScroll<WorkoutOfTheDayDTO, string>({
     fetchData: fetchWorkoutsFunction,
     isItemEqual: (a, b) => a.workoutOfTheDaySeq === b.workoutOfTheDaySeq,
   });
 
+  // 로드된 데이터와 총 데이터를 비교하여 로그
+  useEffect(() => {
+    if (totalCount !== null && workoutOfTheDays.length > 0) {
+      console.log(
+        `📊 현재 로드된 데이터: ${workoutOfTheDays.length}/${totalCount} (${(
+          (workoutOfTheDays.length / totalCount) *
+          100
+        ).toFixed(1)}%)`
+      );
+    }
+  }, [workoutOfTheDays.length, totalCount]);
+
   // 탭 변경 시 데이터 초기화
   useEffect(() => {
     if (activeTab === "workout") {
+      console.log("🔄 탭 변경으로 데이터 초기화");
       resetData();
     }
   }, [activeTab, nickname, resetData]);
 
   return {
     workoutOfTheDays,
+    totalWorkoutCount: totalCount,
     setWorkoutOfTheDays: (workouts: WorkoutOfTheDayDTO[]) => {
       // 데이터 설정이 필요한 경우의 핸들러를 선택적으로 구현
     },
@@ -778,19 +825,22 @@ const useFollowData = (
   // 외부에서 전달된 팔로우 카운트 업데이트
   useEffect(() => {
     if (initialFollowCounts) {
+      console.log("initialFollowCounts 업데이트:", initialFollowCounts);
       setFollowCounts(initialFollowCounts);
     }
   }, [initialFollowCounts]);
 
   useEffect(() => {
-    if (!profileUserSeq) return;
+    if (!profileUserSeq || !nickname) return;
 
     // 팔로우 카운트가 없을 때만 조회
     if (!followCounts) {
       const fetchFollowCounts = async () => {
         try {
-          const counts = await getFollowCountsAPI(profileUserSeq);
-          setFollowCounts(counts);
+          // getFollowCountsAPI 대신 getProfileInfoAPI를 사용
+          const profileInfo = await getProfileInfoAPI(nickname);
+          console.log("getProfileInfoAPI 호출 결과:", profileInfo.followCounts);
+          setFollowCounts(profileInfo.followCounts);
         } catch (error) {
           console.error("팔로우 카운트 조회 중 오류 발생:", error);
         }
@@ -817,19 +867,25 @@ const useFollowData = (
     };
 
     checkFollowStatus();
-  }, [profileUserSeq, userInfo, followCounts]);
+  }, [profileUserSeq, userInfo, followCounts, nickname]);
 
   // 팔로우 카운트만 업데이트하는 함수
   const updateFollowCounts = useCallback(async () => {
-    if (!profileUserSeq) return;
+    if (!profileUserSeq || !nickname) return;
 
     try {
-      const counts = await getFollowCountsAPI(profileUserSeq);
-      setFollowCounts(counts);
+      const profileInfo = await getProfileInfoAPI(nickname);
+      console.log("updateFollowCounts 호출 결과:", profileInfo.followCounts);
+      setFollowCounts(profileInfo.followCounts);
     } catch (error) {
       console.error("팔로우 카운트 업데이트 중 오류 발생:", error);
     }
-  }, [profileUserSeq]);
+  }, [profileUserSeq, nickname]);
+
+  // 디버깅을 위해 값을 로깅
+  useEffect(() => {
+    console.log("현재 followCounts 상태:", followCounts);
+  }, [followCounts]);
 
   return {
     followCounts,
@@ -939,6 +995,7 @@ const ProfilePage: React.FC = () => {
 
   const {
     workoutOfTheDays,
+    totalWorkoutCount: workoutTotalCount,
     loading: workoutLoading,
     error,
     observerTarget,
@@ -1004,6 +1061,12 @@ const ProfilePage: React.FC = () => {
     setFollowModalType(null);
   };
 
+  // 디버깅을 위한 로깅
+  useEffect(() => {
+    console.log("렌더링 시 followData.followCounts:", followData.followCounts);
+    console.log("렌더링 시 followCounts:", followCounts);
+  }, [followData.followCounts, followCounts]);
+
   // 로딩 중 표시
   if (profileLoading) {
     return (
@@ -1064,6 +1127,7 @@ const ProfilePage: React.FC = () => {
           userSeq={userSeq || 0}
           onClose={closeFollowModal}
           currentUserSeq={userInfo?.userSeq}
+          onFollowStatusChange={followData.updateFollowCounts}
         />
       )}
     </Container>

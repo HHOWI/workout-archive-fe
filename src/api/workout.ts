@@ -36,8 +36,12 @@ export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
 export const getUserWorkoutOfTheDaysByNicknameAPI = async (
   nickname: string,
   limit: number = 12,
-  cursor: number | null = null
-): Promise<any> => {
+  cursor: string | null = null
+): Promise<{
+  workouts: WorkoutOfTheDayDTO[];
+  nextCursor: string | null;
+  limit: number;
+}> => {
   const params: any = { limit };
   if (cursor) {
     params.cursor = cursor;
@@ -65,7 +69,7 @@ export const getUserWorkoutTotalCountByNicknameAPI = async (
 export const getWorkoutRecordDetailsAPI = async (
   workoutId: number
 ): Promise<any> => {
-  const response = await publicAPI.get(
+  const response = await authAPI.get(
     `/workouts/profiles/workout-records/${workoutId}`
   );
   return response.data;
@@ -129,10 +133,10 @@ export type {
 export const getWorkoutsByPlaceAPI = async (
   placeSeq: string,
   limit: number = 12,
-  cursor: number | null = null
+  cursor: string | null = null
 ): Promise<{
   workouts: WorkoutOfTheDayDTO[];
-  nextCursor: number | null;
+  nextCursor: string | null;
   placeInfo: WorkoutPlaceDTO;
 }> => {
   const params: any = { limit };
@@ -176,6 +180,16 @@ export const getWorkoutLikeStatusAPI = async (
 ): Promise<{ isLiked: boolean }> => {
   const response = await publicAPI.get(
     `/workouts/workout-records/${workoutId}/like`
+  );
+  return response.data;
+};
+
+// 워크아웃 좋아요 수 조회 API
+export const getWorkoutLikeCountAPI = async (
+  workoutId: number
+): Promise<{ likeCount: number }> => {
+  const response = await publicAPI.get(
+    `/workouts/workout-records/${workoutId}/like-count`
   );
   return response.data;
 };
