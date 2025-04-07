@@ -76,9 +76,11 @@ export interface Comment {
   commentLikes: number;
   commentCreatedAt: string;
   isLiked?: boolean;
+  isTarget?: boolean;
   user: CommentUser;
   childComments?: Comment[];
   childCommentsCount?: number;
+  targetReplySeq?: number;
 }
 
 export interface CommentListResponse {
@@ -112,3 +114,25 @@ export interface RepliesResponse {
   nextCursor: number | null;
   hasMore: boolean;
 }
+
+// 단일 댓글 조회 API (대댓글 포함)
+export const getCommentByIdAPI = async (
+  commentId: number
+): Promise<Comment> => {
+  const response = await authAPI.get(`/workouts/comments/${commentId}`);
+  return response.data;
+};
+
+// 부모 댓글과 모든 대댓글 조회 API (알림용)
+export const getParentCommentWithAllRepliesAPI = async (
+  parentCommentId: number,
+  targetReplyId: number
+): Promise<Comment> => {
+  const response = await authAPI.get(
+    `/workouts/parent-comments/${parentCommentId}/all-replies`,
+    {
+      params: { targetReplySeq: targetReplyId },
+    }
+  );
+  return response.data;
+};

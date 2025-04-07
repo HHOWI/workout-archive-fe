@@ -1,10 +1,12 @@
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import {
   Box,
   Button,
   CircularProgress,
   IconButton,
   Typography,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import { ThumbUp, ThumbUpOutlined, MoreVert } from "@mui/icons-material";
 import { format, formatDistanceToNow } from "date-fns";
@@ -16,6 +18,7 @@ import {
   updateCommentAPI,
   deleteCommentAPI,
   toggleCommentLikeAPI,
+  CommentLikeResponse,
 } from "../../../api/comment";
 import { getImageUrl } from "../../../utils/imageUtils";
 import {
@@ -41,19 +44,43 @@ interface ReplyItemProps {
   reply: Comment;
   workoutId: number;
   onUpdateComments: () => void;
+  isTarget?: boolean;
 }
 
 const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
-  ({ reply, workoutId, onUpdateComments }, ref) => {
+  ({ reply, workoutId, onUpdateComments, isTarget }, ref) => {
+    console.log(`ReplyItem (${reply.workoutCommentSeq}) received props:`, {
+      isTarget,
+    });
+
     const navigate = useNavigate();
     const [editingCommentId, setEditingCommentId] = useState<number | null>(
       null
     );
     const [editText, setEditText] = useState("");
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const [localReply, setLocalReply] = useState<Comment>(reply);
+    const [isHighlighted, setIsHighlighted] = useState(false);
+    const theme = useTheme();
+
+    useEffect(() => {
+      setLocalReply(reply);
+    }, [reply]);
+
+    useEffect(() => {
+      console.log(
+        `ReplyItem (${reply.workoutCommentSeq}) Highlight effect check: isTarget=${isTarget}`
+      );
+      if (isTarget) {
+        console.log(
+          `ReplyItem (${reply.workoutCommentSeq}): Applying highlight`
+        );
+        setIsHighlighted(true);
+      }
+    }, [isTarget, reply.workoutCommentSeq]);
+
     const userInfo = useSelector((state: any) => state.auth.userInfo);
 
-    // 날짜 포맷팅
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
       const now = new Date();
@@ -65,12 +92,10 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
       return format(date, "yyyy.MM.dd HH:mm", { locale: ko });
     };
 
-    // 메뉴 토글
     const toggleMenu = (commentId: number) => {
       setOpenMenuId(openMenuId === commentId ? null : commentId);
     };
 
-    // 댓글 수정
     const handleUpdateComment = async (commentId: number) => {
       if (!editText.trim()) return;
 
@@ -84,7 +109,6 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
       }
     };
 
-    // 댓글 삭제
     const handleDeleteComment = async (commentId: number) => {
       if (!window.confirm("정말 이 답글을 삭제하시겠습니까?")) return;
 
@@ -96,19 +120,34 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
       }
     };
 
-    // 좋아요 토글
     const handleToggleLike = async (commentId: number) => {
       if (!userInfo) return;
 
       try {
-        await toggleCommentLikeAPI(commentId);
-        onUpdateComments();
+        const currentIsLiked = localReply.isLiked || false;
+        const currentLikes = localReply.commentLikes || 0;
+
+        setLocalReply({
+          ...localReply,
+          isLiked: !currentIsLiked,
+          commentLikes: currentIsLiked ? currentLikes - 1 : currentLikes + 1,
+        });
+
+        const response: CommentLikeResponse = await toggleCommentLikeAPI(
+          commentId
+        );
+
+        setLocalReply({
+          ...localReply,
+          isLiked: response.isLiked,
+          commentLikes: response.likeCount,
+        });
       } catch (error) {
         console.error("좋아요 처리 중 오류가 발생했습니다:", error);
+        setLocalReply(reply);
       }
     };
 
-    // 사용자 프로필로 이동
     const handleUserProfileClick = (userNickname: string) => {
       if (userNickname) {
         navigate(`/profile/${userNickname}`);
@@ -120,35 +159,75 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
         isReply={true}
         elevation={0}
         ref={ref}
-        id={`comment-${reply.workoutCommentSeq}`}
+        id={`comment-${localReply.workoutCommentSeq}`}
+        sx={
+          isHighlighted
+            ? {
+                transition: "all 0.8s ease",
+                backgroundColor: alpha(theme.palette.primary.light, 0.12),
+                borderLeft: `4px solid ${theme.palette.primary.main}`,
+                borderRadius: "4px",
+                boxShadow: `0 2px 8px ${alpha(
+                  theme.palette.primary.main,
+                  0.15
+                )}`,
+              }
+            : undefined
+        }
       >
         <CommentContent>
+          {isHighlighted && (
+            <Typography
+              variant="subtitle2"
+              color="primary"
+              sx={{
+                mb: 1,
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                fontSize: "0.8rem",
+                "&:before": {
+                  content: '""',
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: theme.palette.primary.main,
+                  marginRight: "6px",
+                },
+              }}
+            >
+              알림에서 이동한 답글
+            </Typography>
+          )}
           <Box display="flex" justifyContent="space-between">
             <CommentMeta>
               <ReplyAuthorAvatar
-                src={getImageUrl(reply.user.profileImageUrl)}
-                alt={reply.user.userNickname}
-                onClick={() => handleUserProfileClick(reply.user.userNickname)}
+                src={getImageUrl(localReply.user.profileImageUrl)}
+                alt={localReply.user.userNickname}
+                onClick={() =>
+                  handleUserProfileClick(localReply.user.userNickname)
+                }
                 sx={{ cursor: "pointer" }}
               >
-                {!reply.user.profileImageUrl &&
-                  reply.user.userNickname?.substring(0, 1)}
+                {!localReply.user.profileImageUrl &&
+                  localReply.user.userNickname?.substring(0, 1)}
               </ReplyAuthorAvatar>
               <UserInfoContainer>
                 <CommentAuthor
                   variant="subtitle2"
                   onClick={() =>
-                    handleUserProfileClick(reply.user.userNickname)
+                    handleUserProfileClick(localReply.user.userNickname)
                   }
                   sx={{
                     cursor: "pointer",
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >
-                  {reply.user.userNickname}
+                  {localReply.user.userNickname}
                 </CommentAuthor>
                 <CommentTime variant="caption">
-                  {formatDate(reply.commentCreatedAt)}
+                  {formatDate(localReply.commentCreatedAt)}
                 </CommentTime>
               </UserInfoContainer>
             </CommentMeta>
@@ -157,10 +236,12 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
               {!editingCommentId && (
                 <CommentHeaderActions>
                   <LikeButton
-                    liked={!!reply.isLiked}
-                    onClick={() => handleToggleLike(reply.workoutCommentSeq)}
+                    liked={!!localReply.isLiked}
+                    onClick={() =>
+                      handleToggleLike(localReply.workoutCommentSeq)
+                    }
                     startIcon={
-                      reply.isLiked ? (
+                      localReply.isLiked ? (
                         <ThumbUp fontSize="small" />
                       ) : (
                         <ThumbUpOutlined fontSize="small" />
@@ -169,29 +250,29 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
                     size="small"
                     sx={{ minWidth: 0, padding: "4px 6px" }}
                   >
-                    {reply.commentLikes > 0 && reply.commentLikes}
+                    {localReply.commentLikes > 0 && localReply.commentLikes}
                   </LikeButton>
                 </CommentHeaderActions>
               )}
 
-              {userInfo && userInfo.userSeq === reply.user.userSeq && (
+              {userInfo && userInfo.userSeq === localReply.user.userSeq && (
                 <CommentMenu>
                   <IconButton
                     size="small"
-                    onClick={() => toggleMenu(reply.workoutCommentSeq)}
+                    onClick={() => toggleMenu(localReply.workoutCommentSeq)}
                     sx={{ color: "#aaa", padding: "4px" }}
                   >
                     <MoreVert fontSize="small" />
                   </IconButton>
 
                   <MenuOptions
-                    isOpen={openMenuId === reply.workoutCommentSeq}
+                    isOpen={openMenuId === localReply.workoutCommentSeq}
                     elevation={1}
                   >
                     <MenuItem
                       onClick={() => {
-                        setEditingCommentId(reply.workoutCommentSeq);
-                        setEditText(reply.commentContent);
+                        setEditingCommentId(localReply.workoutCommentSeq);
+                        setEditText(localReply.commentContent);
                         setOpenMenuId(null);
                       }}
                     >
@@ -199,7 +280,7 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
                     </MenuItem>
                     <MenuItem
                       onClick={() => {
-                        handleDeleteComment(reply.workoutCommentSeq);
+                        handleDeleteComment(localReply.workoutCommentSeq);
                         setOpenMenuId(null);
                       }}
                       sx={{ color: "error.main" }}
@@ -212,7 +293,7 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
             </Box>
           </Box>
 
-          {editingCommentId === reply.workoutCommentSeq ? (
+          {editingCommentId === localReply.workoutCommentSeq ? (
             <Box mt={1.5}>
               <CommentInput
                 fullWidth
@@ -228,7 +309,9 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => handleUpdateComment(reply.workoutCommentSeq)}
+                  onClick={() =>
+                    handleUpdateComment(localReply.workoutCommentSeq)
+                  }
                   sx={{
                     borderRadius: "4px",
                     textTransform: "none",
@@ -253,7 +336,7 @@ const ReplyItem = forwardRef<HTMLDivElement, ReplyItemProps>(
               </Box>
             </Box>
           ) : (
-            <CommentText>{reply.commentContent}</CommentText>
+            <CommentText>{localReply.commentContent}</CommentText>
           )}
         </CommentContent>
       </CommentItemContainer>

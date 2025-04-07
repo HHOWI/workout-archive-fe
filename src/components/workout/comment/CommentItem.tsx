@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef } from "react";
+import React, { forwardRef, useState, useRef, useEffect } from "react";
 import {
   Box,
   Button,
@@ -20,6 +20,7 @@ import {
   getRepliesAPI,
   createCommentAPI,
   RepliesResponse,
+  CommentLikeResponse,
 } from "../../../api/comment";
 import { getImageUrl } from "../../../utils/imageUtils";
 import CommentForm from "./CommentForm";
@@ -45,14 +46,6 @@ import {
   CommentHeaderActions,
 } from "./CommentSectionStyles";
 
-interface CommentItemProps {
-  comment: Comment;
-  workoutId: number;
-  targetCommentId?: number;
-  onUpdateComments: () => void;
-}
-
-// 대댓글 상태 관리를 위한 인터페이스
 interface ReplyState {
   isExpanded: boolean;
   isLoading: boolean;
@@ -61,8 +54,35 @@ interface ReplyState {
   hasMore: boolean;
 }
 
+interface CommentItemProps {
+  comment: Comment;
+  workoutId: number;
+  targetCommentId?: number;
+  onUpdateComments: () => void;
+  isTarget?: boolean; // 알림 대상 대댓글인지 여부
+  replyState?: ReplyState; // 대댓글 상태
+  onToggleReplies?: (commentId: number) => void; // 대댓글 토글 함수
+  onLoadMoreReplies?: (commentId: number) => void; // 대댓글 더 불러오기 함수
+  targetReplyId?: number; // 알림 대상 대댓글 ID
+  targetReplyRef?: React.RefObject<HTMLDivElement>; // 타겟 대댓글 ref
+}
+
 const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
-  ({ comment, workoutId, targetCommentId, onUpdateComments }, ref) => {
+  (
+    {
+      comment,
+      workoutId,
+      targetCommentId,
+      onUpdateComments,
+      isTarget,
+      replyState,
+      onToggleReplies,
+      onLoadMoreReplies,
+      targetReplyId,
+      targetReplyRef,
+    },
+    ref
+  ) => {
     const navigate = useNavigate();
     const [editingCommentId, setEditingCommentId] = useState<number | null>(
       null
@@ -71,13 +91,39 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
     const [replyText, setReplyText] = useState("");
     const [editText, setEditText] = useState("");
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-    const [replyState, setReplyState] = useState<ReplyState>({
+    const [localReplyState, setLocalReplyState] = useState<ReplyState>({
       isExpanded: false,
       isLoading: false,
       replies: [],
       nextCursor: null,
       hasMore: true,
     });
+    // 로컬 댓글 상태 추가
+    const [localComment, setLocalComment] = useState<Comment>(comment);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedContent, setEditedContent] = useState(comment.commentContent);
+    const [isHighlighted, setIsHighlighted] = useState(false);
+
+    // 실제 사용할 replyState (props에서 받은 것 또는 로컬 상태)
+    const effectiveReplyState = replyState || localReplyState;
+
+    // props의 comment가 업데이트될 때 로컬 상태 동기화
+    useEffect(() => {
+      setLocalComment(comment);
+    }, [comment]);
+
+    // 초기 렌더링 시 하이라이트 효과 적용
+    useEffect(() => {
+      // 알림으로 직접 타겟팅된 댓글이거나, 기존 방식대로 targetCommentId가 일치하는 경우
+      if (isTarget || targetCommentId === localComment.workoutCommentSeq) {
+        setIsHighlighted(true);
+        // 5초 후 하이라이트 효과 점진적으로 제거하는 로직 제거
+        // const timer = setTimeout(() => {
+        //   setIsHighlighted(false);
+        // }, 5000);
+        // return () => clearTimeout(timer);
+      }
+    }, [targetCommentId, localComment.workoutCommentSeq, isTarget]);
 
     const theme = useTheme();
     const userInfo = useSelector((state: any) => state.auth.userInfo);
@@ -125,15 +171,37 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       }
     };
 
-    // 좋아요 토글
+    // 좋아요 토글 - 로컬 상태만 업데이트하도록 수정
     const handleToggleLike = async (commentId: number) => {
       if (!userInfo) return;
 
       try {
-        await toggleCommentLikeAPI(commentId);
-        onUpdateComments();
+        // 낙관적 UI 업데이트 (즉시 UI 반영)
+        const currentIsLiked = localComment.isLiked || false;
+        const currentLikes = localComment.commentLikes || 0;
+
+        // 낙관적으로 UI 먼저 업데이트
+        setLocalComment({
+          ...localComment,
+          isLiked: !currentIsLiked,
+          commentLikes: currentIsLiked ? currentLikes - 1 : currentLikes + 1,
+        });
+
+        // API 호출
+        const response: CommentLikeResponse = await toggleCommentLikeAPI(
+          commentId
+        );
+
+        // API 응답으로 정확한 상태 반영
+        setLocalComment({
+          ...localComment,
+          isLiked: response.isLiked,
+          commentLikes: response.likeCount,
+        });
       } catch (error) {
         console.error("좋아요 처리 중 오류가 발생했습니다:", error);
+        // 오류 발생 시 원래 상태로 되돌림
+        setLocalComment(comment);
       }
     };
 
@@ -142,44 +210,102 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       if (!text.trim() || !userInfo) return;
 
       try {
-        await createCommentAPI(workoutId, text, comment.workoutCommentSeq);
-        onUpdateComments();
+        // 낙관적 UI 업데이트를 위한 임시 대댓글
+        const tempReply: Comment = {
+          workoutCommentSeq: -1, // 임시 ID
+          commentContent: text,
+          commentLikes: 0,
+          commentCreatedAt: new Date().toISOString(),
+          isLiked: false,
+          user: {
+            userSeq: userInfo.userSeq,
+            userNickname: userInfo.userNickname,
+            profileImageUrl: userInfo.profileImageUrl || null,
+          },
+        };
+
+        // 낙관적으로 UI 업데이트 (childCommentsCount 증가 및 UI에 임시 대댓글 추가)
+        setLocalComment((prev) => ({
+          ...prev,
+          childCommentsCount: (prev.childCommentsCount || 0) + 1,
+        }));
+
+        // 대댓글 목록이 이미 로드되어 있으면 UI에 임시 대댓글 추가
+        if (
+          effectiveReplyState.isExpanded &&
+          effectiveReplyState.replies.length > 0
+        ) {
+          setLocalReplyState((prev) => ({
+            ...prev,
+            replies: [tempReply, ...prev.replies],
+          }));
+        }
+
+        // 대댓글 입력 폼 닫기
         setActiveReplyForm(null);
+        setReplyText("");
 
-        // 대댓글 상태 초기화 (새로 불러올 수 있도록)
-        setReplyState({
-          ...replyState,
-          replies: [],
-          nextCursor: null,
-          hasMore: true,
-        });
+        // API 호출로 실제 저장
+        const response = await createCommentAPI(
+          workoutId,
+          text,
+          localComment.workoutCommentSeq
+        );
 
-        // 새 대댓글을 보여주기 위해 대댓글 목록 다시 로드
-        fetchReplies();
+        // 대댓글 목록이 이미 로드되어 있으면 임시 대댓글을 실제 대댓글로 대체
+        if (
+          effectiveReplyState.isExpanded &&
+          effectiveReplyState.replies.length > 0
+        ) {
+          setLocalReplyState((prev) => ({
+            ...prev,
+            replies: prev.replies.map((reply) =>
+              reply.workoutCommentSeq === -1 ? response.comment : reply
+            ),
+          }));
+        } else {
+          // 대댓글 목록을 아직 로드하지 않았다면, 대댓글 목록 로드
+          fetchReplies();
+        }
       } catch (error) {
         console.error("대댓글 작성 중 오류가 발생했습니다:", error);
+        // 에러 발생 시 롤백
+        setLocalComment(comment);
+
+        // 대댓글 목록이 이미 로드되어 있으면 임시 대댓글 제거
+        if (
+          effectiveReplyState.isExpanded &&
+          effectiveReplyState.replies.length > 0
+        ) {
+          setLocalReplyState((prev) => ({
+            ...prev,
+            replies: prev.replies.filter(
+              (reply) => reply.workoutCommentSeq !== -1
+            ),
+          }));
+        }
       }
     };
 
     // 대댓글 불러오기
     const fetchReplies = async (cursor?: number) => {
       // 이미 로딩 중인 경우 중복 요청 방지
-      if (replyState.isLoading) return;
+      if (effectiveReplyState.isLoading) return;
 
       try {
         // 상태 업데이트: 로딩 중 표시
-        setReplyState({
-          ...replyState,
+        setLocalReplyState({
+          ...effectiveReplyState,
           isLoading: true,
         });
 
         const response: RepliesResponse = await getRepliesAPI(
-          comment.workoutCommentSeq,
+          localComment.workoutCommentSeq,
           cursor
         );
 
-        const existingReplies = replyState.replies || [];
-        setReplyState({
+        const existingReplies = effectiveReplyState.replies || [];
+        setLocalReplyState({
           isExpanded: true,
           isLoading: false,
           replies: cursor
@@ -190,40 +316,30 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
         });
       } catch (error) {
         console.error("대댓글을 불러오는 중 오류가 발생했습니다:", error);
-        setReplyState({
-          ...replyState,
+        setLocalReplyState({
+          ...effectiveReplyState,
           isLoading: false,
         });
       }
     };
 
     // 댓글 토글 핸들러
-    const handleToggleReplies = () => {
-      if (replyState.isExpanded) {
-        // 접기: 상태는 유지하고 UI만 숨김
-        setReplyState({
-          ...replyState,
-          isExpanded: false,
-        });
+    const handleToggleReplies = (commentId: number) => {
+      if (onToggleReplies) {
+        onToggleReplies(commentId);
       } else {
-        // 이미 대댓글을 불러왔는지 확인
-        if (replyState.replies?.length > 0) {
-          // 이미 불러온 대댓글이 있으면 UI만 펼침
-          setReplyState({
-            ...replyState,
-            isExpanded: true,
-          });
-        } else {
-          // 대댓글을 아직 불러오지 않았으면 API 호출
-          fetchReplies();
-        }
+        // 로컬 상태 토글 (props에서 onToggleReplies가 없는 경우)
+        setLocalReplyState((prev) => ({
+          ...prev,
+          isExpanded: !prev.isExpanded,
+        }));
       }
     };
 
-    // 대댓글 추가 로드 핸들러
-    const handleLoadMoreReplies = () => {
-      if (replyState.nextCursor) {
-        fetchReplies(replyState.nextCursor);
+    // 대댓글 더 불러오기 핸들러
+    const handleLoadMoreReplies = (commentId: number) => {
+      if (onLoadMoreReplies) {
+        onLoadMoreReplies(commentId);
       }
     };
 
@@ -238,48 +354,78 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       <CommentItemContainer
         isReply={false}
         elevation={0}
-        id={`comment-${comment.workoutCommentSeq}`}
+        id={`comment-${localComment.workoutCommentSeq}`}
         ref={ref}
         sx={
-          targetCommentId === comment.workoutCommentSeq
+          isHighlighted
             ? {
-                transition: "background-color 0.3s ease",
-                "&.highlight-comment": {
-                  backgroundColor: alpha(theme.palette.primary.light, 0.08),
-                },
+                transition: "all 0.8s ease",
+                backgroundColor: alpha(theme.palette.primary.light, 0.12),
+                borderLeft: `4px solid ${theme.palette.primary.main}`,
+                paddingLeft: "12px",
+                marginLeft: "-16px",
+                borderRadius: "4px",
+                boxShadow: `0 2px 8px ${alpha(
+                  theme.palette.primary.main,
+                  0.15
+                )}`,
               }
             : undefined
         }
       >
         <CommentContent>
+          {isHighlighted && (
+            <Typography
+              variant="subtitle2"
+              color="primary"
+              sx={{
+                mb: 1,
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                fontSize: "0.8rem",
+                "&:before": {
+                  content: '""',
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: theme.palette.primary.main,
+                  marginRight: "6px",
+                },
+              }}
+            >
+              알림에서 이동한 댓글
+            </Typography>
+          )}
           <Box display="flex" justifyContent="space-between">
             <CommentMeta>
               <AuthorAvatar
-                src={getImageUrl(comment.user.profileImageUrl)}
-                alt={comment.user.userNickname}
+                src={getImageUrl(localComment.user.profileImageUrl)}
+                alt={localComment.user.userNickname}
                 onClick={() =>
-                  handleUserProfileClick(comment.user.userNickname)
+                  handleUserProfileClick(localComment.user.userNickname)
                 }
                 sx={{ cursor: "pointer" }}
               >
-                {!comment.user.profileImageUrl &&
-                  comment.user.userNickname?.substring(0, 1)}
+                {!localComment.user.profileImageUrl &&
+                  localComment.user.userNickname?.substring(0, 1)}
               </AuthorAvatar>
               <UserInfoContainer>
                 <CommentAuthor
                   variant="subtitle2"
                   onClick={() =>
-                    handleUserProfileClick(comment.user.userNickname)
+                    handleUserProfileClick(localComment.user.userNickname)
                   }
                   sx={{
                     cursor: "pointer",
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >
-                  {comment.user.userNickname}
+                  {localComment.user.userNickname}
                 </CommentAuthor>
                 <CommentTime variant="caption">
-                  {formatDate(comment.commentCreatedAt)}
+                  {formatDate(localComment.commentCreatedAt)}
                 </CommentTime>
               </UserInfoContainer>
             </CommentMeta>
@@ -288,10 +434,12 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
               {!editingCommentId && (
                 <CommentHeaderActions>
                   <LikeButton
-                    liked={!!comment.isLiked}
-                    onClick={() => handleToggleLike(comment.workoutCommentSeq)}
+                    liked={!!localComment.isLiked}
+                    onClick={() =>
+                      handleToggleLike(localComment.workoutCommentSeq)
+                    }
                     startIcon={
-                      comment.isLiked ? (
+                      localComment.isLiked ? (
                         <ThumbUp fontSize="small" />
                       ) : (
                         <ThumbUpOutlined fontSize="small" />
@@ -300,13 +448,13 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                     size="small"
                     sx={{ minWidth: 0, padding: "4px 6px" }}
                   >
-                    {comment.commentLikes > 0 && comment.commentLikes}
+                    {localComment.commentLikes > 0 && localComment.commentLikes}
                   </LikeButton>
 
                   {userInfo && (
                     <ActionButton
                       onClick={() =>
-                        setActiveReplyForm(comment.workoutCommentSeq)
+                        setActiveReplyForm(localComment.workoutCommentSeq)
                       }
                       startIcon={<ReplyIcon />}
                       size="small"
@@ -318,24 +466,24 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                 </CommentHeaderActions>
               )}
 
-              {userInfo && userInfo.userSeq === comment.user.userSeq && (
+              {userInfo && userInfo.userSeq === localComment.user.userSeq && (
                 <CommentMenu>
                   <IconButton
                     size="small"
-                    onClick={() => toggleMenu(comment.workoutCommentSeq)}
+                    onClick={() => toggleMenu(localComment.workoutCommentSeq)}
                     sx={{ color: "#aaa", padding: "4px" }}
                   >
                     <MoreVert fontSize="small" />
                   </IconButton>
 
                   <MenuOptions
-                    isOpen={openMenuId === comment.workoutCommentSeq}
+                    isOpen={openMenuId === localComment.workoutCommentSeq}
                     elevation={1}
                   >
                     <MenuItem
                       onClick={() => {
-                        setEditingCommentId(comment.workoutCommentSeq);
-                        setEditText(comment.commentContent);
+                        setEditingCommentId(localComment.workoutCommentSeq);
+                        setEditText(localComment.commentContent);
                         setOpenMenuId(null);
                       }}
                     >
@@ -343,7 +491,7 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                     </MenuItem>
                     <MenuItem
                       onClick={() => {
-                        handleDeleteComment(comment.workoutCommentSeq);
+                        handleDeleteComment(localComment.workoutCommentSeq);
                         setOpenMenuId(null);
                       }}
                       sx={{ color: theme.palette.error.main }}
@@ -356,7 +504,7 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
             </Box>
           </Box>
 
-          {editingCommentId === comment.workoutCommentSeq ? (
+          {editingCommentId === localComment.workoutCommentSeq ? (
             <Box mt={1.5}>
               <CommentInput
                 fullWidth
@@ -372,7 +520,9 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() => handleUpdateComment(comment.workoutCommentSeq)}
+                  onClick={() =>
+                    handleUpdateComment(localComment.workoutCommentSeq)
+                  }
                   sx={{
                     borderRadius: "4px",
                     textTransform: "none",
@@ -397,10 +547,10 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
               </Box>
             </Box>
           ) : (
-            <CommentText>{comment.commentContent}</CommentText>
+            <CommentText>{localComment.commentContent}</CommentText>
           )}
 
-          {activeReplyForm === comment.workoutCommentSeq && (
+          {activeReplyForm === localComment.workoutCommentSeq && (
             <ReplyForm>
               <CommentForm
                 onSubmit={handleSubmitReply}
@@ -413,16 +563,18 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
           )}
 
           {/* 대댓글 섹션 */}
-          {comment.childCommentsCount !== undefined &&
-            comment.childCommentsCount > 0 && (
+          {localComment.childCommentsCount !== undefined &&
+            localComment.childCommentsCount > 0 && (
               <ReplySection
-                commentId={comment.workoutCommentSeq}
-                childCommentsCount={comment.childCommentsCount}
-                replyState={replyState}
+                commentId={localComment.workoutCommentSeq}
+                childCommentsCount={localComment.childCommentsCount}
+                replyState={effectiveReplyState}
                 workoutId={workoutId}
                 onToggleReplies={handleToggleReplies}
                 onLoadMoreReplies={handleLoadMoreReplies}
                 onUpdateComments={onUpdateComments}
+                targetReplyId={targetReplyId}
+                targetReplyRef={targetReplyRef}
               />
             )}
         </CommentContent>

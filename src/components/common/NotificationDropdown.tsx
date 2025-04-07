@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import NotificationItem from "./NotificationItem";
+import NotificationItem, { WorkoutModalData } from "./NotificationItem";
 import { useNavigate } from "react-router-dom";
 import {
   getUnreadNotificationsAPI,
@@ -25,6 +25,7 @@ import {
 } from "../../api/notification";
 import { NotificationDTO } from "../../dtos/NotificationDTO";
 import SocketService from "../../services/socketService";
+import WorkoutDetailModal from "../WorkoutDetailModal";
 
 // 상수
 const NOTIFICATION_LIMIT = 10;
@@ -129,6 +130,10 @@ const NotificationDropdown: React.FC = () => {
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [animate, setAnimate] = useState<boolean>(false);
+
+  // 오운완 모달 관련 상태
+  const [workoutModalData, setWorkoutModalData] =
+    useState<WorkoutModalData | null>(null);
 
   // 훅
   const navigate = useNavigate();
@@ -457,6 +462,21 @@ const NotificationDropdown: React.FC = () => {
   }, [navigate, handleClose]);
 
   /**
+   * 오운완 모달 열기
+   */
+  const openWorkoutModal = useCallback((data: WorkoutModalData) => {
+    setWorkoutModalData(data);
+    setAnchorEl(null); // 드롭다운 닫기
+  }, []);
+
+  /**
+   * 오운완 모달 닫기
+   */
+  const closeWorkoutModal = useCallback(() => {
+    setWorkoutModalData(null);
+  }, []);
+
+  /**
    * 알림 목록 렌더링
    */
   const renderNotificationList = () => {
@@ -489,6 +509,7 @@ const NotificationDropdown: React.FC = () => {
                 notification={notification}
                 onDelete={handleDeleteNotification}
                 onRead={handleReadNotification}
+                openWorkoutModal={openWorkoutModal}
               />
               {index < notifications.length - 1 && (
                 <Divider variant="inset" component="li" />
@@ -561,6 +582,15 @@ const NotificationDropdown: React.FC = () => {
           </Button>
         </Box>
       </NotificationPopover>
+
+      {/* 오운완 모달 */}
+      {workoutModalData && (
+        <WorkoutDetailModal
+          workoutOfTheDaySeq={workoutModalData.workoutId}
+          commentId={workoutModalData.commentId}
+          onClose={closeWorkoutModal}
+        />
+      )}
     </>
   );
 };

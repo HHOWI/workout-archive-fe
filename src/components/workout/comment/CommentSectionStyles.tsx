@@ -79,7 +79,9 @@ export const CommentList = styled(Box)`
   margin-top: 16px;
 `;
 
-export const CommentItemContainer = styled(Card)<{ isReply: boolean }>`
+export const CommentItemContainer = styled(Card, {
+  shouldForwardProp: (prop) => prop !== "isReply",
+})<{ isReply: boolean }>`
   margin-bottom: 12px;
   border-radius: 8px;
   background-color: ${(props) => (props.isReply ? "#fafafa" : "#ffffff")};
@@ -196,7 +198,9 @@ export const CommentMenu = styled(Box)`
   margin-left: auto;
 `;
 
-export const MenuOptions = styled(Paper)<{ isOpen: boolean }>`
+export const MenuOptions = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== "isOpen",
+})<{ isOpen: boolean }>`
   position: absolute;
   right: 0;
   top: 28px;
@@ -244,7 +248,9 @@ export const LoadMoreButton = styled(Button)`
   }
 `;
 
-export const LikeButton = styled(ActionButton)<{ liked: boolean }>`
+export const LikeButton = styled(ActionButton, {
+  shouldForwardProp: (prop) => prop !== "liked",
+})<{ liked: boolean }>`
   color: ${(props) => (props.liked ? "#1976d2" : "#666")};
   display: flex;
   align-items: center;

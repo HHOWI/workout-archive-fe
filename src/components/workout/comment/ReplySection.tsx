@@ -25,6 +25,8 @@ interface ReplySectionProps {
   onToggleReplies: (commentId: number) => void;
   onLoadMoreReplies: (commentId: number) => void;
   onUpdateComments: () => void;
+  targetReplyId?: number;
+  targetReplyRef?: React.RefObject<HTMLDivElement>;
 }
 
 const ReplySection: React.FC<ReplySectionProps> = ({
@@ -35,6 +37,8 @@ const ReplySection: React.FC<ReplySectionProps> = ({
   onToggleReplies,
   onLoadMoreReplies,
   onUpdateComments,
+  targetReplyId,
+  targetReplyRef,
 }) => {
   const observer = useRef<IntersectionObserver | null>(null);
   const lastReplyElementRef = useRef<Record<number, HTMLDivElement | null>>({});
@@ -104,17 +108,31 @@ const ReplySection: React.FC<ReplySectionProps> = ({
               {/* 대댓글 목록 렌더링 */}
               {replyState.replies.map((reply, index) => {
                 const isLastReply = index === replyState.replies.length - 1;
+                const isTargetReply = targetReplyId === reply.workoutCommentSeq;
+
+                // isTargetReply 값 확인 로그 추가
+                if (isTargetReply) {
+                  console.log(
+                    `ReplySection: Target reply found - ID: ${reply.workoutCommentSeq}`
+                  );
+                }
+
+                // ref 설정 로직
+                let itemRef: React.Ref<HTMLDivElement> | undefined = undefined;
+                if (isTargetReply) {
+                  itemRef = targetReplyRef;
+                } else if (isLastReply && replyState.hasMore) {
+                  itemRef = lastReplyRef;
+                }
+
                 return (
                   <ReplyItem
                     key={reply.workoutCommentSeq}
                     reply={reply}
                     workoutId={workoutId}
-                    ref={
-                      isLastReply && replyState.hasMore
-                        ? lastReplyRef
-                        : undefined
-                    }
+                    ref={itemRef} // 계산된 ref 사용
                     onUpdateComments={onUpdateComments}
+                    isTarget={isTargetReply}
                   />
                 );
               })}

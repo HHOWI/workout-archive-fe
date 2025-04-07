@@ -3,12 +3,9 @@ import {
   Box,
   Typography,
   ListItem,
-  ListItemAvatar,
-  Avatar,
   IconButton,
   ListItemText,
   ListItemSecondaryAction,
-  Badge,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -21,13 +18,26 @@ import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ClearIcon from "@mui/icons-material/Clear";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { getImageUrl } from "../../utils/imageUtils";
+import { getParentCommentWithAllRepliesAPI } from "../../api/comment";
+
+// 전역 모달 상태 관리를 위한 인터페이스
+export interface WorkoutModalData {
+  workoutId: number;
+  commentId?: number;
+  isReplyNotification?: boolean;
+  parentCommentId?: number;
+  replyCommentId?: number;
+}
+
+// 모달 열기 함수 타입
+export type OpenWorkoutModalFunction = (data: WorkoutModalData) => void;
 
 interface NotificationItemProps {
   notification: NotificationDTO;
   onDelete: (notificationSeq: number) => void;
   onRead?: (notificationSeq: number) => void;
   onClick?: (notification: NotificationDTO) => void;
+  openWorkoutModal?: OpenWorkoutModalFunction;
 }
 
 // 읽지 않은 알림 스타일
@@ -54,6 +64,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onDelete,
   onRead,
   onClick,
+  openWorkoutModal,
 }) => {
   const navigate = useNavigate();
   const userInfo = useSelector((state: any) => state.auth.userInfo);
@@ -67,6 +78,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       case NotificationType.REPLY:
         return <ChatIcon color="primary" />;
       case NotificationType.COMMENT_LIKE:
+      case NotificationType.REPLY_LIKE:
         return <ThumbUpIcon color="primary" />;
       case NotificationType.FOLLOW:
         return <PeopleIcon color="primary" />;
@@ -75,62 +87,132 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     }
   };
 
-  // 알림 경로 생성
-  const getNotificationPath = (notification: NotificationDTO) => {
-    const {
-      notificationType,
-      workoutOfTheDaySeq,
-      workoutCommentSeq,
-      senderNickname,
-    } = notification;
-
-    // 알림 대상이 오운완 관련인 경우
-    if (workoutOfTheDaySeq) {
-      // 알림 타입에 따라 처리
-      switch (notificationType) {
-        case NotificationType.WORKOUT_LIKE:
-        case NotificationType.COMMENT:
-        case NotificationType.REPLY:
-        case NotificationType.COMMENT_LIKE:
-          // 해당 오운완 작성자의 프로필 페이지로 이동하면서 모달 표시
-          // 사용자 본인 오운완인지 확인하여 경로 설정
-          if (userInfo && userInfo.userNickname === senderNickname) {
-            // 본인 오운완에 대한 알림이면 프로필 페이지로 이동
-            return `/profile/${
-              userInfo.userNickname
-            }?workout=${workoutOfTheDaySeq}${
-              workoutCommentSeq ? `&comment=${workoutCommentSeq}` : ""
-            }`;
-          } else {
-            // 다른 사람의 오운완이면 메인 피드로 이동
-            return `/?workout=${workoutOfTheDaySeq}${
-              workoutCommentSeq ? `&comment=${workoutCommentSeq}` : ""
-            }`;
-          }
-        default:
-          return "/";
-      }
-    }
-
-    // 팔로우 알림인 경우 팔로우한 사용자의 프로필로 이동
-    if (notificationType === NotificationType.FOLLOW) {
-      return `/profile/${senderNickname}`;
-    }
-
-    // 기본 페이지는 메인
-    return "/";
-  };
-
   // 알림 클릭 핸들러
-  const handleItemClick = () => {
+  const handleItemClick = async () => {
+    // 먼저 읽음 상태로 변경
     if (notification.isRead === 0 && onRead) {
       onRead(notification.notificationSeq);
     }
 
+    // 외부에서 제공된 onClick 핸들러가 있으면 사용
     if (onClick) {
       onClick(notification);
-    } else {
-      navigate(getNotificationPath(notification));
+      return;
+    }
+
+    const {
+      notificationType,
+      workoutOfTheDaySeq,
+      workoutCommentSeq,
+      replyCommentSeq,
+      senderNickname,
+    } = notification;
+
+    // 대댓글 관련 알림 처리 (대댓글, 대댓글 좋아요)
+    if (
+      (notificationType === NotificationType.REPLY ||
+        notificationType === NotificationType.REPLY_LIKE) &&
+      workoutOfTheDaySeq &&
+      workoutCommentSeq &&
+      replyCommentSeq
+    ) {
+      // 오운완 모달 열기 함수가 있으면 부모 댓글 ID와 대댓글 ID를 함께 전달
+      if (openWorkoutModal) {
+        openWorkoutModal({
+          workoutId: workoutOfTheDaySeq,
+          isReplyNotification: true,
+          parentCommentId: workoutCommentSeq, // 부모 댓글 ID
+          replyCommentId: replyCommentSeq, // 대댓글 ID
+        });
+        return;
+      }
+    }
+
+    // 일반 댓글 관련 알림 처리 (댓글, 댓글 좋아요)
+    if (
+      (notificationType === NotificationType.COMMENT ||
+        notificationType === NotificationType.COMMENT_LIKE) &&
+      workoutOfTheDaySeq &&
+      workoutCommentSeq
+    ) {
+      // 오운완 모달 열기 함수가 있으면 워크아웃 ID와 댓글 ID를 함께 전달
+      if (openWorkoutModal) {
+        openWorkoutModal({
+          workoutId: workoutOfTheDaySeq,
+          commentId: workoutCommentSeq,
+        });
+        return;
+      }
+    }
+
+    // 오운완 관련 알림인 경우 (기존 로직)
+    if (workoutOfTheDaySeq) {
+      // 오운완 모달 열기 함수가 있으면 모달로 열기
+      if (openWorkoutModal) {
+        if (
+          notificationType === NotificationType.REPLY ||
+          notificationType === NotificationType.REPLY_LIKE
+        ) {
+          openWorkoutModal({
+            workoutId: workoutOfTheDaySeq,
+            isReplyNotification: true,
+            parentCommentId: workoutCommentSeq,
+            replyCommentId: replyCommentSeq,
+          });
+        } else {
+          openWorkoutModal({
+            workoutId: workoutOfTheDaySeq,
+            commentId: workoutCommentSeq,
+          });
+        }
+        return;
+      }
+
+      // 오운완 모달 열기 함수가 없으면 기존 방식대로 URL로 처리
+      switch (notificationType) {
+        case NotificationType.WORKOUT_LIKE:
+        case NotificationType.COMMENT:
+        case NotificationType.COMMENT_LIKE:
+          if (userInfo && userInfo.userNickname === senderNickname) {
+            navigate(
+              `/profile/${userInfo.userNickname}?workout=${workoutOfTheDaySeq}${
+                workoutCommentSeq ? `&comment=${workoutCommentSeq}` : ""
+              }`
+            );
+          } else {
+            navigate(
+              `/profile/${senderNickname}?workout=${workoutOfTheDaySeq}${
+                workoutCommentSeq ? `&comment=${workoutCommentSeq}` : ""
+              }`
+            );
+          }
+          break;
+        case NotificationType.REPLY:
+        case NotificationType.REPLY_LIKE:
+          // 대댓글 관련 알림은 부모 댓글 ID와 대댓글 ID를 함께 전달
+          const parentAndReplyParam =
+            workoutCommentSeq && replyCommentSeq
+              ? `&parentComment=${workoutCommentSeq}&replyComment=${replyCommentSeq}`
+              : "";
+
+          if (userInfo && userInfo.userNickname === senderNickname) {
+            navigate(
+              `/profile/${userInfo.userNickname}?workout=${workoutOfTheDaySeq}${parentAndReplyParam}`
+            );
+          } else {
+            navigate(
+              `/profile/${senderNickname}?workout=${workoutOfTheDaySeq}${parentAndReplyParam}`
+            );
+          }
+          break;
+        case NotificationType.FOLLOW:
+          navigate(`/profile/${senderNickname}`);
+          break;
+        default:
+          break;
+      }
+    } else if (notificationType === NotificationType.FOLLOW) {
+      navigate(`/profile/${senderNickname}`);
     }
   };
 

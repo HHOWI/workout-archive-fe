@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import styled from "@emotion/styled";
 import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { format } from "date-fns";
@@ -395,6 +395,9 @@ interface WorkoutDetailModalProps {
   onClose: () => void;
   onDelete?: () => void;
   commentId?: number;
+  isReplyNotification?: boolean;
+  parentCommentId?: number;
+  replyCommentId?: number;
 }
 
 // =============== 메인 컴포넌트 ===============
@@ -403,7 +406,19 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   onClose,
   onDelete,
   commentId,
+  isReplyNotification,
+  parentCommentId,
+  replyCommentId,
 }) => {
+  // Props 확인 로그 추가
+  console.log("WorkoutDetailModal received props:", {
+    workoutOfTheDaySeq,
+    commentId,
+    isReplyNotification,
+    parentCommentId,
+    replyCommentId,
+  });
+
   // 상태 관리
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const navigate = useNavigate();
@@ -418,6 +433,7 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(0);
   const [likesLoading, setLikesLoading] = useState<boolean>(false);
+  const commentSectionRef = useRef<HTMLDivElement>(null);
 
   // 운동 상세 정보 가져오기
   useEffect(() => {
@@ -441,6 +457,21 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
     };
     fetchWorkoutDetail();
   }, [workoutOfTheDaySeq]);
+
+  // 댓글 섹션으로 스크롤 (commentId가 있는 경우)
+  useEffect(() => {
+    if (commentId && commentSectionRef.current) {
+      // 워크아웃 정보 로드 후 약간의 지연시간을 두고 스크롤
+      const timer = setTimeout(() => {
+        commentSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [commentId, workout]);
 
   // 소유자 확인
   const isOwner = useMemo(() => {
@@ -727,10 +758,15 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
 
               <Divider sx={{ my: 4 }} />
 
-              <CommentSection
-                workoutId={workoutOfTheDaySeq}
-                targetCommentId={commentId}
-              />
+              <div ref={commentSectionRef}>
+                <CommentSection
+                  workoutId={workoutOfTheDaySeq}
+                  targetCommentId={commentId}
+                  isReplyNotification={isReplyNotification}
+                  parentCommentId={parentCommentId}
+                  replyCommentId={replyCommentId}
+                />
+              </div>
             </ModalBody>
           </ScrollableContent>
         </ScrollableContainer>

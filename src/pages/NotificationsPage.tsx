@@ -11,7 +11,9 @@ import {
   IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import NotificationItem from "../components/common/NotificationItem";
+import NotificationItem, {
+  WorkoutModalData,
+} from "../components/common/NotificationItem";
 import {
   getNotificationsAPI,
   markAllNotificationsAsReadAPI,
@@ -26,6 +28,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import DeleteIcon from "@mui/icons-material/Delete";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
+import WorkoutDetailModal from "../components/WorkoutDetailModal";
 
 // 스타일 컴포넌트
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -78,6 +81,10 @@ const NotificationsPage: React.FC = () => {
 
   // 소켓 서비스 인스턴스
   const socketService = SocketService.getInstance();
+
+  // 오운완 모달 관련 상태
+  const [workoutModalData, setWorkoutModalData] =
+    useState<WorkoutModalData | null>(null);
 
   /**
    * 중복 알림을 제거하는 유틸리티 함수
@@ -195,26 +202,43 @@ const NotificationsPage: React.FC = () => {
   }, [handleNewNotification, fetchNotificationCount]);
 
   /**
-   * 단일 알림 읽음 처리
+   * 개별 알림 읽음 처리
    */
-  const handleReadNotification = useCallback(
+  const handleMarkAsRead = useCallback(
     async (notificationSeq: number) => {
       try {
         await markNotificationsAsReadAPI([notificationSeq]);
-
-        // 알림 카운트 다시 가져오기
-        fetchNotificationCount();
+        // 로컬 상태 업데이트 대신 전체 데이터 새로고침으로 변경
+        refreshData();
+        setUnreadCount((prev) => (prev > 0 ? prev - 1 : 0));
       } catch (error) {
         console.error("알림 읽음 처리 중 오류 발생:", error);
       }
     },
-    [fetchNotificationCount]
+    [refreshData]
+  );
+
+  /**
+   * 알림 삭제 처리
+   */
+  const handleDeleteNotification = useCallback(
+    async (notificationSeq: number) => {
+      try {
+        await deleteNotificationAPI(notificationSeq);
+        // 로컬 상태 업데이트 대신 전체 데이터 새로고침
+        refreshData();
+        fetchNotificationCount(); // 삭제 후 카운트 재조회
+      } catch (error) {
+        console.error("알림 삭제 중 오류 발생:", error);
+      }
+    },
+    [refreshData, fetchNotificationCount]
   );
 
   /**
    * 모든 알림 읽음 처리
    */
-  const handleReadAllNotifications = useCallback(async () => {
+  const handleMarkAllAsRead = useCallback(async () => {
     try {
       await markAllNotificationsAsReadAPI();
 
@@ -246,145 +270,122 @@ const NotificationsPage: React.FC = () => {
   }, [resetData]);
 
   /**
-   * 알림 삭제 처리
+   * 오운완 모달 열기
    */
-  const handleDeleteNotification = useCallback(
-    async (notificationSeq: number) => {
-      try {
-        await deleteNotificationAPI(notificationSeq);
+  const openWorkoutModal = useCallback((data: WorkoutModalData) => {
+    console.log("Opening workout modal with data:", data);
+    setWorkoutModalData(data);
+  }, []);
 
-        // 읽지 않은 알림이었는지 확인
-        const deletedNotification = notifications.find(
-          (n) => n.notificationSeq === notificationSeq
-        );
-
-        // 읽지 않은 알림이었다면 알림 카운트 다시 가져오기
-        if (deletedNotification?.isRead === 0) {
-          fetchNotificationCount();
-        }
-
-        // 데이터 새로고침
-        refreshData();
-      } catch (error) {
-        console.error("알림 삭제 중 오류 발생:", error);
-      }
-    },
-    [notifications, fetchNotificationCount, refreshData]
-  );
+  /**
+   * 오운완 모달 닫기
+   */
+  const closeWorkoutModal = useCallback(() => {
+    setWorkoutModalData(null);
+  }, []);
 
   /**
    * 알림 렌더링 헬퍼 함수
    */
   const renderNotificationsList = () => {
-    if (initializing) {
+    if (initializing || (loading && notifications.length === 0)) {
       return (
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-          <CircularProgress />
-        </Box>
+        <LoaderContainer>
+          <CircularProgress size={24} />
+          <Typography>알림 목록을 불러오는 중...</Typography>
+        </LoaderContainer>
       );
     }
 
     if (notifications.length === 0) {
       return (
         <EmptyNotifications>
-          <NotificationsIcon sx={{ fontSize: 60 }} />
-          <Typography variant="h6">알림이 없습니다</Typography>
-          <Typography variant="body2" color="text.secondary" align="center">
-            댓글, 좋아요, 팔로우 등의 활동이 있으면 여기에 표시됩니다.
-          </Typography>
+          <NotificationsIcon sx={{ fontSize: 48, color: "#bdbdbd" }} />
+          <Typography>알림이 없습니다.</Typography>
         </EmptyNotifications>
       );
     }
 
     return (
-      <>
-        <List sx={{ p: 0 }}>
-          {notifications.map((notification, index) => (
-            <React.Fragment key={notification.notificationSeq}>
-              <NotificationItem
-                notification={notification}
-                onDelete={handleDeleteNotification}
-                onRead={handleReadNotification}
-              />
-              {index < notifications.length - 1 && (
-                <Divider variant="inset" component="li" />
-              )}
-            </React.Fragment>
-          ))}
-        </List>
-      </>
+      <List disablePadding>
+        {removeDuplicateNotifications(notifications).map((notification) => (
+          <React.Fragment key={notification.notificationSeq}>
+            <NotificationItem
+              notification={notification}
+              onRead={handleMarkAsRead}
+              onDelete={handleDeleteNotification}
+              openWorkoutModal={openWorkoutModal}
+            />
+            <Divider component="li" sx={{ mx: 2 }} />
+          </React.Fragment>
+        ))}
+      </List>
     );
   };
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <PageHeader>
-        <Typography
-          variant="h5"
-          component="h1"
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-        >
-          <NotificationsIcon fontSize="large" />
+        <Typography variant="h5" component="h1" gutterBottom>
           알림
           {unreadCount > 0 && (
             <Typography
               component="span"
-              sx={{
-                backgroundColor: "error.main",
-                color: "white",
-                borderRadius: "50%",
-                width: 24,
-                height: 24,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-              }}
+              sx={{ ml: 1, color: "primary.main", fontWeight: "bold" }}
             >
-              {unreadCount}
+              ({unreadCount})
             </Typography>
           )}
         </Typography>
-
         <ActionButtons>
-          {unreadCount > 0 && (
-            <Button
-              variant="outlined"
-              startIcon={<DoneAllIcon />}
-              onClick={handleReadAllNotifications}
-              size="small"
-            >
-              모두 읽음 처리
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={handleDeleteAllNotifications}
-              size="small"
-            >
-              모두 삭제
-            </Button>
-          )}
+          <Button
+            startIcon={<DoneAllIcon />}
+            onClick={handleMarkAllAsRead}
+            disabled={unreadCount === 0 || loading}
+            size="small"
+          >
+            모두 읽음
+          </Button>
+          <Button
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteAllNotifications}
+            disabled={notifications.length === 0 || loading}
+            size="small"
+            color="error"
+          >
+            모두 삭제
+          </Button>
         </ActionButtons>
       </PageHeader>
 
-      <Paper elevation={2}>
+      <Paper elevation={0} variant="outlined" sx={{ mb: 2 }}>
         {renderNotificationsList()}
-
-        {/* 무한 스크롤 관찰 대상 - 항상 렌더링 */}
-        <div ref={observerTarget} style={{ minHeight: "10px" }}>
-          {hasMore && (
-            <LoaderContainer>
-              {loading && <CircularProgress size={24} />}
-              {loading && <span>더 불러오는 중...</span>}
-            </LoaderContainer>
-          )}
-        </div>
       </Paper>
+
+      {/* 로딩 인디케이터 및 옵저버 타겟 */}
+      {(loading || hasMore) && (
+        <LoaderContainer ref={observerTarget}>
+          {loading && (
+            <>
+              <CircularProgress size={16} />
+              <span>로딩 중...</span>
+            </>
+          )}
+          {!loading && hasMore && <span>더 많은 알림을 불러옵니다...</span>}
+        </LoaderContainer>
+      )}
+
+      {/* 워크아웃 상세 모달 */}
+      {workoutModalData && (
+        <WorkoutDetailModal
+          workoutOfTheDaySeq={workoutModalData.workoutId}
+          commentId={workoutModalData.commentId}
+          isReplyNotification={workoutModalData.isReplyNotification}
+          parentCommentId={workoutModalData.parentCommentId}
+          replyCommentId={workoutModalData.replyCommentId}
+          onClose={closeWorkoutModal}
+        />
+      )}
     </Container>
   );
 };
