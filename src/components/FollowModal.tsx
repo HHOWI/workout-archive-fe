@@ -27,6 +27,7 @@ import {
   followPlaceAPI,
   unfollowPlaceAPI,
   checkUserFollowStatusAPI,
+  checkPlaceFollowStatusAPI,
 } from "../api/follow";
 
 // 애니메이션 정의
@@ -394,14 +395,40 @@ const FollowModal: React.FC<FollowModalProps> = ({
       const data = await getFollowingPlacesAPI(userSeq);
       setFollowingPlaces(data);
 
-      if (currentUserSeq) {
-        // 여기서 장소 팔로우 상태를 가져오는 로직이 필요하다면 추가할 수 있습니다
-        // 현재는 모든 장소를 이미 팔로우한 상태로 가정합니다
-        const statuses: Record<number, boolean> = {};
-        data.forEach((place) => {
-          statuses[place.workoutPlaceSeq] = true;
-        });
-        setPlaceFollowStatuses(statuses);
+      if (currentUserSeq && data.length > 0) {
+        // 장소 팔로우 상태 병렬 확인 (Promise.all 사용)
+        const placeSeqs = data.map((place) => place.workoutPlaceSeq);
+        try {
+          const statuses = await Promise.all(
+            placeSeqs.map(async (seq) => {
+              try {
+                const isFollowing = await checkPlaceFollowStatusAPI(seq);
+                return { seq, isFollowing };
+              } catch (singleError) {
+                console.error(
+                  `장소 ${seq} 팔로우 상태 확인 중 오류:`,
+                  singleError
+                );
+                return { seq, isFollowing: false }; // 오류 시 false로 간주
+              }
+            })
+          );
+
+          // 결과를 Record 형태로 변환하여 상태 업데이트
+          const statusMap = statuses.reduce((acc, { seq, isFollowing }) => {
+            acc[seq] = isFollowing;
+            return acc;
+          }, {} as Record<number, boolean>);
+          setPlaceFollowStatuses(statusMap);
+        } catch (error) {
+          console.error("장소 팔로우 상태 병렬 확인 중 오류:", error);
+          // 오류 발생 시 모든 상태를 false로 초기화
+          const initialStatuses: Record<number, boolean> = {};
+          placeSeqs.forEach((seq) => {
+            initialStatuses[seq] = false;
+          });
+          setPlaceFollowStatuses(initialStatuses);
+        }
       }
     } catch (error) {
       console.error("팔로잉 장소 목록 조회 중 오류 발생:", error);

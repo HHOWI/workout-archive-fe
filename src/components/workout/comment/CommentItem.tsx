@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef, useEffect } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -8,28 +8,24 @@ import {
   alpha,
 } from "@mui/material";
 import { ThumbUp, ThumbUpOutlined, MoreVert, Reply } from "@mui/icons-material";
-import { format, formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
   Comment,
-  updateCommentAPI,
-  deleteCommentAPI,
-  toggleCommentLikeAPI,
   getRepliesAPI,
   createCommentAPI,
   RepliesResponse,
-  CommentLikeResponse,
 } from "../../../api/comment";
 import { getImageUrl } from "../../../utils/imageUtils";
+import { formatDisplayDate } from "../../../utils/dateUtils";
+import { useCommentActions } from "../../../hooks/useCommentActions";
+import { useCommentLike } from "../../../hooks/useCommentLike";
 import CommentForm from "./CommentForm";
 import ReplySection from "./ReplySection";
 import {
   CommentItemContainer,
   CommentContent,
   CommentText,
-  CommentActions,
   CommentMeta,
   AuthorAvatar,
   CommentAuthor,
@@ -65,6 +61,12 @@ interface CommentItemProps {
   onLoadMoreReplies?: (commentId: number) => void; // 대댓글 더 불러오기 함수
   targetReplyId?: number; // 알림 대상 대댓글 ID
   targetReplyRef?: React.RefObject<HTMLDivElement>; // 타겟 대댓글 ref
+
+  // ===== 낙관적 업데이트 콜백 타입 추가 =====
+  onAddReplyOptimistic: (parentId: number, tempReply: Comment) => void;
+  onReplaceTempReply: (parentId: number, realReply: Comment) => void;
+  onRemoveTempReply: (parentId: number) => void;
+  // ===================================
 }
 
 const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
@@ -80,16 +82,15 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       onLoadMoreReplies,
       targetReplyId,
       targetReplyRef,
+      onAddReplyOptimistic,
+      onReplaceTempReply,
+      onRemoveTempReply,
     },
     ref
   ) => {
     const navigate = useNavigate();
-    const [editingCommentId, setEditingCommentId] = useState<number | null>(
-      null
-    );
     const [activeReplyForm, setActiveReplyForm] = useState<number | null>(null);
     const [replyText, setReplyText] = useState("");
-    const [editText, setEditText] = useState("");
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [localReplyState, setLocalReplyState] = useState<ReplyState>({
       isExpanded: false,
@@ -98,212 +99,114 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       nextCursor: null,
       hasMore: true,
     });
-    // 로컬 댓글 상태 추가
-    const [localComment, setLocalComment] = useState<Comment>(comment);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedContent, setEditedContent] = useState(comment.commentContent);
     const [isHighlighted, setIsHighlighted] = useState(false);
 
     // 실제 사용할 replyState (props에서 받은 것 또는 로컬 상태)
     const effectiveReplyState = replyState || localReplyState;
 
-    // props의 comment가 업데이트될 때 로컬 상태 동기화
-    useEffect(() => {
-      setLocalComment(comment);
-    }, [comment]);
-
     // 초기 렌더링 시 하이라이트 효과 적용
     useEffect(() => {
       // 알림으로 직접 타겟팅된 댓글이거나, 기존 방식대로 targetCommentId가 일치하는 경우
-      if (isTarget || targetCommentId === localComment.workoutCommentSeq) {
+      if (isTarget || targetCommentId === comment.workoutCommentSeq) {
         setIsHighlighted(true);
-        // 5초 후 하이라이트 효과 점진적으로 제거하는 로직 제거
-        // const timer = setTimeout(() => {
-        //   setIsHighlighted(false);
-        // }, 5000);
-        // return () => clearTimeout(timer);
       }
-    }, [targetCommentId, localComment.workoutCommentSeq, isTarget]);
+    }, [targetCommentId, comment.workoutCommentSeq, isTarget]);
 
     const theme = useTheme();
     const userInfo = useSelector((state: any) => state.auth.userInfo);
 
-    // 날짜 포맷팅
-    const formatDate = (dateString: string) => {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffInHours = Math.abs(now.getTime() - date.getTime()) / 36e5;
+    // 커스텀 훅 사용
+    const { likedComment, handleToggleLike, isLiking } = useCommentLike({
+      comment,
+      isReply: false,
+    });
 
-      if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true, locale: ko });
-      }
-      return format(date, "yyyy.MM.dd HH:mm", { locale: ko });
-    };
+    const {
+      isEditing,
+      editText,
+      setEditText,
+      isDeleting,
+      isUpdating,
+      startEditing,
+      cancelEditing,
+      handleUpdateComment: updateCommentHandler,
+      handleDeleteComment: deleteCommentHandler,
+    } = useCommentActions({
+      commentId: comment.workoutCommentSeq,
+      onUpdateSuccess: onUpdateComments,
+      onDeleteSuccess: onUpdateComments,
+    });
 
     // 메뉴 토글
     const toggleMenu = (commentId: number) => {
       setOpenMenuId(openMenuId === commentId ? null : commentId);
     };
 
-    // 댓글 수정
-    const handleUpdateComment = async (commentId: number) => {
-      if (!editText.trim()) return;
-
-      try {
-        await updateCommentAPI(commentId, editText);
-        onUpdateComments();
-        setEditingCommentId(null);
-        setEditText("");
-      } catch (error) {
-        console.error("댓글 수정 중 오류가 발생했습니다:", error);
-      }
-    };
-
-    // 댓글 삭제
-    const handleDeleteComment = async (commentId: number) => {
-      if (!window.confirm("정말 이 댓글을 삭제하시겠습니까?")) return;
-
-      try {
-        await deleteCommentAPI(commentId);
-        onUpdateComments();
-      } catch (error) {
-        console.error("댓글 삭제 중 오류가 발생했습니다:", error);
-      }
-    };
-
-    // 좋아요 토글 - 로컬 상태만 업데이트하도록 수정
-    const handleToggleLike = async (commentId: number) => {
-      if (!userInfo) return;
-
-      try {
-        // 낙관적 UI 업데이트 (즉시 UI 반영)
-        const currentIsLiked = localComment.isLiked || false;
-        const currentLikes = localComment.commentLikes || 0;
-
-        // 낙관적으로 UI 먼저 업데이트
-        setLocalComment({
-          ...localComment,
-          isLiked: !currentIsLiked,
-          commentLikes: currentIsLiked ? currentLikes - 1 : currentLikes + 1,
-        });
-
-        // API 호출
-        const response: CommentLikeResponse = await toggleCommentLikeAPI(
-          commentId
-        );
-
-        // API 응답으로 정확한 상태 반영
-        setLocalComment({
-          ...localComment,
-          isLiked: response.isLiked,
-          commentLikes: response.likeCount,
-        });
-      } catch (error) {
-        console.error("좋아요 처리 중 오류가 발생했습니다:", error);
-        // 오류 발생 시 원래 상태로 되돌림
-        setLocalComment(comment);
-      }
-    };
-
     // 대댓글 작성
     const handleSubmitReply = async (text: string) => {
       if (!text.trim() || !userInfo) return;
 
+      const parentId = comment.workoutCommentSeq; // 부모 ID 저장
+      // 임시 ID를 사용하도록 수정
+      const TEMP_COMMENT_ID = -1;
+
+      // 낙관적 업데이트를 위한 임시 대댓글
+      const tempReply: Comment = {
+        workoutCommentSeq: TEMP_COMMENT_ID, // 수정: 임시 ID 사용
+        commentContent: text,
+        commentLikes: 0,
+        commentCreatedAt: new Date().toISOString(),
+        isLiked: false,
+        user: {
+          userSeq: userInfo.userSeq,
+          userNickname: userInfo.userNickname,
+          profileImageUrl: userInfo.profileImageUrl || null,
+        },
+        // childCommentsCount는 대댓글이므로 0 또는 undefined
+      };
+
+      // === 수정: 부모 컴포넌트에 임시 댓글 추가 요청 ===
+      onAddReplyOptimistic(parentId, tempReply);
+      // =============================================
+
+      setActiveReplyForm(null);
+      setReplyText("");
+
+      // === 수정: try 블록 복원 ===
       try {
-        // 낙관적 UI 업데이트를 위한 임시 대댓글
-        const tempReply: Comment = {
-          workoutCommentSeq: -1, // 임시 ID
-          commentContent: text,
-          commentLikes: 0,
-          commentCreatedAt: new Date().toISOString(),
-          isLiked: false,
-          user: {
-            userSeq: userInfo.userSeq,
-            userNickname: userInfo.userNickname,
-            profileImageUrl: userInfo.profileImageUrl || null,
-          },
-        };
-
-        // 낙관적으로 UI 업데이트 (childCommentsCount 증가 및 UI에 임시 대댓글 추가)
-        setLocalComment((prev) => ({
-          ...prev,
-          childCommentsCount: (prev.childCommentsCount || 0) + 1,
-        }));
-
-        // 대댓글 목록이 이미 로드되어 있으면 UI에 임시 대댓글 추가
-        if (
-          effectiveReplyState.isExpanded &&
-          effectiveReplyState.replies.length > 0
-        ) {
-          setLocalReplyState((prev) => ({
-            ...prev,
-            replies: [tempReply, ...prev.replies],
-          }));
-        }
-
-        // 대댓글 입력 폼 닫기
-        setActiveReplyForm(null);
-        setReplyText("");
-
         // API 호출로 실제 저장
         const response = await createCommentAPI(
           workoutId,
           text,
-          localComment.workoutCommentSeq
+          comment.workoutCommentSeq
         );
 
-        // 대댓글 목록이 이미 로드되어 있으면 임시 대댓글을 실제 대댓글로 대체
-        if (
-          effectiveReplyState.isExpanded &&
-          effectiveReplyState.replies.length > 0
-        ) {
-          setLocalReplyState((prev) => ({
-            ...prev,
-            replies: prev.replies.map((reply) =>
-              reply.workoutCommentSeq === -1 ? response.comment : reply
-            ),
-          }));
-        } else {
-          // 대댓글 목록을 아직 로드하지 않았다면, 대댓글 목록 로드
-          fetchReplies();
-        }
+        // === 수정: 부모 컴포넌트에 실제 댓글로 교체 요청 ===
+        onReplaceTempReply(parentId, response.comment);
+        // ==============================================
       } catch (error) {
         console.error("대댓글 작성 중 오류가 발생했습니다:", error);
-        // 에러 발생 시 롤백
-        setLocalComment(comment);
 
-        // 대댓글 목록이 이미 로드되어 있으면 임시 대댓글 제거
-        if (
-          effectiveReplyState.isExpanded &&
-          effectiveReplyState.replies.length > 0
-        ) {
-          setLocalReplyState((prev) => ({
-            ...prev,
-            replies: prev.replies.filter(
-              (reply) => reply.workoutCommentSeq !== -1
-            ),
-          }));
-        }
+        // === 수정: 부모 컴포넌트에 임시 댓글 제거 요청 ===
+        onRemoveTempReply(parentId);
+        // ============================================
+
+        alert("대댓글 작성에 실패했습니다.");
       }
+      // === 수정: try 블록 복원 끝 ===
     };
 
     // 대댓글 불러오기
     const fetchReplies = async (cursor?: number) => {
-      // 이미 로딩 중인 경우 중복 요청 방지
       if (effectiveReplyState.isLoading) return;
 
-      try {
-        // 상태 업데이트: 로딩 중 표시
-        setLocalReplyState({
-          ...effectiveReplyState,
-          isLoading: true,
-        });
+      setLocalReplyState({ ...effectiveReplyState, isLoading: true });
 
+      try {
         const response: RepliesResponse = await getRepliesAPI(
-          localComment.workoutCommentSeq,
+          comment.workoutCommentSeq,
           cursor
         );
-
         const existingReplies = effectiveReplyState.replies || [];
         setLocalReplyState({
           isExpanded: true,
@@ -316,10 +219,8 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
         });
       } catch (error) {
         console.error("대댓글을 불러오는 중 오류가 발생했습니다:", error);
-        setLocalReplyState({
-          ...effectiveReplyState,
-          isLoading: false,
-        });
+        setLocalReplyState({ ...effectiveReplyState, isLoading: false });
+        alert("대댓글 로딩에 실패했습니다.");
       }
     };
 
@@ -354,7 +255,7 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
       <CommentItemContainer
         isReply={false}
         elevation={0}
-        id={`comment-${localComment.workoutCommentSeq}`}
+        id={`comment-${comment.workoutCommentSeq}`}
         ref={ref}
         sx={
           isHighlighted
@@ -395,51 +296,47 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                 },
               }}
             >
-              알림에서 이동한 댓글
+              알림
             </Typography>
           )}
           <Box display="flex" justifyContent="space-between">
             <CommentMeta>
               <AuthorAvatar
-                src={getImageUrl(localComment.user.profileImageUrl)}
-                alt={localComment.user.userNickname}
+                src={getImageUrl(likedComment.user.profileImageUrl)}
+                alt={likedComment.user.userNickname}
                 onClick={() =>
-                  handleUserProfileClick(localComment.user.userNickname)
+                  handleUserProfileClick(likedComment.user.userNickname)
                 }
                 sx={{ cursor: "pointer" }}
-              >
-                {!localComment.user.profileImageUrl &&
-                  localComment.user.userNickname?.substring(0, 1)}
-              </AuthorAvatar>
+              />
               <UserInfoContainer>
                 <CommentAuthor
                   variant="subtitle2"
                   onClick={() =>
-                    handleUserProfileClick(localComment.user.userNickname)
+                    handleUserProfileClick(likedComment.user.userNickname)
                   }
                   sx={{
                     cursor: "pointer",
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >
-                  {localComment.user.userNickname}
+                  {likedComment.user.userNickname}
                 </CommentAuthor>
                 <CommentTime variant="caption">
-                  {formatDate(localComment.commentCreatedAt)}
+                  {formatDisplayDate(likedComment.commentCreatedAt)}
                 </CommentTime>
               </UserInfoContainer>
             </CommentMeta>
 
             <Box display="flex" alignItems="center">
-              {!editingCommentId && (
+              {!isEditing && (
                 <CommentHeaderActions>
                   <LikeButton
-                    liked={!!localComment.isLiked}
-                    onClick={() =>
-                      handleToggleLike(localComment.workoutCommentSeq)
-                    }
+                    liked={!!likedComment.isLiked}
+                    onClick={handleToggleLike}
+                    disabled={isLiking || !userInfo}
                     startIcon={
-                      localComment.isLiked ? (
+                      likedComment.isLiked ? (
                         <ThumbUp fontSize="small" />
                       ) : (
                         <ThumbUpOutlined fontSize="small" />
@@ -448,13 +345,13 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                     size="small"
                     sx={{ minWidth: 0, padding: "4px 6px" }}
                   >
-                    {localComment.commentLikes > 0 && localComment.commentLikes}
+                    {likedComment.commentLikes > 0 && likedComment.commentLikes}
                   </LikeButton>
 
                   {userInfo && (
                     <ActionButton
                       onClick={() =>
-                        setActiveReplyForm(localComment.workoutCommentSeq)
+                        setActiveReplyForm(comment.workoutCommentSeq)
                       }
                       startIcon={<ReplyIcon />}
                       size="small"
@@ -466,35 +363,41 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                 </CommentHeaderActions>
               )}
 
-              {userInfo && userInfo.userSeq === localComment.user.userSeq && (
+              {userInfo && userInfo.userSeq === comment.user.userSeq && (
                 <CommentMenu>
                   <IconButton
                     size="small"
-                    onClick={() => toggleMenu(localComment.workoutCommentSeq)}
+                    onClick={() => toggleMenu(comment.workoutCommentSeq)}
                     sx={{ color: "#aaa", padding: "4px" }}
+                    disabled={isEditing || isDeleting || isUpdating}
                   >
                     <MoreVert fontSize="small" />
                   </IconButton>
 
                   <MenuOptions
-                    isOpen={openMenuId === localComment.workoutCommentSeq}
+                    isOpen={openMenuId === comment.workoutCommentSeq}
                     elevation={1}
                   >
                     <MenuItem
                       onClick={() => {
-                        setEditingCommentId(localComment.workoutCommentSeq);
-                        setEditText(localComment.commentContent);
+                        startEditing(likedComment.commentContent);
                         setOpenMenuId(null);
                       }}
+                      disabled={isEditing}
                     >
                       수정하기
                     </MenuItem>
                     <MenuItem
                       onClick={() => {
-                        handleDeleteComment(localComment.workoutCommentSeq);
+                        if (
+                          window.confirm("정말 이 댓글을 삭제하시겠습니까?")
+                        ) {
+                          deleteCommentHandler();
+                        }
                         setOpenMenuId(null);
                       }}
                       sx={{ color: theme.palette.error.main }}
+                      disabled={isDeleting || isEditing}
                     >
                       삭제하기
                     </MenuItem>
@@ -504,7 +407,7 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
             </Box>
           </Box>
 
-          {editingCommentId === localComment.workoutCommentSeq ? (
+          {isEditing ? (
             <Box mt={1.5}>
               <CommentInput
                 fullWidth
@@ -515,14 +418,14 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                 onChange={(e) => setEditText(e.target.value)}
                 autoFocus
                 minRows={2}
+                disabled={isUpdating}
               />
               <Box display="flex" gap={1} mt={1}>
                 <Button
                   size="small"
                   variant="contained"
-                  onClick={() =>
-                    handleUpdateComment(localComment.workoutCommentSeq)
-                  }
+                  onClick={updateCommentHandler}
+                  disabled={isUpdating || !editText.trim()}
                   sx={{
                     borderRadius: "4px",
                     textTransform: "none",
@@ -530,12 +433,13 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
                     fontSize: "12px",
                   }}
                 >
-                  수정완료
+                  {isUpdating ? "수정 중..." : "수정완료"}
                 </Button>
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => setEditingCommentId(null)}
+                  onClick={cancelEditing}
+                  disabled={isUpdating}
                   sx={{
                     borderRadius: "4px",
                     textTransform: "none",
@@ -547,10 +451,10 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
               </Box>
             </Box>
           ) : (
-            <CommentText>{localComment.commentContent}</CommentText>
+            <CommentText>{likedComment.commentContent}</CommentText>
           )}
 
-          {activeReplyForm === localComment.workoutCommentSeq && (
+          {activeReplyForm === comment.workoutCommentSeq && (
             <ReplyForm>
               <CommentForm
                 onSubmit={handleSubmitReply}
@@ -563,11 +467,11 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
           )}
 
           {/* 대댓글 섹션 */}
-          {localComment.childCommentsCount !== undefined &&
-            localComment.childCommentsCount > 0 && (
+          {likedComment.childCommentsCount !== undefined &&
+            likedComment.childCommentsCount > 0 && (
               <ReplySection
-                commentId={localComment.workoutCommentSeq}
-                childCommentsCount={localComment.childCommentsCount}
+                commentId={comment.workoutCommentSeq}
+                childCommentsCount={likedComment.childCommentsCount}
                 replyState={effectiveReplyState}
                 workoutId={workoutId}
                 onToggleReplies={handleToggleReplies}

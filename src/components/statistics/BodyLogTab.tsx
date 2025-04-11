@@ -39,6 +39,10 @@ ChartJS.register(
   zoomPlugin
 );
 
+// ===== 타입 정의 =====
+type PeriodOption = "3months" | "6months" | "1year" | "2years" | "all";
+type IntervalOption = "1week" | "2weeks" | "4weeks" | "3months" | "all";
+
 // ===== 스타일 컴포넌트 =====
 const Container = styled(Box)`
   margin-top: 20px;
@@ -82,8 +86,7 @@ const ErrorMessage = styled(Typography)`
 `;
 
 // ===== 유틸리티 및 상수 =====
-const PERIOD_OPTIONS = [
-  { value: "1months", label: "최근 1개월" },
+const PERIOD_OPTIONS: { value: PeriodOption; label: string }[] = [
   { value: "3months", label: "최근 3개월" },
   { value: "6months", label: "최근 6개월" },
   { value: "1year", label: "최근 1년" },
@@ -91,7 +94,7 @@ const PERIOD_OPTIONS = [
   { value: "all", label: "전체 기간" },
 ];
 
-const INTERVAL_OPTIONS = [
+const INTERVAL_OPTIONS: { value: IntervalOption; label: string }[] = [
   { value: "1week", label: "1주" },
   { value: "2weeks", label: "2주" },
   { value: "4weeks", label: "4주" },
@@ -192,50 +195,48 @@ const LoadingIndicator = () => (
 
 // 필터 컴포넌트
 interface FiltersProps {
-  period: string;
-  setPeriod: (period: string) => void;
-  interval: string;
-  setInterval: (interval: string) => void;
+  period: PeriodOption;
+  setPeriod: (period: PeriodOption) => void;
+  interval: IntervalOption;
+  setInterval: (interval: IntervalOption) => void;
 }
 
-const Filters: React.FC<FiltersProps> = ({
-  period,
-  setPeriod,
-  interval,
-  setInterval,
-}) => (
-  <FiltersContainer>
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>기간</InputLabel>
-      <Select
-        value={period}
-        onChange={(e) => setPeriod(e.target.value as string)}
-        label="기간"
-      >
-        {PERIOD_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+const Filters: React.FC<FiltersProps> = React.memo(
+  ({ period, setPeriod, interval, setInterval }) => (
+    <FiltersContainer>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>기간</InputLabel>
+        <Select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as PeriodOption)}
+          label="기간"
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>주기</InputLabel>
-      <Select
-        value={interval}
-        onChange={(e) => setInterval(e.target.value as string)}
-        label="주기"
-      >
-        {INTERVAL_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  </FiltersContainer>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>주기</InputLabel>
+        <Select
+          value={interval}
+          onChange={(e) => setInterval(e.target.value as IntervalOption)}
+          label="주기"
+        >
+          {INTERVAL_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </FiltersContainer>
+  )
 );
+Filters.displayName = "BodyLogFilters"; // Add display name for memoized component
 
 // 차트 컴포넌트
 interface ChartProps {
@@ -297,10 +298,14 @@ const BodyLogChart: React.FC<ChartProps> = ({
   );
 };
 
+// Add React.memo and displayName
+const MemoizedBodyLogChart = React.memo(BodyLogChart);
+MemoizedBodyLogChart.displayName = "BodyLogChart";
+
 // ===== 커스텀 훅 =====
 interface UseBodyLogDataProps {
-  period: string;
-  interval: string;
+  period: PeriodOption;
+  interval: IntervalOption;
 }
 
 const useBodyLogData = ({ period, interval }: UseBodyLogDataProps) => {
@@ -313,21 +318,23 @@ const useBodyLogData = ({ period, interval }: UseBodyLogDataProps) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getBodyLogStatsAPI({
-          period: period as any,
-          interval: interval as any,
-        });
+        // API 호출 시 명확한 타입 사용
+        const data = await getBodyLogStatsAPI({ period, interval });
         setStats(data);
       } catch (err: any) {
         console.error("바디로그 통계 데이터 로드 실패:", err);
-        setError("데이터를 불러오는 데 실패했습니다. 다시 시도해주세요.");
+        // 사용자에게 보여줄 에러 메시지 개선
+        setError(
+          err.response?.data?.message ||
+            "데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [period, interval]);
+  }, [period, interval]); // 의존성 배열 확인
 
   return { loading, error, stats };
 };
@@ -350,32 +357,39 @@ const CHART_COLORS = {
 
 // ===== 메인 컴포넌트 =====
 const BodyLogTab: React.FC = () => {
-  // 상태 관리
-  const [period, setPeriod] = useState("3months");
-  const [interval, setInterval] = useState("all");
+  // 상태 관리 (기본값은 "3months" 유지)
+  const [period, setPeriod] = useState<PeriodOption>("3months");
+  const [interval, setInterval] = useState<IntervalOption>("all");
 
   // 데이터 로드
   const { loading, error, stats } = useBodyLogData({ period, interval });
 
-  // 렌더링
-  return (
-    <Container>
-      <Filters
-        period={period}
-        setPeriod={setPeriod}
-        interval={interval}
-        setInterval={setInterval}
-      />
-
-      {loading ? (
-        <LoadingIndicator />
-      ) : error ? (
-        <ErrorMessage variant="body1">{error}</ErrorMessage>
-      ) : stats ? (
-        <Grid container spacing={2}>
-          {/* 몸무게 차트 */}
+  // 공통 메시지 컴포넌트 활용 고려 (옵션)
+  const renderContent = () => {
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+    if (error) {
+      return <ErrorMessage variant="body1">{error}</ErrorMessage>;
+    }
+    if (
+      !stats ||
+      (!stats.bodyWeight?.length &&
+        !stats.muscleMass?.length &&
+        !stats.bodyFat?.length)
+    ) {
+      return (
+        <ErrorMessage variant="body1">
+          데이터가 없습니다. 바디로그를 먼저 기록해주세요.
+        </ErrorMessage>
+      );
+    }
+    return (
+      <Grid container spacing={2}>
+        {/* 몸무게 차트 (Full Width) */}
+        {stats.bodyWeight?.length > 0 && (
           <Grid item xs={12}>
-            <BodyLogChart
+            <MemoizedBodyLogChart
               title="몸무게 변화"
               label="체중 (kg)"
               data={stats.bodyWeight}
@@ -385,10 +399,11 @@ const BodyLogTab: React.FC = () => {
               color={CHART_COLORS.bodyWeight}
             />
           </Grid>
-
-          {/* 골격근량 차트 */}
-          <Grid item xs={12} md={6}>
-            <BodyLogChart
+        )}
+        {/* 골격근량 차트 (Full Width로 변경) */}
+        {stats.muscleMass?.length > 0 && (
+          <Grid item xs={12}>
+            <MemoizedBodyLogChart
               title="골격근량 변화"
               label="골격근량 (kg)"
               data={stats.muscleMass}
@@ -399,10 +414,11 @@ const BodyLogTab: React.FC = () => {
               color={CHART_COLORS.muscleMass}
             />
           </Grid>
-
-          {/* 체지방량 차트 */}
-          <Grid item xs={12} md={6}>
-            <BodyLogChart
+        )}
+        {/* 체지방량 차트 (Full Width로 변경) */}
+        {stats.bodyFat?.length > 0 && (
+          <Grid item xs={12}>
+            <MemoizedBodyLogChart
               title="체지방률 변화"
               label="체지방률 (%)"
               data={stats.bodyFat}
@@ -413,12 +429,21 @@ const BodyLogTab: React.FC = () => {
               color={CHART_COLORS.bodyFat}
             />
           </Grid>
-        </Grid>
-      ) : (
-        <ErrorMessage variant="body1">
-          데이터가 없습니다. 바디로그를 먼저 기록해주세요.
-        </ErrorMessage>
-      )}
+        )}
+      </Grid>
+    );
+  };
+
+  // 렌더링
+  return (
+    <Container>
+      <Filters
+        period={period}
+        setPeriod={setPeriod}
+        interval={interval}
+        setInterval={setInterval}
+      />
+      {renderContent()}
     </Container>
   );
 };

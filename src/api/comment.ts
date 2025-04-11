@@ -1,4 +1,5 @@
 import { publicAPI, authAPI } from "./axiosConfig";
+import { isLoggedIn } from "../utils/authUtils";
 
 // 댓글 목록 조회 API
 export const getCommentsAPI = async (
@@ -6,7 +7,9 @@ export const getCommentsAPI = async (
   page: number = 1,
   limit: number = 10
 ): Promise<CommentListResponse> => {
-  const response = await authAPI.get(`/workouts/${workoutId}/comments`, {
+  // 로그인 상태에 따라 적절한 API 사용
+  const api = isLoggedIn() ? authAPI : publicAPI;
+  const response = await api.get(`/workouts/${workoutId}/comments`, {
     params: { page, limit },
   });
   return response.data;
@@ -18,12 +21,11 @@ export const getRepliesAPI = async (
   cursor?: number,
   limit: number = 10
 ): Promise<any> => {
-  const response = await authAPI.get(
-    `/workouts/comments/${commentId}/replies`,
-    {
-      params: { cursor, limit },
-    }
-  );
+  // 로그인 상태에 따라 적절한 API 사용
+  const api = isLoggedIn() ? authAPI : publicAPI;
+  const response = await api.get(`/workouts/comments/${commentId}/replies`, {
+    params: { cursor, limit },
+  });
   return response.data;
 };
 
@@ -60,6 +62,17 @@ export const deleteCommentAPI = async (commentId: number): Promise<any> => {
 // 댓글 좋아요 토글 API (인증 필요)
 export const toggleCommentLikeAPI = async (commentId: number): Promise<any> => {
   const response = await authAPI.post(`/workouts/comments/${commentId}/like`);
+  return response.data;
+};
+
+// 대댓글 좋아요 토글 API (인증 필요)
+export const toggleReplyLikeAPI = async (
+  replyId: number,
+  parentCommentId: number
+): Promise<any> => {
+  const response = await authAPI.post(`/workouts/comments/${replyId}/like`, {
+    parentCommentSeq: parentCommentId,
+  });
   return response.data;
 };
 
@@ -119,7 +132,9 @@ export interface RepliesResponse {
 export const getCommentByIdAPI = async (
   commentId: number
 ): Promise<Comment> => {
-  const response = await authAPI.get(`/workouts/comments/${commentId}`);
+  // 로그인 상태에 따라 적절한 API 사용
+  const api = isLoggedIn() ? authAPI : publicAPI;
+  const response = await api.get(`/workouts/comments/${commentId}`);
   return response.data;
 };
 
@@ -128,7 +143,9 @@ export const getParentCommentWithAllRepliesAPI = async (
   parentCommentId: number,
   targetReplyId: number
 ): Promise<Comment> => {
-  const response = await authAPI.get(
+  // 로그인 상태에 따라 적절한 API 사용
+  const api = isLoggedIn() ? authAPI : publicAPI;
+  const response = await api.get(
     `/workouts/parent-comments/${parentCommentId}/all-replies`,
     {
       params: { targetReplySeq: targetReplyId },

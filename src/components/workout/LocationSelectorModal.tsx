@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Modal,
   ModalContent,
@@ -18,11 +18,13 @@ const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
   onPlaceSelect,
   onClose,
 }) => {
-  // 장소 선택 후 모달을 닫는 핸들러
-  const handlePlaceSelect = (place: any) => {
-    onPlaceSelect(place);
-    onClose(); // 장소 선택 후 모달 닫기
-  };
+  const handlePlaceSelect = useCallback(
+    (place: any) => {
+      onPlaceSelect(place);
+      onClose();
+    },
+    [onPlaceSelect, onClose]
+  );
 
   return (
     <Modal>

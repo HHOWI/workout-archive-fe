@@ -6,6 +6,7 @@ import type {
   ExerciseWeightStatsDTO,
 } from "./statistics";
 import { WorkoutOfTheDayDTO, WorkoutPlaceDTO } from "../dtos/WorkoutDTO";
+import { isLoggedIn } from "../utils/authUtils";
 
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
@@ -69,7 +70,9 @@ export const getUserWorkoutTotalCountByNicknameAPI = async (
 export const getWorkoutRecordDetailsAPI = async (
   workoutId: number
 ): Promise<any> => {
-  const response = await authAPI.get(
+  // 로그인 상태에 따라 적절한 API 사용
+  const api = isLoggedIn() ? authAPI : publicAPI;
+  const response = await api.get(
     `/workouts/profiles/workout-records/${workoutId}`
   );
   return response.data;
@@ -192,4 +195,88 @@ export const getWorkoutLikeCountAPI = async (
     `/workouts/workout-records/${workoutId}/like-count`
   );
   return response.data;
+};
+
+/**
+ * 특정 사용자의 월별 운동 기록 및 통계 조회
+ * @param nickname 사용자 닉네임
+ * @param year 조회할 연도
+ * @param month 조회할 월
+ * @returns 해당 월의 운동 기록과 통계 정보
+ */
+export const getUserMonthlyWorkoutDataAPI = async (
+  nickname: string,
+  year: number,
+  month: number
+): Promise<{
+  workoutData: { date: Date; workoutSeq: number }[];
+  stats: {
+    totalWorkouts: number;
+    completionRate: number;
+    currentStreak: number;
+    longestStreak: number;
+    daysInMonth: number;
+  };
+}> => {
+  try {
+    const response = await publicAPI.get(
+      `/workouts/profiles/${nickname}/workout-records/monthly`,
+      { params: { year, month } }
+    );
+
+    // 응답 구조 디버깅
+    console.log("월별 운동 데이터 응답:", response.data);
+
+    // 응답이 배열인 경우(이전 API 버전) 호환성 처리
+    if (Array.isArray(response.data)) {
+      console.log("이전 API 버전 응답 형식 감지됨 (배열)");
+      const workoutData = response.data.map((item: any) => ({
+        date: new Date(item.date),
+        workoutSeq: item.workoutSeq,
+      }));
+
+      // 이전 버전 응답에서는 통계 정보가 없으므로 기본값 제공
+      const daysInMonth = new Date(year, month, 0).getDate();
+      return {
+        workoutData,
+        stats: {
+          totalWorkouts: workoutData.length,
+          completionRate: (workoutData.length / daysInMonth) * 100,
+          currentStreak: 0,
+          longestStreak: 0,
+          daysInMonth,
+        },
+      };
+    }
+
+    // 응답 객체의 구조를 안전하게 처리
+    const workoutData = Array.isArray(response.data.workoutData)
+      ? response.data.workoutData.map((item: any) => ({
+          date: new Date(item.date),
+          workoutSeq: item.workoutSeq,
+        }))
+      : [];
+
+    // 통계 정보가 없거나 구조가 다른 경우 기본값 제공
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const stats = response.data.stats || {
+      totalWorkouts: workoutData.length,
+      completionRate: (workoutData.length / daysInMonth) * 100,
+      currentStreak: 0,
+      longestStreak: 0,
+      daysInMonth,
+    };
+
+    return {
+      workoutData,
+      stats,
+    };
+  } catch (error: any) {
+    console.error("API 오류:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
 };

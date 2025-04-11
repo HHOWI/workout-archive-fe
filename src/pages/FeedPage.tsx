@@ -21,6 +21,7 @@ import {
   FaUser,
   FaCalendarAlt,
   FaInfoCircle,
+  FaCommentDots,
 } from "react-icons/fa";
 
 // 피드 아이템 스타일
@@ -62,10 +63,17 @@ const FeedAvatar = styled.div<{ url?: string | null }>`
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   svg {
     color: white;
     font-size: 18px;
+  }
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 `;
 
@@ -98,7 +106,7 @@ const FeedPlaceName = styled.div`
 `;
 
 const FeedDate = styled.div`
-  color: ${theme.secondary};
+  color: ${theme.textLight};
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -152,7 +160,7 @@ const LikeButton = styled.button`
   border: none;
   font-size: 14px;
   cursor: pointer;
-  color: ${theme.secondary};
+  color: ${theme.textLight};
   padding: 8px 12px;
   border-radius: 20px;
   transition: all 0.2s ease;
@@ -167,6 +175,29 @@ const LikeButton = styled.button`
 
   &.active {
     color: #e74c3c;
+  }
+`;
+
+const CommentButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  color: ${theme.textLight};
+  padding: 8px 12px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  svg {
+    font-size: 16px;
   }
 `;
 
@@ -222,8 +253,9 @@ const FeedPage: React.FC = () => {
   const [selectedWorkoutSeq, setSelectedWorkoutSeq] = useState<number | null>(
     null
   );
+  const [localFeeds, setLocalFeeds] = useState<FeedItemDTO[]>([]);
 
-  // 무한 스크롤 훅을 사용하여 피드 데이터 로드
+  // 무한 스크롤 훅
   const fetchFeedsFunction = useCallback(async (cursor: number | null) => {
     try {
       const response = await getFeedAPI(10, cursor);
@@ -238,7 +270,7 @@ const FeedPage: React.FC = () => {
   }, []);
 
   const {
-    data: feeds,
+    data: feedsFromHook,
     loading,
     hasMore,
     observerTarget,
@@ -246,6 +278,11 @@ const FeedPage: React.FC = () => {
     fetchData: fetchFeedsFunction,
     isItemEqual: (a, b) => a.workoutOfTheDaySeq === b.workoutOfTheDaySeq,
   });
+
+  // 훅 데이터 변경 시 로컬 상태 동기화
+  useEffect(() => {
+    setLocalFeeds(feedsFromHook);
+  }, [feedsFromHook]);
 
   // URL의 workout 쿼리 파라미터 확인
   useEffect(() => {
@@ -287,23 +324,26 @@ const FeedPage: React.FC = () => {
     try {
       const response = await toggleWorkoutLikeAPI(workoutSeq);
 
-      // 데이터 갱신
-      const updatedFeeds = [...feeds];
-      updatedFeeds[index] = {
-        ...updatedFeeds[index],
-        isLiked: response.isLiked,
-        workoutLikeCount: response.likeCount,
-      };
-
-      // InfiniteScroll 훅에 뮤테이트 기능이 없으므로 상태 갱신 방법 변경 필요
-      // 현재 코드에서는 이 기능을 임시로 제거했습니다.
+      // 로컬 상태 업데이트
+      setLocalFeeds((currentFeeds) => {
+        const updatedFeeds = [...currentFeeds];
+        if (updatedFeeds[index]) {
+          updatedFeeds[index] = {
+            ...updatedFeeds[index],
+            isLiked: response.isLiked,
+            workoutLikeCount: response.likeCount,
+          };
+        }
+        return updatedFeeds;
+      });
     } catch (error) {
       console.error("좋아요 업데이트 실패:", error);
+      // 에러 처리 (예: 사용자에게 알림)
     }
   };
 
   // 로딩 중 표시
-  if (feeds.length === 0 && loading) {
+  if (localFeeds.length === 0 && loading) {
     return (
       <Container>
         <LoadingIndicator />
@@ -313,19 +353,15 @@ const FeedPage: React.FC = () => {
 
   return (
     <Container>
-      <PageHeader>
-        <h1>피드</h1>
-      </PageHeader>
-
       <FeedList>
-        {feeds.length === 0 && !loading ? (
+        {localFeeds.length === 0 && !loading ? (
           <NoDataMessage>
             <FaInfoCircle size={20} style={{ marginBottom: "10px" }} />
             <p>팔로우한 사용자나 장소의 피드가 없습니다.</p>
             <p>사용자나 운동 장소를 팔로우하여 피드를 받아보세요!</p>
           </NoDataMessage>
         ) : (
-          feeds.map((feed, index) => (
+          localFeeds.map((feed, index) => (
             <FeedItem key={feed.workoutOfTheDaySeq}>
               <FeedHeader>
                 <FeedAvatar
@@ -386,6 +422,18 @@ const FeedPage: React.FC = () => {
                   {feed.isLiked ? <FaHeart /> : <FaRegHeart />}
                   {feed.workoutLikeCount > 0 && feed.workoutLikeCount}
                 </LikeButton>
+                <CommentButton
+                  onClick={() => handleWorkoutClick(feed.workoutOfTheDaySeq)}
+                >
+                  <FaCommentDots />
+                  {feed.commentCount > 0 && feed.commentCount}
+                </CommentButton>
+                <SourceTag source={feed.source}>
+                  {feed.source === "user" ? <FaUser /> : <FaMapMarkerAlt />}
+                  {feed.source === "user"
+                    ? "팔로우"
+                    : feed.workoutPlace?.placeName ?? "팔로우 장소"}
+                </SourceTag>
               </FeedFooter>
             </FeedItem>
           ))

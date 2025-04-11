@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import NotificationItem, { WorkoutModalData } from "./NotificationItem";
+
 import { useNavigate } from "react-router-dom";
 import {
   getUnreadNotificationsAPI,
@@ -26,6 +26,7 @@ import {
 import { NotificationDTO } from "../../dtos/NotificationDTO";
 import SocketService from "../../services/socketService";
 import WorkoutDetailModal from "../WorkoutDetailModal";
+import NotificationItem, { WorkoutModalData } from "./NotificationItem";
 
 // 상수
 const NOTIFICATION_LIMIT = 10;

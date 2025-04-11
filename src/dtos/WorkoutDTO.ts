@@ -12,6 +12,7 @@ export interface WorkoutOfTheDayDTO {
   workoutPhoto?: string | null;
   workoutDiary?: string | null;
   workoutLikeCount: number;
+  commentCount?: number;
   workoutPlace?: {
     placeName: string;
   };

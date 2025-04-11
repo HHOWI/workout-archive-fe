@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import styled from "@emotion/styled";
 import { Paper, Typography, IconButton, Collapse } from "@mui/material";
 import {
@@ -133,8 +133,8 @@ const formatDistance = (distance: number): string => {
     : `${distance}m`;
 };
 
-// 컴포넌트
-const CardioSetItem: React.FC<{ set: ExerciseSet }> = ({ set }) => {
+// 메모이제이션된 세트 아이템 컴포넌트
+const CardioSetItem = React.memo(({ set }: { set: ExerciseSet }) => {
   const hasDistance = set.distance != null && set.distance > 0;
   const hasTime = set.recordTime != null && set.recordTime > 0;
 
@@ -155,9 +155,9 @@ const CardioSetItem: React.FC<{ set: ExerciseSet }> = ({ set }) => {
       )}
     </SetItem>
   );
-};
+});
 
-const WeightSetItem: React.FC<{ set: ExerciseSet }> = ({ set }) => {
+const WeightSetItem = React.memo(({ set }: { set: ExerciseSet }) => {
   if (!set.weight || !set.reps) return null;
 
   return (
@@ -167,63 +167,68 @@ const WeightSetItem: React.FC<{ set: ExerciseSet }> = ({ set }) => {
       </span>
     </SetItem>
   );
-};
+});
 
-const ExerciseItem: React.FC<ExerciseItemProps> = ({
-  exercise,
-  type,
-  sets,
-}) => {
-  const [expanded, setExpanded] = useState(false);
-  const isCardio = type === "유산소";
+// 운동 아이템 컴포넌트
+const ExerciseItem = React.memo(
+  ({ exercise, type, sets }: ExerciseItemProps) => {
+    const [expanded, setExpanded] = useState(false);
+    const isCardio = type === "유산소";
 
-  return (
-    <ExerciseContainer elevation={0}>
-      <ExerciseHeader onClick={() => setExpanded(!expanded)}>
-        <ExerciseTitle>
-          {isCardio ? (
-            <DirectionsRun fontSize="small" color="primary" />
-          ) : (
-            <FitnessCenterOutlined fontSize="small" color="primary" />
-          )}
-          {exercise}
-          <ExerciseTypeChip>{type}</ExerciseTypeChip>
-        </ExerciseTitle>
-        <IconButton size="small">
-          {expanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-        </IconButton>
-      </ExerciseHeader>
+    const toggleExpanded = useCallback(() => {
+      setExpanded((prev) => !prev);
+    }, []);
 
-      <Collapse in={expanded}>
-        <ExerciseSets>
-          {sets.map((set, index) =>
-            isCardio ? (
-              <CardioSetItem key={index} set={set} />
+    return (
+      <ExerciseContainer elevation={0}>
+        <ExerciseHeader onClick={toggleExpanded}>
+          <ExerciseTitle>
+            {isCardio ? (
+              <DirectionsRun fontSize="small" color="primary" />
             ) : (
-              <WeightSetItem key={index} set={set} />
-            )
-          )}
-        </ExerciseSets>
-      </Collapse>
-    </ExerciseContainer>
-  );
-};
+              <FitnessCenterOutlined fontSize="small" color="primary" />
+            )}
+            {exercise}
+            <ExerciseTypeChip>{type}</ExerciseTypeChip>
+          </ExerciseTitle>
+          <IconButton size="small">
+            {expanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+          </IconButton>
+        </ExerciseHeader>
 
-const ExerciseList: React.FC<ExerciseListProps> = ({ exercises }) => {
-  if (!exercises || exercises.length === 0) return null;
+        <Collapse in={expanded}>
+          <ExerciseSets>
+            {sets.map((set, index) =>
+              isCardio ? (
+                <CardioSetItem key={index} set={set} />
+              ) : (
+                <WeightSetItem key={index} set={set} />
+              )
+            )}
+          </ExerciseSets>
+        </Collapse>
+      </ExerciseContainer>
+    );
+  }
+);
 
-  return (
-    <div>
-      {exercises.map((exercise, index) => (
-        <ExerciseItem
-          key={index}
-          exercise={exercise.exercise}
-          type={exercise.type}
-          sets={exercise.sets}
-        />
-      ))}
-    </div>
-  );
-};
+const ExerciseList: React.FC<ExerciseListProps> = React.memo(
+  ({ exercises }) => {
+    if (!exercises || exercises.length === 0) return null;
+
+    return (
+      <div>
+        {exercises.map((exercise, index) => (
+          <ExerciseItem
+            key={index}
+            exercise={exercise.exercise}
+            type={exercise.type}
+            sets={exercise.sets}
+          />
+        ))}
+      </div>
+    );
+  }
+);
 
 export default ExerciseList;

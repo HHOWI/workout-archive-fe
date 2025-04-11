@@ -20,10 +20,43 @@ interface DateExerciseSectionProps {
   date: Date;
   onDateChange: (date: Date | null) => void;
   selectedLocation: WorkoutPlaceDTO | null;
-  onLocationSelect: (place: any) => void;
   onLocationRemove: () => void;
   onOpenLocationModal: () => void;
 }
+
+const CloseIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
+const LocationIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
 
 const DateExerciseSection: React.FC<DateExerciseSectionProps> = ({
   date,
@@ -62,38 +95,12 @@ const DateExerciseSection: React.FC<DateExerciseSectionProps> = ({
                   </LocationAddress>
                 </LocationInfo>
                 <RemoveButton onClick={onLocationRemove}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  <CloseIcon />
                 </RemoveButton>
               </SelectedLocation>
             ) : (
               <LocationButton onClick={onOpenLocationModal}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
+                <LocationIcon />
                 장소 선택하기
               </LocationButton>
             )}

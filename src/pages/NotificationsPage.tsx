@@ -13,7 +13,7 @@ import {
 import { styled } from "@mui/material/styles";
 import NotificationItem, {
   WorkoutModalData,
-} from "../components/common/NotificationItem";
+} from "../components/notificatrion/NotificationItem";
 import {
   getNotificationsAPI,
   markAllNotificationsAsReadAPI,

@@ -26,7 +26,10 @@ const usePlaceData = (placeSeq: string | undefined) => {
   // 초기 데이터 로드 및 상태 초기화
   const initializeData = useCallback(async () => {
     if (!placeSeq) return;
+
+    console.log("장소 데이터 초기화:", placeSeq);
     setInitialLoading(true);
+
     try {
       const response = await getWorkoutsByPlaceAPI(placeSeq, 12, null);
 
@@ -43,10 +46,10 @@ const usePlaceData = (placeSeq: string | undefined) => {
     }
   }, [placeSeq]);
 
-  // 초기 데이터 로드
+  // placeSeq가 변경될 때마다 데이터 다시 로드
   useEffect(() => {
     initializeData();
-  }, [initializeData]);
+  }, [placeSeq, initializeData]);
 
   return { placeInfo, totalWorkoutCount, initialLoading };
 };

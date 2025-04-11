@@ -10,14 +10,15 @@ import {
 import ExerciseSelector from "../ExerciseSelector";
 import { ExerciseDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
 
+// 타입 분리로 재사용성 향상
+export interface ExerciseWithSets {
+  exercise: ExerciseDTO;
+  sets: RecordDetailDTO[];
+  setCount?: number;
+}
+
 interface ExerciseSelectorModalProps {
-  onSelectExercises: (
-    exercisesWithSets: {
-      exercise: ExerciseDTO;
-      sets: RecordDetailDTO[];
-      setCount?: number;
-    }[]
-  ) => void;
+  onSelectExercises: (exercisesWithSets: ExerciseWithSets[]) => void;
   onClose: () => void;
 }
 

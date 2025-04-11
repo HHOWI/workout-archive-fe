@@ -410,15 +410,6 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
   parentCommentId,
   replyCommentId,
 }) => {
-  // Props 확인 로그 추가
-  console.log("WorkoutDetailModal received props:", {
-    workoutOfTheDaySeq,
-    commentId,
-    isReplyNotification,
-    parentCommentId,
-    replyCommentId,
-  });
-
   // 상태 관리
   const userInfo = useSelector((state: any) => state.auth.userInfo);
   const navigate = useNavigate();
@@ -441,7 +432,6 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
       setLoading(true);
       try {
         const response = await getWorkoutRecordDetailsAPI(workoutOfTheDaySeq);
-        console.log("Workout details response:", response);
         setWorkout(response);
         setEditDiary(response.workoutDiary || "");
 
@@ -489,7 +479,6 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
 
   const handlePlaceClick = () => {
     if (workout?.workoutPlace) {
-      console.log("Workout place info:", workout.workoutPlace);
       const placeId =
         (workout.workoutPlace as any).workoutPlaceSeq ||
         (workout.workoutPlace as any).placeSeq;
@@ -620,7 +609,9 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
               <ModalHeaderContent>
                 {workout?.workoutPhoto && (
                   <ModalImageContainer>
-                    <ModalImage url={getImageUrl(workout.workoutPhoto)} />
+                    <ModalImage
+                      url={getImageUrl(workout.workoutPhoto, "workout")}
+                    />
                   </ModalImageContainer>
                 )}
 
@@ -633,7 +624,8 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                     <UserInfoContainer onClick={handleUserProfileClick}>
                       <UserAvatar
                         src={getImageUrl(
-                          workout?.user?.profileImageUrl || null
+                          workout?.user?.profileImageUrl || null,
+                          "profile"
                         )}
                         alt={workout?.user?.userNickname || "프로필"}
                       />

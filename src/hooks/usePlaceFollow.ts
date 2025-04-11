@@ -17,6 +17,12 @@ const usePlaceFollow = (workoutPlaceSeq: string | undefined, userInfo: any) => {
   const [isFollowingLoading, setIsFollowingLoading] = useState<boolean>(false);
   const [followerCount, setFollowerCount] = useState<number>(0);
 
+  // workoutPlaceSeq가 바뀔 때마다 상태 초기화
+  useEffect(() => {
+    setIsFollowing(false);
+    setFollowerCount(0);
+  }, [workoutPlaceSeq]);
+
   // 팔로우 상태 확인
   useEffect(() => {
     if (!workoutPlaceSeq || !userInfo?.userSeq) return;

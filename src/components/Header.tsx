@@ -5,7 +5,7 @@ import { clearUserInfo } from "../store/slices/authSlice";
 import { logoutUserAPI } from "../api/user";
 import { RootState } from "../store/store";
 import SearchComponent from "./SearchComponent";
-import NotificationDropdown from "./common/NotificationDropdown";
+import NotificationDropdown from "./notificatrion/NotificationDropdown";
 import SocketService, { SocketStatus } from "../services/socketService";
 
 // Material UI 컴포넌트

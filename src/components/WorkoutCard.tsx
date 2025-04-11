@@ -126,13 +126,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onClick }) => {
     workout;
 
   // WorkoutOfTheDayDTO에 해당 속성이 없을 수 있으므로 기본값 처리
-  const likeCount = (workout as any).likeCount ?? 0;
-  const commentCount = (workout as any).commentCount ?? 0;
+  const likeCount = workout.workoutLikeCount ?? 0;
+  const commentCount = workout.commentCount ?? 0;
 
   const formattedDate = format(new Date(recordDate), "yyyy년 MM월 dd일", {
     locale: ko,
   });
-  const imageUrl = getImageUrl(workoutPhoto || null);
+  const imageUrl = getImageUrl(workoutPhoto || null, "workout");
 
   return (
     <Card onClick={() => onClick(workoutOfTheDaySeq)}>

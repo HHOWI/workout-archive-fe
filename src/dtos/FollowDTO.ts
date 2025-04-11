@@ -7,13 +7,13 @@ export interface FollowCountDTO {
 export interface FollowerDTO {
   userSeq: number;
   userNickname: string;
-  profileImageUrl: string | null;
+  profileImageUrl: string;
 }
 
 export interface FollowingDTO {
   userSeq: number;
   userNickname: string;
-  profileImageUrl: string | null;
+  profileImageUrl: string;
 }
 
 export interface FollowingPlaceDTO {

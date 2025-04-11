@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useCallback } from "react";
 import {
   PhotoDiaryGrid,
   PhotoSection,
@@ -12,6 +12,22 @@ import {
   Label,
   DiaryTextarea,
 } from "../../styles/WorkoutRecordStyles";
+
+const ImageIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
 
 interface PhotoDiarySectionProps {
   photoPreview: string | null;
@@ -32,33 +48,35 @@ const PhotoDiarySection: React.FC<PhotoDiarySectionProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setSelectedPhoto(file);
+  const handlePhotoSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        setSelectedPhoto(file);
 
-      // 이미지 미리보기 생성
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [setSelectedPhoto, setPhotoPreview]
+  );
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = useCallback(() => {
     setSelectedPhoto(null);
     setPhotoPreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, [setSelectedPhoto, setPhotoPreview]);
 
-  const handlePhotoContainerClick = () => {
+  const handlePhotoContainerClick = useCallback(() => {
     if (!photoPreview) {
       fileInputRef.current?.click();
     }
-  };
+  }, [photoPreview]);
 
   return (
     <PhotoDiaryGrid>
@@ -73,19 +91,7 @@ const PhotoDiarySection: React.FC<PhotoDiarySectionProps> = ({
               <PreviewImage src={photoPreview} alt="운동 사진 미리보기" />
             ) : (
               <UploadPlaceholder>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
+                <ImageIcon />
                 <p>사진을 업로드하려면 클릭하세요</p>
               </UploadPlaceholder>
             )}

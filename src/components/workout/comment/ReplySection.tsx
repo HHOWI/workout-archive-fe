@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import { Comment } from "../../../api/comment";
 import ReplyItem from "./ReplyItem";
@@ -110,13 +110,6 @@ const ReplySection: React.FC<ReplySectionProps> = ({
                 const isLastReply = index === replyState.replies.length - 1;
                 const isTargetReply = targetReplyId === reply.workoutCommentSeq;
 
-                // isTargetReply 값 확인 로그 추가
-                if (isTargetReply) {
-                  console.log(
-                    `ReplySection: Target reply found - ID: ${reply.workoutCommentSeq}`
-                  );
-                }
-
                 // ref 설정 로직
                 let itemRef: React.Ref<HTMLDivElement> | undefined = undefined;
                 if (isTargetReply) {
@@ -133,6 +126,7 @@ const ReplySection: React.FC<ReplySectionProps> = ({
                     ref={itemRef} // 계산된 ref 사용
                     onUpdateComments={onUpdateComments}
                     isTarget={isTargetReply}
+                    parentCommentId={commentId}
                   />
                 );
               })}

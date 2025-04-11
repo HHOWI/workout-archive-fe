@@ -17,6 +17,7 @@ import { FollowCountDTO } from "../dtos/FollowDTO";
 import WorkoutDetailModal from "../components/WorkoutDetailModal";
 import WorkoutCard from "../components/WorkoutCard";
 import FollowModal from "../components/FollowModal";
+import CalendarView from "../components/calendar/CalendarView";
 import { getImageUrl } from "../utils/imageUtils";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../store/store";
@@ -74,69 +75,38 @@ const ProfileHeader = styled(HeaderBox)`
 
 const ProfileImageWrapper = styled.div`
   position: relative;
-  padding: 6px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  background: linear-gradient(120deg, ${theme.primary}, ${theme.accent});
-  box-shadow: 0 8px 25px rgba(74, 144, 226, 0.25);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
 
-  &::before {
-    content: "";
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border-radius: 50%;
-    background: linear-gradient(
-      120deg,
-      rgba(255, 255, 255, 0.6),
-      rgba(255, 255, 255, 0.1)
-    );
-    z-index: -1;
+  &:hover {
+    transform: scale(1.03);
   }
 
   &:hover .overlay-content {
     opacity: 1;
   }
+
+  @media (max-width: 768px) {
+    width: 160px;
+    height: 160px;
+  }
 `;
 
 const ProfileImage = styled.div<{ url: string; isEditable: boolean }>`
-  width: 170px;
-  height: 170px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   background-image: url(${(props) => props.url});
   background-size: cover;
   background-position: center;
   cursor: ${(props) => (props.isEditable ? "pointer" : "default")};
-  position: relative;
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
-  border: 3px solid white;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s ease;
 
   &:hover {
-    transform: ${(props) => (props.isEditable ? "scale(1.04)" : "none")};
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0);
-    transition: background 0.3s ease;
-    display: ${(props) => (props.isEditable ? "block" : "none")};
-  }
-
-  &:hover::after {
-    background: rgba(0, 0, 0, 0.5);
-  }
-
-  @media (max-width: 768px) {
-    width: 150px;
-    height: 150px;
+    filter: ${(props) => (props.isEditable ? "brightness(0.9)" : "none")};
   }
 `;
 
@@ -152,21 +122,20 @@ const ProfileImageOverlayContent = styled.div`
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
   color: white;
   z-index: 2;
   pointer-events: none;
 
   svg {
-    font-size: 32px;
-    margin-bottom: 10px;
+    font-size: 28px;
+    margin-bottom: 8px;
   }
 
   span {
     font-size: 14px;
     font-weight: 500;
     text-align: center;
-    padding: 0 10px;
   }
 `;
 
@@ -540,10 +509,10 @@ const ProfileTabs = React.memo(({ activeTab, onTabChange }: TabProps) => {
           오운완
         </Tab>
         <Tab
-          isActive={activeTab === "memo"}
-          onClick={() => onTabChange("memo")}
+          isActive={activeTab === "calendar"}
+          onClick={() => onTabChange("calendar")}
         >
-          레코드
+          캘린더
         </Tab>
       </TabList>
     </TabContainer>
@@ -930,7 +899,7 @@ const useFollowActions = (
 };
 
 // 타입 정의
-type TabType = "workout" | "memo";
+type TabType = "workout" | "calendar";
 
 // ===== 메인 컴포넌트 =====
 const ProfilePage: React.FC = () => {
@@ -1110,7 +1079,7 @@ const ProfilePage: React.FC = () => {
           onWorkoutClick={handleWorkoutCardClick}
         />
       ) : (
-        <MemoList memos={[]} />
+        <CalendarView nickname={nickname} />
       )}
 
       {selectedWorkoutSeq && (

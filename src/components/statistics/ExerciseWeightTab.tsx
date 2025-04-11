@@ -56,6 +56,17 @@ ChartJS.register(
   zoomPlugin
 );
 
+// ===== 타입 정의 =====
+type PeriodOption =
+  | "1months"
+  | "3months"
+  | "6months"
+  | "1year"
+  | "2years"
+  | "all";
+type IntervalOption = "1week" | "2weeks" | "4weeks" | "3months" | "all";
+type RmOption = "1RM" | "5RM" | "over8RM";
+
 // ===== 스타일 컴포넌트 =====
 const Container = styled(Box)`
   margin-top: 20px;
@@ -194,9 +205,7 @@ const ActionButtonContainer = styled(Box)`
 `;
 
 // ===== 상수 및 유틸리티 =====
-
-// 기간 옵션
-const PERIOD_OPTIONS = [
+const PERIOD_OPTIONS: { value: PeriodOption; label: string }[] = [
   { value: "1months", label: "최근 1개월" },
   { value: "3months", label: "최근 3개월" },
   { value: "6months", label: "최근 6개월" },
@@ -205,8 +214,7 @@ const PERIOD_OPTIONS = [
   { value: "all", label: "전체 기간" },
 ];
 
-// 주기 옵션
-const INTERVAL_OPTIONS = [
+const INTERVAL_OPTIONS: { value: IntervalOption; label: string }[] = [
   { value: "1week", label: "1주" },
   { value: "2weeks", label: "2주" },
   { value: "4weeks", label: "4주" },
@@ -214,11 +222,48 @@ const INTERVAL_OPTIONS = [
   { value: "all", label: "전체보기" },
 ];
 
-// RM 옵션
-const RM_OPTIONS = [
+const RM_OPTIONS: { value: RmOption; label: string }[] = [
   { value: "1RM", label: "1RM" },
   { value: "5RM", label: "5RM" },
   { value: "over8RM", label: "본세트" },
+];
+
+// RM 옵션에 따른 제목 생성
+const getRmTitle = (rmType: string) => {
+  switch (rmType) {
+    case "1RM":
+      return "1회 최대 무게 (측정하지 않았다면 추정치 제공)";
+    case "5RM":
+      return "5회 최대 무게 (측정하지 않았다면 추정치 제공)";
+    case "over8RM":
+      return "본세트 무게 (8회 이상 최대 무게)";
+    default:
+      return "운동 무게";
+  }
+};
+
+// 랜덤 색상 배열 정의
+const CHART_COLORS = [
+  {
+    borderColor: "rgb(255, 99, 132)",
+    backgroundColor: "rgba(255, 99, 132, 0.3)",
+  },
+  {
+    borderColor: "rgb(53, 162, 235)",
+    backgroundColor: "rgba(53, 162, 235, 0.3)",
+  },
+  {
+    borderColor: "rgb(75, 192, 192)",
+    backgroundColor: "rgba(75, 192, 192, 0.3)",
+  },
+  {
+    borderColor: "rgb(255, 159, 64)",
+    backgroundColor: "rgba(255, 159, 64, 0.5)",
+  },
+  {
+    borderColor: "rgb(153, 102, 255)",
+    backgroundColor: "rgba(153, 102, 255, 0.5)",
+  },
 ];
 
 // 추정치 정보를 툴팁에 표시하는 함수
@@ -303,44 +348,6 @@ const getChartOptions = (title: string): ChartOptions<"line"> => ({
   maintainAspectRatio: false,
 });
 
-// RM 타입에 따른 제목 생성
-const getRmTitle = (rmType: string) => {
-  switch (rmType) {
-    case "1RM":
-      return "1회 최대 무게 (측정하지 않았다면 추정치 제공)";
-    case "5RM":
-      return "5회 최대 무게 (측정하지 않았다면 추정치 제공)";
-    case "over8RM":
-      return "본세트 무게 (8회 이상 최대 무게)";
-    default:
-      return "운동 무게";
-  }
-};
-
-// 랜덤 색상 배열 정의
-const CHART_COLORS = [
-  {
-    borderColor: "rgb(255, 99, 132)",
-    backgroundColor: "rgba(255, 99, 132, 0.3)",
-  },
-  {
-    borderColor: "rgb(53, 162, 235)",
-    backgroundColor: "rgba(53, 162, 235, 0.3)",
-  },
-  {
-    borderColor: "rgb(75, 192, 192)",
-    backgroundColor: "rgba(75, 192, 192, 0.3)",
-  },
-  {
-    borderColor: "rgb(255, 159, 64)",
-    backgroundColor: "rgba(255, 159, 64, 0.5)",
-  },
-  {
-    borderColor: "rgb(153, 102, 255)",
-    backgroundColor: "rgba(153, 102, 255, 0.5)",
-  },
-];
-
 // ===== 컴포넌트 =====
 
 // 로딩 컴포넌트
@@ -352,81 +359,84 @@ const LoadingIndicator = () => (
 
 // 필터 컴포넌트
 interface FiltersProps {
-  period: string;
-  setPeriod: (period: string) => void;
-  interval: string;
-  setInterval: (interval: string) => void;
-  rm: string;
-  setRm: (rm: string) => void;
+  period: PeriodOption;
+  setPeriod: (period: PeriodOption) => void;
+  interval: IntervalOption;
+  setInterval: (interval: IntervalOption) => void;
+  rm: RmOption;
+  setRm: (rm: RmOption) => void;
   onExerciseSelect: () => void;
 }
 
-const Filters: React.FC<FiltersProps> = ({
-  period,
-  setPeriod,
-  interval,
-  setInterval,
-  rm,
-  setRm,
-  onExerciseSelect,
-}) => (
-  <FiltersContainer>
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>기간</InputLabel>
-      <Select
-        value={period}
-        onChange={(e) => setPeriod(e.target.value as string)}
-        label="기간"
-      >
-        {PERIOD_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+const Filters: React.FC<FiltersProps> = React.memo(
+  ({
+    period,
+    setPeriod,
+    interval,
+    setInterval,
+    rm,
+    setRm,
+    onExerciseSelect,
+  }) => (
+    <FiltersContainer>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>기간</InputLabel>
+        <Select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as PeriodOption)}
+          label="기간"
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>주기</InputLabel>
-      <Select
-        value={interval}
-        onChange={(e) => setInterval(e.target.value as string)}
-        label="주기"
-      >
-        {INTERVAL_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>주기</InputLabel>
+        <Select
+          value={interval}
+          onChange={(e) => setInterval(e.target.value as IntervalOption)}
+          label="주기"
+        >
+          {INTERVAL_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>RM</InputLabel>
-      <Select
-        value={rm}
-        onChange={(e) => setRm(e.target.value as string)}
-        label="RM"
-      >
-        {RM_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>RM</InputLabel>
+        <Select
+          value={rm}
+          onChange={(e) => setRm(e.target.value as RmOption)}
+          label="RM"
+        >
+          {RM_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <Button
-      variant="outlined"
-      color="primary"
-      onClick={onExerciseSelect}
-      size="small"
-      startIcon={<SearchIcon />}
-    >
-      운동 선택
-    </Button>
-  </FiltersContainer>
+      <Button
+        variant="outlined"
+        color="primary"
+        onClick={onExerciseSelect}
+        size="small"
+        startIcon={<SearchIcon />}
+      >
+        운동 선택
+      </Button>
+    </FiltersContainer>
+  )
 );
+Filters.displayName = "ExerciseWeightFilters";
 
 // 선택된 운동 표시 컴포넌트
 interface SelectedExercisesProps {
@@ -455,6 +465,9 @@ const SelectedExercises: React.FC<SelectedExercisesProps> = ({
     </SelectedExerciseContainer>
   );
 };
+
+const MemoizedSelectedExercises = React.memo(SelectedExercises);
+MemoizedSelectedExercises.displayName = "SelectedExercises";
 
 // 차트 컴포넌트
 interface WeightChartProps {
@@ -532,6 +545,9 @@ const WeightChart: React.FC<WeightChartProps> = ({ exerciseStats, rm }) => {
   );
 };
 
+const MemoizedWeightChart = React.memo(WeightChart);
+MemoizedWeightChart.displayName = "WeightChart";
+
 // 빈 상태 컴포넌트
 interface NoSelectionProps {
   message: string;
@@ -547,6 +563,9 @@ const NoSelection: React.FC<NoSelectionProps> = ({ message }) => (
     </NoDataMessage>
   </ChartWrapper>
 );
+
+const MemoizedNoSelection = React.memo(NoSelection);
+MemoizedNoSelection.displayName = "NoSelection";
 
 // 운동 검색 모달 컴포넌트
 interface ExerciseModalProps {
@@ -697,6 +716,9 @@ const ExerciseSelectionModal: React.FC<ExerciseModalProps> = ({
   );
 };
 
+const MemoizedExerciseSelectionModal = React.memo(ExerciseSelectionModal);
+MemoizedExerciseSelectionModal.displayName = "ExerciseSelectionModal";
+
 // ===== 커스텀 훅 =====
 
 // 운동 목록 로드 훅
@@ -740,9 +762,9 @@ const useExercises = () => {
 
 // 통계 데이터 로드 훅
 interface UseWeightStatsProps {
-  period: string;
-  interval: string;
-  rm: string;
+  period: PeriodOption;
+  interval: IntervalOption;
+  rm: RmOption;
   selectedExercises: ExerciseDTO[];
 }
 
@@ -767,15 +789,18 @@ const useWeightStats = ({
       setError(null);
       try {
         const data = await getExerciseWeightStatsAPI({
-          period: period as any,
-          interval: interval as any,
-          rm: rm as any,
+          period,
+          interval,
+          rm,
           exerciseSeqs: selectedExercises.map((ex) => ex.exerciseSeq),
         });
         setStats(data);
       } catch (err: any) {
         console.error("운동 무게 통계 데이터 로드 실패:", err);
-        setError("데이터를 불러오는 데 실패했습니다. 다시 시도해주세요.");
+        setError(
+          err.response?.data?.message ||
+            "데이터를 불러오는 데 실패했습니다. 다시 시도해주세요."
+        );
       } finally {
         setLoading(false);
       }
@@ -790,9 +815,9 @@ const useWeightStats = ({
 // ===== 메인 컴포넌트 =====
 const ExerciseWeightTab: React.FC = () => {
   // 상태 관리
-  const [period, setPeriod] = useState("3months");
-  const [interval, setInterval] = useState("all");
-  const [rm, setRm] = useState("over8RM");
+  const [period, setPeriod] = useState<PeriodOption>("3months");
+  const [interval, setInterval] = useState<IntervalOption>("all");
+  const [rm, setRm] = useState<RmOption>("over8RM");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedExercises, setSelectedExercises] = useState<ExerciseDTO[]>([]);
   const [tempSelectedExercises, setTempSelectedExercises] = useState<
@@ -859,6 +884,35 @@ const ExerciseWeightTab: React.FC = () => {
     );
   }, []);
 
+  // 공통 메시지 컴포넌트 활용 고려
+  const renderContent = () => {
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+    if (error) {
+      return <ErrorMessage variant="body1">{error}</ErrorMessage>;
+    }
+    if (selectedExercises.length === 0) {
+      return (
+        <MemoizedNoSelection message="운동을 선택하여 무게 변화 추이를 확인하세요" />
+      );
+    }
+    if (!stats || !stats.exercises || stats.exercises.length === 0) {
+      return (
+        <MemoizedNoSelection message="선택한 운동의 무게 데이터가 없습니다. 다른 운동을 선택하거나 기간을 변경해보세요." />
+      );
+    }
+    return (
+      <Grid container spacing={2}>
+        {stats.exercises.map((exerciseStats) => (
+          <Grid item xs={12} key={exerciseStats.exerciseSeq}>
+            <MemoizedWeightChart exerciseStats={exerciseStats} rm={rm} />
+          </Grid>
+        ))}
+      </Grid>
+    );
+  };
+
   return (
     <Container>
       <Filters
@@ -871,30 +925,14 @@ const ExerciseWeightTab: React.FC = () => {
         onExerciseSelect={handleOpenModal}
       />
 
-      <SelectedExercises
+      <MemoizedSelectedExercises
         exercises={selectedExercises}
         onRemove={removeSelectedExercise}
       />
 
-      {loading ? (
-        <LoadingIndicator />
-      ) : error ? (
-        <ErrorMessage>{error}</ErrorMessage>
-      ) : selectedExercises.length === 0 ? (
-        <NoSelection message="운동을 선택하여 무게 변화 추이를 확인하세요" />
-      ) : stats && stats.exercises.length > 0 ? (
-        <Grid container spacing={2}>
-          {stats.exercises.map((exerciseStats) => (
-            <Grid item xs={12} key={exerciseStats.exerciseSeq}>
-              <WeightChart exerciseStats={exerciseStats} rm={rm} />
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <NoSelection message="선택한 운동의 무게 데이터가 없습니다. 다른 운동을 선택하거나 기간을 변경해보세요." />
-      )}
+      {renderContent()}
 
-      <ExerciseSelectionModal
+      <MemoizedExerciseSelectionModal
         open={modalOpen}
         onClose={handleCloseModal}
         exercises={exercises}

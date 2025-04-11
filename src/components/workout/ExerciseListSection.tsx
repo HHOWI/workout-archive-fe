@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Card,
   CardHeader,
@@ -11,6 +11,29 @@ import {
 } from "../../styles/WorkoutRecordStyles";
 import { ExerciseRecordDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
 import ExerciseSetForm from "../ExerciseSetForm";
+
+// 메모이제이션된 컴포넌트를 파일 스코프로 이동
+const MemoizedExerciseSetForm = React.memo(ExerciseSetForm);
+
+// SVG 컴포넌트 분리
+const CalendarIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
 
 interface ExerciseListSectionProps {
   exerciseRecords: ExerciseRecordDTO[];
@@ -39,30 +62,12 @@ const ExerciseListSection: React.FC<ExerciseListSectionProps> = ({
   onDrop,
   onDragEnd,
 }) => {
-  // React.memo를 사용하여 ExerciseSetForm의 렌더링 최적화
-  const ExerciseSetFormMemo = React.memo(ExerciseSetForm);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>운동 목록</CardTitle>
         <RecentWorkoutsButton onClick={onLoadRecentWorkouts}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
+          <CalendarIcon />
           최근 운동 목록 가져오기
         </RecentWorkoutsButton>
       </CardHeader>
@@ -80,7 +85,7 @@ const ExerciseListSection: React.FC<ExerciseListSectionProps> = ({
             onDragEnd={onDragEnd}
             isDragging={index === draggedIndex}
           >
-            <ExerciseSetFormMemo
+            <MemoizedExerciseSetForm
               exercise={record.exercise}
               onRemove={() => onRemoveExercise(index)}
               onChange={(sets) => onSetsChange(index, sets)}

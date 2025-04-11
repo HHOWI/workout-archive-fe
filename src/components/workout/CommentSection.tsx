@@ -44,6 +44,9 @@ interface ReplyState {
   hasMore: boolean;
 }
 
+// 임시 댓글/대댓글 ID
+const TEMP_COMMENT_ID = -1;
+
 const CommentSection: React.FC<CommentSectionProps> = ({
   workoutId,
   targetCommentId,
@@ -51,15 +54,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   parentCommentId,
   replyCommentId,
 }) => {
-  // Props 확인 로그 추가
-  console.log("CommentSection received props:", {
-    workoutId,
-    targetCommentId,
-    isReplyNotification,
-    parentCommentId,
-    replyCommentId,
-  });
-
   const [comments, setComments] = useState<Comment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -78,22 +72,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
   // 초기 댓글 로드
   useEffect(() => {
-    // useEffect 내부에서 props 값 확인 로그 추가
-    console.log("Initial load useEffect - Props check:", {
-      isReplyNotification,
-      parentCommentId,
-      replyCommentId,
-    });
-
     const loadInitialComments = async () => {
       if (isReplyNotification && parentCommentId && replyCommentId) {
-        // 대댓글 알림의 경우, 부모 댓글과 모든 대댓글을 로드
         await fetchParentWithAllReplies(parentCommentId, replyCommentId);
       } else if (targetCommentId) {
-        // 특정 댓글 ID가 있는 경우, 해당 댓글을 먼저 로드
         await fetchTargetComment(targetCommentId);
       } else {
-        // 일반적인 댓글 목록 로드
         await fetchComments(true);
       }
       setInitialLoadComplete(true);
@@ -114,30 +98,18 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       let targetElementRef: React.RefObject<HTMLDivElement> | null = null;
 
       if (isReplyNotification && replyCommentId && targetReplyRef.current) {
-        // 대댓글 알림인 경우 타겟 대댓글로 스크롤
         targetElementRef = targetReplyRef;
-        console.log(
-          `Scrolling to reply ref: ${replyCommentId}`,
-          targetReplyRef.current
-        );
       } else if (targetCommentId && targetCommentRef.current) {
-        // 일반 댓글 알림인 경우 타겟 부모 댓글로 스크롤
         targetElementRef = targetCommentRef;
-        console.log(
-          `Scrolling to comment ref: ${targetCommentId}`,
-          targetCommentRef.current
-        );
       }
 
       if (targetElementRef?.current) {
-        // 워크아웃 정보 로드 후 약간의 지연시간을 두고 스크롤
         const timer = setTimeout(() => {
           targetElementRef!.current?.scrollIntoView({
             behavior: "smooth",
-            block: "center", // 중앙으로 오도록 수정
+            block: "center",
           });
-          console.log("Scroll executed to:", targetElementRef!.current);
-        }, 500); // 지연 시간 늘리기
+        }, 500);
         return () => clearTimeout(timer);
       }
     }
@@ -153,34 +125,21 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     parentCommentId: number,
     targetReplyId: number
   ) => {
-    console.log(
-      `fetchParentWithAllReplies called for parent: ${parentCommentId}, target: ${targetReplyId}`
-    );
     try {
       setLoading(true);
 
-      // 부모 댓글과 모든 대댓글 가져오기
       const parentWithReplies = await getParentCommentWithAllRepliesAPI(
         parentCommentId,
         targetReplyId
       );
-      console.log("API response (parentWithReplies):", parentWithReplies);
 
-      // 일반 댓글 목록 로드
       const commentsResponse = await getCommentsAPI(workoutId, 1);
 
-      // 댓글 목록 설정: API로 가져온 부모 댓글을 항상 최상단에 위치시킴
       const filteredComments = commentsResponse.comments.filter(
         (c) => c.workoutCommentSeq !== parentCommentId
       );
       setComments([parentWithReplies, ...filteredComments]);
 
-      // 대댓글이 로드된 부모 댓글의 댓글 창 자동으로 펼치기 설정
-      console.log(
-        "Checking condition for setting reply state:",
-        parentWithReplies.childComments &&
-          parentWithReplies.childComments.length > 0
-      );
       if (
         parentWithReplies.childComments &&
         parentWithReplies.childComments.length > 0
@@ -195,13 +154,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             hasMore: false,
           },
         }));
-        console.log(`Reply state set for parent comment ${parentCommentId}:`, {
-          isExpanded: true,
-          isLoading: false,
-          replies: parentWithReplies.childComments || [],
-          nextCursor: null,
-          hasMore: false,
-        });
       }
 
       setTotalCount(commentsResponse.totalCount);
@@ -210,8 +162,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         commentsResponse.comments.length < commentsResponse.totalCount
       );
     } catch (error) {
-      console.error("댓글 로드 중 오류 발생:", error);
-      // 오류 발생 시 일반 댓글 목록만 로드
       await fetchComments(true);
     } finally {
       setLoading(false);
@@ -223,18 +173,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     try {
       setLoading(true);
 
-      // 특정 댓글 정보 가져오기
       const comment = await getCommentByIdAPI(commentId);
 
-      // 일반 댓글 목록 로드 (타겟 댓글도 포함될 수 있음)
       const commentsResponse = await getCommentsAPI(workoutId, 1);
 
-      // 타겟 댓글이 목록에 없는지 확인
       const existsInComments = commentsResponse.comments.some(
         (c) => c.workoutCommentSeq === commentId
       );
 
-      // 댓글 목록 설정 (타겟 댓글이 없으면 맨 위에 추가)
       if (!existsInComments) {
         setComments([comment, ...commentsResponse.comments]);
       } else {
@@ -247,8 +193,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         commentsResponse.comments.length < commentsResponse.totalCount
       );
     } catch (error) {
-      console.error("댓글 로드 중 오류 발생:", error);
-      // 오류 발생 시 일반 댓글 목록만 로드
       await fetchComments(true);
     } finally {
       setLoading(false);
@@ -272,11 +216,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         nextPage
       );
 
-      // 목록 업데이트
       if (reset) {
         setComments(response.comments);
       } else {
-        // 기존 댓글과 새로 로드된 댓글 병합 (중복 제거)
         const existingIds = new Set(comments.map((c) => c.workoutCommentSeq));
         const newComments = response.comments.filter(
           (c) => !existingIds.has(c.workoutCommentSeq)
@@ -284,11 +226,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         setComments([...comments, ...newComments]);
       }
 
-      // 총 개수 설정
       setTotalCount(response.totalCount);
       setPage(nextPage);
 
-      // 아직 더 불러올 댓글이 있는지 확인
       setHasMore(nextPage * 10 < response.totalCount);
     } catch (error) {
       console.error("댓글 로드 중 오류 발생:", error);
@@ -305,7 +245,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     try {
       // 낙관적 UI 업데이트를 위한 임시 댓글 생성
       const tempComment: Comment = {
-        workoutCommentSeq: -1, // 임시 ID (API 응답 후 실제 ID로 대체됨)
+        workoutCommentSeq: TEMP_COMMENT_ID,
         commentContent: text,
         commentLikes: 0,
         commentCreatedAt: new Date().toISOString(),
@@ -332,22 +272,26 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       // 임시 댓글을 실제 댓글로 대체
       setComments((currentComments) =>
         currentComments.map((comment) =>
-          comment.workoutCommentSeq === -1 ? response.comment : comment
+          comment.workoutCommentSeq === TEMP_COMMENT_ID
+            ? response.comment
+            : comment
         )
       );
     } catch (error) {
       console.error("댓글 작성 중 오류가 발생했습니다:", error);
       // 에러 발생 시 임시 댓글 제거
-      setComments(
-        comments.filter((comment) => comment.workoutCommentSeq !== -1)
+      setComments((prevComments) =>
+        prevComments.filter(
+          (comment) => comment.workoutCommentSeq !== TEMP_COMMENT_ID
+        )
       );
       setTotalCount((prev) => prev - 1);
+      alert("댓글 작성에 실패했습니다."); // 사용자 알림 추가
     }
   };
 
   // 대댓글 토글 핸들러
   const handleToggleReplies = async (commentId: number) => {
-    // 이미 replyStates에 있는 경우, 펼침/접힘 상태만 토글
     if (replyStates[commentId]) {
       setReplyStates((prev) => ({
         ...prev,
@@ -359,7 +303,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       return;
     }
 
-    // 초기 상태 설정
     setReplyStates((prev) => ({
       ...prev,
       [commentId]: {
@@ -372,10 +315,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }));
 
     try {
-      // 대댓글 가져오기
       const response: RepliesResponse = await getRepliesAPI(commentId);
 
-      // 상태 업데이트
       setReplyStates((prev) => ({
         ...prev,
         [commentId]: {
@@ -387,8 +328,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         },
       }));
     } catch (error) {
-      console.error("대댓글 로드 중 오류 발생:", error);
-      // 오류 발생 시 상태 초기화
       setReplyStates((prev) => ({
         ...prev,
         [commentId]: {
@@ -408,7 +347,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     if (!currentState || currentState.isLoading || !currentState.hasMore)
       return;
 
-    // 로딩 상태로 변경
     setReplyStates((prev) => ({
       ...prev,
       [commentId]: {
@@ -418,7 +356,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     }));
 
     try {
-      // 추가 대댓글 가져오기
       let cursor: number | undefined = undefined;
       if (currentState.nextCursor !== null) {
         cursor = currentState.nextCursor;
@@ -426,10 +363,23 @@ const CommentSection: React.FC<CommentSectionProps> = ({
 
       const response: RepliesResponse = await getRepliesAPI(commentId, cursor);
 
-      // 기존 댓글과 새로 로드된 댓글 병합
-      const updatedReplies = [...currentState.replies, ...response.replies];
+      // === 수정: 중복 제거 로직 추가 ===
+      // 기존 대댓글 ID Set 생성 (임시 ID 제외)
+      const existingReplyIds = new Set(
+        currentState.replies
+          .filter((reply) => reply.workoutCommentSeq !== TEMP_COMMENT_ID) // 임시 댓글은 비교에서 제외
+          .map((reply) => reply.workoutCommentSeq)
+      );
 
-      // 상태 업데이트
+      // 새로 불러온 대댓글 중 중복되지 않은 것만 필터링
+      const newReplies = response.replies.filter(
+        (reply) => !existingReplyIds.has(reply.workoutCommentSeq)
+      );
+
+      // 기존 대댓글과 새로 필터링된 대댓글 병합
+      const updatedReplies = [...currentState.replies, ...newReplies];
+      // ===============================
+
       setReplyStates((prev) => ({
         ...prev,
         [commentId]: {
@@ -442,7 +392,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       }));
     } catch (error) {
       console.error("대댓글 추가 로드 중 오류 발생:", error);
-      // 오류 발생 시 로딩 상태만 초기화
       setReplyStates((prev) => ({
         ...prev,
         [commentId]: {
@@ -464,8 +413,78 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   // 댓글 상태 업데이트 - 자식 컴포넌트에서 상태 변경 후 호출
   const updateComments = () => {
     fetchComments(true);
-    // 댓글 업데이트 시 대댓글 상태도 초기화될 수 있으므로 필요시 로직 추가
+    setReplyStates({}); // 댓글 목록 전체 업데이트 시 대댓글 상태 초기화
   };
+
+  // ===== 대댓글 낙관적 업데이트 관련 함수 =====
+  const handleAddReplyOptimistic = (parentId: number, tempReply: Comment) => {
+    setReplyStates((prev) => {
+      const currentReplies = prev[parentId]?.replies || [];
+      // 임시 댓글을 맨 앞에 추가하고, 펼침 상태로 변경
+      return {
+        ...prev,
+        [parentId]: {
+          ...(prev[parentId] || {
+            isLoading: false,
+            nextCursor: null,
+            hasMore: false,
+          }), // 기존 상태 유지 또는 기본값 설정
+          replies: [tempReply, ...currentReplies],
+          isExpanded: true, // 대댓글 작성 시 자동으로 펼침
+        },
+      };
+    });
+    // 부모 댓글의 대댓글 수 업데이트 (선택적: 즉시 반영)
+    setComments((prev) =>
+      prev.map((c) =>
+        c.workoutCommentSeq === parentId
+          ? { ...c, childCommentsCount: (c.childCommentsCount || 0) + 1 }
+          : c
+      )
+    );
+  };
+
+  const handleReplaceTempReply = (parentId: number, realReply: Comment) => {
+    setReplyStates((prev) => {
+      const currentReplies = prev[parentId]?.replies || [];
+      return {
+        ...prev,
+        [parentId]: {
+          ...prev[parentId],
+          replies: currentReplies.map((reply) =>
+            reply.workoutCommentSeq === TEMP_COMMENT_ID ? realReply : reply
+          ),
+        },
+      };
+    });
+  };
+
+  const handleRemoveTempReply = (parentId: number) => {
+    setReplyStates((prev) => {
+      const currentReplies = prev[parentId]?.replies || [];
+      return {
+        ...prev,
+        [parentId]: {
+          ...prev[parentId],
+          replies: currentReplies.filter(
+            (reply) => reply.workoutCommentSeq !== TEMP_COMMENT_ID
+          ),
+        },
+      };
+    });
+    // 부모 댓글의 대댓글 수 롤백 (선택적)
+    setComments((prev) =>
+      prev.map((c) =>
+        c.workoutCommentSeq === parentId
+          ? {
+              ...c,
+              childCommentsCount: Math.max(0, (c.childCommentsCount || 1) - 1),
+            } // 0 미만 방지
+          : c
+      )
+    );
+  };
+  // =========================================
 
   return (
     <CommentContainer elevation={0}>
@@ -529,6 +548,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 }
                 onToggleReplies={handleToggleReplies}
                 onLoadMoreReplies={handleLoadMoreReplies}
+                // ===== 낙관적 업데이트 콜백 추가 =====
+                onAddReplyOptimistic={handleAddReplyOptimistic}
+                onReplaceTempReply={handleReplaceTempReply}
+                onRemoveTempReply={handleRemoveTempReply}
+                // ===================================
                 targetReplyId={replyCommentId}
                 targetReplyRef={
                   isReplyNotification &&
@@ -539,7 +563,6 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               />
             ))}
 
-            {/* 댓글 더 불러오기 버튼 */}
             {hasMore && (
               <LoadMoreButton
                 variant="outlined"

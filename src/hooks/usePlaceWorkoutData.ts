@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { getWorkoutsByPlaceAPI } from "../api/workout";
 import useInfiniteScroll from "./useInfiniteScroll";
@@ -46,6 +46,12 @@ const usePlaceWorkoutData = (placeSeq: string | undefined) => {
     fetchData: fetchWorkoutsFunction,
     isItemEqual: (a, b) => a.workoutOfTheDaySeq === b.workoutOfTheDaySeq,
   });
+
+  // placeSeq가 변경될 때마다 데이터 초기화
+  useEffect(() => {
+    console.log("placeSeq 변경됨, 데이터 초기화:", placeSeq);
+    resetData();
+  }, [placeSeq, resetData]);
 
   return { workoutOfTheDays, loading, hasMore, observerTarget, resetData };
 };

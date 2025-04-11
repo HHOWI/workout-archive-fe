@@ -38,6 +38,18 @@ ChartJS.register(
   Legend
 );
 
+// ===== 타입 정의 =====
+type PeriodOption = "3months" | "6months" | "1year" | "2years" | "all";
+type IntervalOption = "1week" | "2weeks" | "1month" | "3months";
+type BodyPartOption =
+  | "chest"
+  | "back"
+  | "legs"
+  | "shoulders"
+  | "triceps"
+  | "biceps"
+  | "all";
+
 // ===== 스타일 컴포넌트 =====
 const Container = styled(Box)`
   margin-top: 20px;
@@ -140,7 +152,7 @@ const getChartOptions = (title: string): ChartOptions<"bar"> => ({
 });
 
 // 운동 부위 옵션
-const BODY_PART_OPTIONS = [
+const BODY_PART_OPTIONS: { value: BodyPartOption; label: string }[] = [
   { value: "chest", label: "가슴" },
   { value: "back", label: "등" },
   { value: "legs", label: "하체" },
@@ -151,17 +163,15 @@ const BODY_PART_OPTIONS = [
 ];
 
 // 주기 옵션
-const INTERVAL_OPTIONS = [
+const INTERVAL_OPTIONS: { value: IntervalOption; label: string }[] = [
   { value: "1week", label: "1주" },
   { value: "2weeks", label: "2주" },
   { value: "1month", label: "1개월" },
   { value: "3months", label: "3개월" },
-  { value: "all", label: "전체보기" },
 ];
 
 // 기간 옵션
-const PERIOD_OPTIONS = [
-  { value: "1months", label: "최근 1개월" },
+const PERIOD_OPTIONS: { value: PeriodOption; label: string }[] = [
   { value: "3months", label: "최근 3개월" },
   { value: "6months", label: "최근 6개월" },
   { value: "1year", label: "최근 1년" },
@@ -180,69 +190,65 @@ const LoadingIndicator = () => (
 
 // 필터 컴포넌트
 interface FiltersProps {
-  period: string;
-  setPeriod: (value: string) => void;
-  interval: string;
-  setInterval: (value: string) => void;
-  bodyPart: string;
-  setBodyPart: (value: string) => void;
+  period: PeriodOption;
+  setPeriod: (value: PeriodOption) => void;
+  interval: IntervalOption;
+  setInterval: (value: IntervalOption) => void;
+  bodyPart: BodyPartOption;
+  setBodyPart: (value: BodyPartOption) => void;
 }
 
-const Filters: React.FC<FiltersProps> = ({
-  period,
-  setPeriod,
-  interval,
-  setInterval,
-  bodyPart,
-  setBodyPart,
-}) => (
-  <FiltersContainer>
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>기간</InputLabel>
-      <Select
-        value={period}
-        onChange={(e) => setPeriod(e.target.value as string)}
-        label="기간"
-      >
-        {PERIOD_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+const Filters: React.FC<FiltersProps> = React.memo(
+  ({ period, setPeriod, interval, setInterval, bodyPart, setBodyPart }) => (
+    <FiltersContainer>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>기간</InputLabel>
+        <Select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as PeriodOption)}
+          label="기간"
+        >
+          {PERIOD_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-      <InputLabel>주기</InputLabel>
-      <Select
-        value={interval}
-        onChange={(e) => setInterval(e.target.value as string)}
-        label="주기"
-      >
-        {INTERVAL_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+        <InputLabel>주기</InputLabel>
+        <Select
+          value={interval}
+          onChange={(e) => setInterval(e.target.value as IntervalOption)}
+          label="주기"
+        >
+          {INTERVAL_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
-    <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
-      <InputLabel>운동 부위</InputLabel>
-      <Select
-        value={bodyPart}
-        onChange={(e) => setBodyPart(e.target.value as string)}
-        label="운동 부위"
-      >
-        {BODY_PART_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  </FiltersContainer>
+      <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
+        <InputLabel>운동 부위</InputLabel>
+        <Select
+          value={bodyPart}
+          onChange={(e) => setBodyPart(e.target.value as BodyPartOption)}
+          label="운동 부위"
+        >
+          {BODY_PART_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </FiltersContainer>
+  )
 );
+Filters.displayName = "BodyPartVolumeFilters";
 
 // 볼륨 차트 컴포넌트
 interface VolumeChartProps {
@@ -343,11 +349,14 @@ const VolumeChart: React.FC<VolumeChartProps> = ({ stats, bodyPart }) => {
   );
 };
 
+const MemoizedVolumeChart = React.memo(VolumeChart);
+MemoizedVolumeChart.displayName = "VolumeChart";
+
 // ===== 커스텀 훅 =====
 interface UseVolumeDataProps {
-  period: string;
-  interval: string;
-  bodyPart: string;
+  period: PeriodOption;
+  interval: IntervalOption;
+  bodyPart: BodyPartOption;
 }
 
 const useVolumeData = ({ period, interval, bodyPart }: UseVolumeDataProps) => {
@@ -362,14 +371,17 @@ const useVolumeData = ({ period, interval, bodyPart }: UseVolumeDataProps) => {
 
       try {
         const data = await getBodyPartVolumeStatsAPI({
-          period: period as any,
-          interval: interval as any,
-          bodyPart: bodyPart as any,
+          period,
+          interval,
+          bodyPart,
         });
         setStats(data);
       } catch (err: any) {
         console.error("운동 볼륨 통계 데이터 로드 실패:", err);
-        setError("데이터를 불러오는 데 실패했습니다. 다시 시도해주세요.");
+        setError(
+          err.response?.data?.message ||
+            "데이터를 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요."
+        );
       } finally {
         setLoading(false);
       }
@@ -384,9 +396,9 @@ const useVolumeData = ({ period, interval, bodyPart }: UseVolumeDataProps) => {
 // ===== 메인 컴포넌트 =====
 const BodyPartVolumeTab: React.FC = () => {
   // 상태 관리
-  const [period, setPeriod] = useState("1months");
-  const [interval, setInterval] = useState("all");
-  const [bodyPart, setBodyPart] = useState("all");
+  const [period, setPeriod] = useState<PeriodOption>("3months");
+  const [interval, setInterval] = useState<IntervalOption>("1week");
+  const [bodyPart, setBodyPart] = useState<BodyPartOption>("all");
 
   // 통계 데이터 로드
   const { loading, error, stats } = useVolumeData({
@@ -394,6 +406,18 @@ const BodyPartVolumeTab: React.FC = () => {
     interval,
     bodyPart,
   });
+
+  // 공통 메시지 컴포넌트 활용 고려
+  const renderContent = () => {
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+    if (error) {
+      return <ErrorMessage variant="body1">{error}</ErrorMessage>;
+    }
+    // 데이터 없는 경우 메시지 VolumeChart 내부에서 처리
+    return <MemoizedVolumeChart stats={stats} bodyPart={bodyPart} />;
+  };
 
   return (
     <Container>
@@ -405,14 +429,7 @@ const BodyPartVolumeTab: React.FC = () => {
         bodyPart={bodyPart}
         setBodyPart={setBodyPart}
       />
-
-      {loading ? (
-        <LoadingIndicator />
-      ) : error ? (
-        <ErrorMessage variant="body1">{error}</ErrorMessage>
-      ) : (
-        <VolumeChart stats={stats} bodyPart={bodyPart} />
-      )}
+      {renderContent()}
     </Container>
   );
 };
