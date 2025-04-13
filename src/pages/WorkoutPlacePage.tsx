@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
@@ -14,6 +14,7 @@ import {
 import usePlaceData from "../hooks/usePlaceData";
 import usePlaceWorkoutData from "../hooks/usePlaceWorkoutData";
 import usePlaceFollow from "../hooks/usePlaceFollow";
+import useWorkoutDetail from "../hooks/useWorkoutDetail";
 
 // 컴포넌트 임포트
 import WorkoutDetailModal from "../components/WorkoutDetailModal";
@@ -41,25 +42,15 @@ const WorkoutPlacePage: React.FC = () => {
     usePlaceWorkoutData(placeSeq);
   const { isFollowing, isFollowingLoading, followerCount, toggleFollow } =
     usePlaceFollow(placeSeq, userInfo);
+  const {
+    selectedWorkoutSeq,
+    showModal,
+    handleWorkoutCardClick,
+    handleCloseModal,
+  } = useWorkoutDetail();
 
-  // 모달 관련 상태
-  const [selectedWorkoutOfTheDaySeq, setSelectedWorkoutOfTheDaySeq] = useState<
-    number | null
-  >(null);
-  const [showModal, setShowModal] = useState(false);
-
-  // 이벤트 핸들러
-  const handleWorkoutCardClick = useCallback((seq: number) => {
-    setSelectedWorkoutOfTheDaySeq(seq);
-    setShowModal(true);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setShowModal(false);
-    setSelectedWorkoutOfTheDaySeq(null);
-  }, []);
-
-  const handleDirectionsClick = useCallback(() => {
+  // 지도 관련 이벤트 핸들러
+  const handleDirectionsClick = React.useCallback(() => {
     if (placeInfo.kakaoPlaceId) {
       window.open(
         `https://map.kakao.com/link/to/${placeInfo.kakaoPlaceId}`,
@@ -78,7 +69,7 @@ const WorkoutPlacePage: React.FC = () => {
     }
   }, [placeInfo]);
 
-  const handleExpandMapClick = useCallback(() => {
+  const handleExpandMapClick = React.useCallback(() => {
     if (placeInfo.kakaoPlaceId) {
       window.open(
         `https://map.kakao.com/link/map/${placeInfo.kakaoPlaceId}`,
@@ -127,7 +118,7 @@ const WorkoutPlacePage: React.FC = () => {
       </PlaceHeader>
 
       <WorkoutSection>
-        <SectionTitle>운동 기록</SectionTitle>
+        <SectionTitle>오운완</SectionTitle>
         <WorkoutList
           workouts={workoutOfTheDays}
           hasMore={hasMore}
@@ -137,9 +128,9 @@ const WorkoutPlacePage: React.FC = () => {
         />
       </WorkoutSection>
 
-      {showModal && selectedWorkoutOfTheDaySeq && (
+      {showModal && selectedWorkoutSeq && (
         <WorkoutDetailModal
-          workoutOfTheDaySeq={selectedWorkoutOfTheDaySeq}
+          workoutOfTheDaySeq={selectedWorkoutSeq}
           onClose={handleCloseModal}
         />
       )}

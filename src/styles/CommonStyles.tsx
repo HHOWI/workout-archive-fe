@@ -148,13 +148,6 @@ export const StatItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    opacity: 0.8;
-    transform: translateY(-2px);
-  }
 `;
 
 export const StatIcon = styled.div`

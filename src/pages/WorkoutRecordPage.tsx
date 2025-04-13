@@ -10,19 +10,13 @@ import ExerciseSelectorModal from "../components/workout/ExerciseSelectorModal";
 import LocationSelectorModal from "../components/workout/LocationSelectorModal";
 import RecentWorkoutsModal from "../components/workout/RecentWorkoutsModal";
 import { useWorkoutForm } from "../hooks/useWorkoutForm";
-import { SaveWorkoutSchema } from "../schema/WorkoutSchema";
 import {
   saveWorkoutRecordAPI,
   getRecentWorkoutRecordsAPI,
   getWorkoutRecordDetailsAPI,
 } from "../api/workout";
 import { v4 as uuidv4 } from "uuid";
-import {
-  ExerciseDTO,
-  RecordDetailDTO,
-  WorkoutOfTheDayDTO,
-  WorkoutPlaceDTO,
-} from "../dtos/WorkoutDTO";
+import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { ExerciseWithSets } from "../components/workout/ExerciseSelectorModal";
 
 const WorkoutRecordPage: React.FC = () => {
