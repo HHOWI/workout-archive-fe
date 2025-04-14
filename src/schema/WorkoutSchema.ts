@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/**
+ * 페이지네이션 관련 스키마
+ */
 // 기존 커서 기반 페이징 스키마 (ID 기반)
 export const CursorPaginationSchema = z.object({
   limit: z
@@ -31,6 +34,9 @@ export const DateCursorPaginationSchema = z.object({
   cursor: z.string().nullable().optional(),
 });
 
+/**
+ * 커서 관련 유틸리티 함수
+ */
 // 커서 파싱 유틸리티 함수
 export const parseDateCursor = (
   cursor: string | null
@@ -54,6 +60,10 @@ export const createDateCursor = (date: Date, seq: number): string => {
   return `${date.toISOString()}_${seq}`;
 };
 
+/**
+ * 워크아웃 세트 관련 스키마
+ */
+// 워크아웃 세트 스키마
 export const WorkoutSetSchema = z
   .object({
     weight: z.number().nullable().optional(),
@@ -135,6 +145,9 @@ export const WorkoutSetSchema = z
     }
   );
 
+/**
+ * 운동 기록 관련 스키마
+ */
 // 운동 기록 스키마
 const ExerciseRecordSchema = z.object({
   exercise: z.object({
@@ -173,4 +186,57 @@ export const SaveWorkoutSchema = z.object({
     diary: z.string().nullable().optional(),
   }),
   placeInfo: PlaceInfoSchema,
+});
+
+// 워크아웃 수정 스키마
+export const UpdateWorkoutSchema = z.object({
+  workoutDiary: z.string().nullable().optional(),
+});
+
+/**
+ * 통계 관련 스키마
+ */
+// 운동 무게 통계 필터 스키마
+export const ExerciseWeightStatsFilterSchema = z.object({
+  period: z
+    .enum(["1months", "3months", "6months", "1year", "2years", "all"])
+    .default("3months"),
+  interval: z
+    .enum(["1week", "2weeks", "4weeks", "3months", "all"])
+    .default("all"),
+  rm: z.enum(["1RM", "5RM", "over8RM"]).default("over8RM"),
+  exerciseSeqs: z
+    .array(z.number().int().positive())
+    .min(1, "최소 1개 이상의 운동을 선택해야 합니다.")
+    .max(5, "최대 5개까지의 운동만 선택 가능합니다."),
+});
+
+// 유산소 운동 통계 필터 스키마
+export const CardioStatsFilterSchema = z.object({
+  period: z
+    .enum(["1months", "3months", "6months", "1year", "2years", "all"])
+    .default("3months"),
+  exerciseSeqs: z.array(z.number()).optional(),
+});
+
+// 운동 볼륨 통계 필터 스키마
+export const BodyPartVolumeStatsFilterSchema = z.object({
+  period: z
+    .enum(["1months", "3months", "6months", "1year", "2years", "all"])
+    .default("3months"),
+  interval: z
+    .enum(["1week", "2weeks", "1month", "3months", "all"])
+    .default("1week"),
+  bodyPart: z
+    .enum(["chest", "back", "legs", "shoulders", "triceps", "biceps", "all"])
+    .default("chest"),
+});
+
+/**
+ * 월별 운동 기록 관련 스키마
+ */
+// 월별 운동 기록 조회 스키마
+export const MonthlyWorkoutSchema = z.object({
+  year: z.number().int().min(2000).max(2100),
+  month: z.number().int().min(1).max(12),
 });

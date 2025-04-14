@@ -1,30 +1,5 @@
 import { authAPI } from "./axiosConfig";
-
-export interface FeedItemDTO {
-  workoutOfTheDaySeq: number;
-  recordDate: string;
-  workoutPhoto?: string | null;
-  workoutDiary?: string | null;
-  workoutLikeCount: number;
-  commentCount: number;
-  workoutPlace?: {
-    workoutPlaceSeq: number;
-    placeName: string;
-  } | null;
-  user: {
-    userSeq: number;
-    userNickname: string;
-    profileImageUrl: string | null;
-  };
-  mainExerciseType?: string | null;
-  isLiked: boolean;
-  source: "user" | "place";
-}
-
-export interface FeedResponseDTO {
-  feeds: FeedItemDTO[];
-  nextCursor: number | null;
-}
+import { FeedResponseDTO } from "../dtos/FeedDTO";
 
 // 피드 가져오기 API
 export const getFeedAPI = async (

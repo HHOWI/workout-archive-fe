@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FeedItemDTO } from "../api/feed";
+import { FeedItemDTO } from "../dtos/FeedDTO";
 import WorkoutDetailModal from "../components/WorkoutDetailModal";
 import { getImageUrl } from "../utils/imageUtils";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
