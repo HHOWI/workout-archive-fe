@@ -296,6 +296,7 @@ interface FollowModalProps {
   userSeq: number;
   onClose: () => void;
   currentUserSeq?: number;
+  profileUserSeq?: number;
   onFollowStatusChange?: () => void;
 }
 
@@ -304,6 +305,7 @@ const FollowModal: React.FC<FollowModalProps> = ({
   userSeq,
   onClose,
   currentUserSeq,
+  profileUserSeq,
   onFollowStatusChange,
 }) => {
   // 상태 관리
@@ -460,7 +462,7 @@ const FollowModal: React.FC<FollowModalProps> = ({
         }));
       }
 
-      // 콜백 함수 호출하여 부모 컴포넌트의 팔로잉 카운트 업데이트
+      // 항상 팔로워/팔로잉 카운트 업데이트가 필요
       if (onFollowStatusChange) {
         onFollowStatusChange();
       }
@@ -492,7 +494,7 @@ const FollowModal: React.FC<FollowModalProps> = ({
         }));
       }
 
-      // 콜백 함수 호출하여 부모 컴포넌트의 팔로잉 카운트 업데이트
+      // 항상 팔로워/팔로잉 카운트 업데이트가 필요
       if (onFollowStatusChange) {
         onFollowStatusChange();
       }

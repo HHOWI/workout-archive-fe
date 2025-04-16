@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
-import { updateProfileImageAPI } from "../api/user";
+import { updateProfileImageAPI, getProfileInfoAPI } from "../api/user";
 import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { FollowCountDTO } from "../dtos/FollowDTO";
 import WorkoutDetailModal from "../components/WorkoutDetailModal";
@@ -583,9 +583,11 @@ const ProfilePage: React.FC = () => {
     profileImageUrl,
     userSeq,
     followCounts,
+    isFollowing: initialIsFollowing,
     setProfileImageUrl,
     loading: profileLoading,
     initializeData,
+    setFollowCounts,
   } = useProfileData(nickname, userInfo);
 
   const {
@@ -600,7 +602,13 @@ const ProfilePage: React.FC = () => {
     isFollowing,
     isFollowingLoading,
     toggleFollow,
-  } = useFollowActions(userSeq, userInfo, nickname, followCounts);
+  } = useFollowActions(
+    userSeq,
+    userInfo,
+    nickname,
+    followCounts,
+    initialIsFollowing
+  );
 
   const {
     selectedWorkoutSeq,
@@ -669,6 +677,18 @@ const ProfilePage: React.FC = () => {
       alert("프로필 이미지 업로드에 실패했습니다.");
     }
   };
+
+  // 팔로워/팔로잉 카운트만 업데이트하는 함수
+  const updateFollowCounts = useCallback(async () => {
+    if (!nickname) return;
+    // initializeData 함수를 호출하는 대신 followCounts만 업데이트
+    try {
+      const profileInfo = await getProfileInfoAPI(nickname);
+      setFollowCounts(profileInfo.followCounts);
+    } catch (error) {
+      console.error("팔로우 카운트 업데이트 중 오류 발생:", error);
+    }
+  }, [nickname]);
 
   // 팔로워 목록 모달 열기
   const handleFollowersClick = () => {
@@ -743,9 +763,10 @@ const ProfilePage: React.FC = () => {
         <FollowModal
           type={followModalType}
           userSeq={userSeq || 0}
+          profileUserSeq={userSeq || 0}
           onClose={closeFollowModal}
           currentUserSeq={userInfo?.userSeq}
-          onFollowStatusChange={toggleFollow}
+          onFollowStatusChange={updateFollowCounts}
         />
       )}
     </Container>

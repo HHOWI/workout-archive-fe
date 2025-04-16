@@ -16,6 +16,7 @@ const useProfileData = (nickname: string | undefined, userInfo: any) => {
   const [loading, setLoading] = useState(false);
   const [userSeq, setUserSeq] = useState<number | null>(null);
   const [followCounts, setFollowCounts] = useState<FollowCountDTO | null>(null);
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
 
   // 초기 데이터 로드 및 상태 초기화
   const initializeData = useCallback(async () => {
@@ -30,6 +31,11 @@ const useProfileData = (nickname: string | undefined, userInfo: any) => {
       setIsOwnProfile(profileInfo.isOwner);
       setUserSeq(profileInfo.userSeq);
       setFollowCounts(profileInfo.followCounts);
+
+      // 팔로우 상태 설정
+      if (profileInfo.isFollowing !== undefined) {
+        setIsFollowing(profileInfo.isFollowing);
+      }
     } catch (error) {
       console.error("초기 데이터 로드 실패:", error);
     } finally {
@@ -47,6 +53,8 @@ const useProfileData = (nickname: string | undefined, userInfo: any) => {
     profileImageUrl,
     userSeq,
     followCounts,
+    isFollowing,
+    setIsFollowing,
     setProfileImageUrl,
     setTotalWorkoutCount,
     setFollowCounts,
