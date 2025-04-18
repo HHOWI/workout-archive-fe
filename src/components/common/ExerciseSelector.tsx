@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import styled from "@emotion/styled";
-import { ExerciseDTO, RecordDetailDTO } from "../dtos/WorkoutDTO";
-import { fetchExercisesAPI } from "../api/exercise";
-import { COLORS, SPACING, BORDER_RADIUS } from "../styles/WorkoutRecordStyles";
+import { ExerciseDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
+import { fetchExercisesAPI } from "../../api/exercise";
+import {
+  COLORS,
+  SPACING,
+  BORDER_RADIUS,
+} from "../../styles/WorkoutRecordStyles";
 
 // 모달 전체 컨테이너 - 고정 높이로 설정
 const Container = styled.div`

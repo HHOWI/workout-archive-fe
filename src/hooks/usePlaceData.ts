@@ -27,7 +27,6 @@ const usePlaceData = (placeSeq: string | undefined) => {
   const initializeData = useCallback(async () => {
     if (!placeSeq) return;
 
-    console.log("장소 데이터 초기화:", placeSeq);
     setInitialLoading(true);
 
     try {

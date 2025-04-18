@@ -59,7 +59,7 @@ const Header: React.FC = () => {
 
       // 상태 로깅만 하는 간단한 핸들러
       const handleStatusChange = (status: SocketStatus) => {
-        console.log("소켓 연결 상태:", status);
+        // console.log("소켓 연결 상태:", status);
       };
 
       socketService.addStatusChangeHandler(handleStatusChange);
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
       navigate("/");
       handleCloseUserMenu();
     } catch (error) {
-      console.error("로그아웃 실패:", error);
+      // console.error("로그아웃 실패:", error);
     }
   };
 

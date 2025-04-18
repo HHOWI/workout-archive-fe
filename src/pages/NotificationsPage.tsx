@@ -28,7 +28,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import DeleteIcon from "@mui/icons-material/Delete";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
-import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutDetailModal from "../components/workout-of-the-day-modal/WorkoutOfTheDayModal";
 
 // 스타일 컴포넌트
 const PageHeader = styled(Box)(({ theme }) => ({
@@ -273,7 +273,6 @@ const NotificationsPage: React.FC = () => {
    * 오운완 모달 열기
    */
   const openWorkoutModal = useCallback((data: WorkoutModalData) => {
-    console.log("Opening workout modal with data:", data);
     setWorkoutModalData(data);
   }, []);
 

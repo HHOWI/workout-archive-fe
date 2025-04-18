@@ -418,7 +418,6 @@ const RegisterPage: React.FC = () => {
       setLoading(true);
       try {
         const response = await registerUserAPI(formData);
-        console.log("회원가입 성공:", response);
         navigate("/register-success", {
           state: { email: formData.userEmail },
         });

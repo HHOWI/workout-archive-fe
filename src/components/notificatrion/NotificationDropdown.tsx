@@ -25,7 +25,7 @@ import {
 } from "../../api/notification";
 import { NotificationDTO } from "../../dtos/NotificationDTO";
 import SocketService from "../../services/socketService";
-import WorkoutDetailModal from "../WorkoutDetailModal";
+import WorkoutDetailModal from "../workout-of-the-day-modal/WorkoutOfTheDayModal";
 import NotificationItem, { WorkoutModalData } from "./NotificationItem";
 
 // 상수

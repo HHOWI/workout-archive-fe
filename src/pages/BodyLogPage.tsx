@@ -256,6 +256,253 @@ const MonthButton = styled.button`
   }
 `;
 
+// FormInput 스타일
+const FormInputGroup = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const FormInputField = styled.input`
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.primary};
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+
+  &::placeholder {
+    color: #bdbdbd;
+  }
+
+  /* Firefox */
+  -moz-appearance: textfield;
+
+  /* Chrome, Safari, Edge, Opera */
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+`;
+
+const FormInputUnit = styled.span`
+  position: absolute;
+  right: 12px;
+  color: #9e9e9e;
+  font-size: 14px;
+  pointer-events: none;
+`;
+
+const FormInputIconWrapper = styled.span`
+  position: absolute;
+  left: 12px;
+  color: #757575;
+  font-size: 16px;
+  pointer-events: none;
+`;
+
+const FormInputLabel = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: ${theme.text};
+  font-size: 15px;
+`;
+
+const FormInputErrorMessage = styled.div`
+  color: #e53935;
+  font-size: 13px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+// DatePickerInput 스타일
+const CustomDatePickerWrapper = styled.div`
+  position: relative;
+  .react-datepicker-wrapper {
+    width: 100%;
+  }
+
+  .react-datepicker__input-container {
+    display: flex;
+    align-items: center;
+  }
+
+  .react-datepicker__input-container input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: ${theme.primary};
+      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+  }
+
+  .react-datepicker {
+    border: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    font-family: inherit;
+  }
+
+  .react-datepicker__header {
+    background-color: ${theme.primary};
+    border-bottom: none;
+    padding-top: 10px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
+
+  .react-datepicker__current-month,
+  .react-datepicker__day-name {
+    color: white;
+  }
+
+  .react-datepicker__day--selected {
+    background-color: ${theme.primary};
+    border-radius: 50%;
+  }
+
+  .react-datepicker__day:hover {
+    border-radius: 50%;
+  }
+`;
+
+const DatePickerIconWrapper = styled.span`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #757575;
+  font-size: 16px;
+  z-index: 2;
+  pointer-events: none;
+`;
+
+const DatePickerLabel = styled.label`
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: ${theme.text};
+  font-size: 15px;
+`;
+
+// BodyLogItem 스타일
+const HistoryItem = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const HistoryDate = styled.div`
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: ${theme.text};
+  font-size: 16px;
+`;
+
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  color: #e53935;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(229, 57, 53, 0.1);
+  }
+`;
+
+const StatsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f1f3f5;
+  }
+`;
+
+const StatIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: ${theme.primary};
+  color: white;
+  font-size: 16px;
+`;
+
+const StatContent = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatLabel = styled.span`
+  color: #757575;
+  font-size: 13px;
+`;
+
+const StatValue = styled.span`
+  font-weight: 600;
+  font-size: 16px;
+  color: ${theme.text};
+`;
+
+// BodyLogHistory 스타일
+const HistoryContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: ${fadeIn} 0.3s ease-out;
+`;
+
 // 유틸리티 함수
 const formatDate = (dateString: string): string => {
   try {
@@ -301,185 +548,45 @@ const MonthPicker: React.FC<{
   );
 };
 
-// 폼 인풋 컴포넌트
-const FormInput: React.FC<FormInputProps> = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  error,
-  icon,
-  min,
-  max,
-  unit,
-}) => {
-  const InputGroup = styled.div`
-    position: relative;
-    display: flex;
-    align-items: center;
-  `;
+// 폼 인풋 컴포넌트 (React.memo 적용)
+const FormInput: React.FC<FormInputProps> = React.memo(
+  ({ label, value, onChange, placeholder, error, icon, min, max, unit }) => {
+    return (
+      <FormGroup>
+        <FormInputLabel>{label}</FormInputLabel>
+        <FormInputGroup>
+          <FormInputIconWrapper>{icon}</FormInputIconWrapper>
+          <FormInputField
+            type="number"
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            step="0.1"
+            min={min}
+            max={max}
+          />
+          <FormInputUnit>{unit}</FormInputUnit>
+        </FormInputGroup>
+        {error && (
+          <FormInputErrorMessage>
+            <FaExclamationCircle />
+            {error}
+          </FormInputErrorMessage>
+        )}
+      </FormGroup>
+    );
+  }
+);
+FormInput.displayName = "FormInput"; // 디버깅을 위한 displayName 추가
 
-  const Input = styled.input`
-    width: 100%;
-    padding: 12px 16px 12px 40px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: all 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: ${theme.primary};
-      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-    }
-
-    &::placeholder {
-      color: #bdbdbd;
-    }
-  `;
-
-  const InputUnit = styled.span`
-    position: absolute;
-    right: 12px;
-    color: #9e9e9e;
-    font-size: 14px;
-    pointer-events: none;
-  `;
-
-  const IconWrapper = styled.span`
-    position: absolute;
-    left: 12px;
-    color: #757575;
-    font-size: 16px;
-    pointer-events: none;
-  `;
-
-  const Label = styled.label`
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: ${theme.text};
-    font-size: 15px;
-  `;
-
-  const ErrorMessage = styled.div`
-    color: #e53935;
-    font-size: 13px;
-    margin-top: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  `;
-
-  return (
-    <FormGroup>
-      <Label>{label}</Label>
-      <InputGroup>
-        <IconWrapper>{icon}</IconWrapper>
-        <Input
-          type="number"
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          step="0.1"
-          min={min}
-          max={max}
-        />
-        <InputUnit>{unit}</InputUnit>
-      </InputGroup>
-      {error && (
-        <ErrorMessage>
-          <FaExclamationCircle />
-          {error}
-        </ErrorMessage>
-      )}
-    </FormGroup>
-  );
-};
-
-// 날짜 선택기 컴포넌트
+// 날짜 선택기 컴포넌트 (React.memo 적용)
 const DatePickerInput: React.FC<{
   date: Date;
   setDate: (date: Date) => void;
-}> = ({ date, setDate }) => {
-  const CustomDatePickerWrapper = styled.div`
-    position: relative;
-    .react-datepicker-wrapper {
-      width: 100%;
-    }
-
-    .react-datepicker__input-container {
-      display: flex;
-      align-items: center;
-    }
-
-    .react-datepicker__input-container input {
-      width: 100%;
-      padding: 12px 16px 12px 40px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 15px;
-      transition: all 0.2s;
-
-      &:focus {
-        outline: none;
-        border-color: ${theme.primary};
-        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-      }
-    }
-
-    .react-datepicker {
-      border: none;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      border-radius: 8px;
-      font-family: inherit;
-    }
-
-    .react-datepicker__header {
-      background-color: ${theme.primary};
-      border-bottom: none;
-      padding-top: 10px;
-      border-top-left-radius: 8px;
-      border-top-right-radius: 8px;
-    }
-
-    .react-datepicker__current-month,
-    .react-datepicker__day-name {
-      color: white;
-    }
-
-    .react-datepicker__day--selected {
-      background-color: ${theme.primary};
-      border-radius: 50%;
-    }
-
-    .react-datepicker__day:hover {
-      border-radius: 50%;
-    }
-  `;
-
-  const DatePickerIconWrapper = styled.span`
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #757575;
-    font-size: 16px;
-    z-index: 2;
-    pointer-events: none;
-  `;
-
-  const Label = styled.label`
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: ${theme.text};
-    font-size: 15px;
-  `;
-
+}> = React.memo(({ date, setDate }) => {
   return (
     <FormGroup>
-      <Label>측정 날짜</Label>
+      <DatePickerLabel>측정 날짜</DatePickerLabel>
       <CustomDatePickerWrapper>
         <DatePickerIconWrapper>
           <FaCalendarAlt />
@@ -494,9 +601,10 @@ const DatePickerInput: React.FC<{
       </CustomDatePickerWrapper>
     </FormGroup>
   );
-};
+});
+DatePickerInput.displayName = "DatePickerInput";
 
-// 바디로그 입력 폼 컴포넌트
+// 바디로그 입력 폼 컴포넌트 (React.memo 적용)
 const BodyLogForm: React.FC<{
   date: Date;
   setDate: (date: Date) => void;
@@ -506,197 +614,109 @@ const BodyLogForm: React.FC<{
   bodyFat: string;
   errors: FormErrors;
   isSubmitting: boolean;
+  isFormValid: boolean;
   heightChangeHandler: (e: React.ChangeEvent<HTMLInputElement>) => void;
   weightChangeHandler: (e: React.ChangeEvent<HTMLInputElement>) => void;
   muscleMassChangeHandler: (e: React.ChangeEvent<HTMLInputElement>) => void;
   bodyFatChangeHandler: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: () => void;
-}> = ({
-  date,
-  setDate,
-  height,
-  weight,
-  muscleMass,
-  bodyFat,
-  errors,
-  isSubmitting,
-  heightChangeHandler,
-  weightChangeHandler,
-  muscleMassChangeHandler,
-  bodyFatChangeHandler,
-  handleSubmit,
-}) => (
-  <FormWrapper>
-    <FormTitle>신체 측정 기록</FormTitle>
+}> = React.memo(
+  ({
+    date,
+    setDate,
+    height,
+    weight,
+    muscleMass,
+    bodyFat,
+    errors,
+    isSubmitting,
+    isFormValid,
+    heightChangeHandler,
+    weightChangeHandler,
+    muscleMassChangeHandler,
+    bodyFatChangeHandler,
+    handleSubmit,
+  }) => (
+    <FormWrapper>
+      <FormTitle>신체 측정 기록</FormTitle>
 
-    {errors.general && (
-      <GeneralError>
-        <FaExclamationCircle />
-        {errors.general}
-      </GeneralError>
-    )}
-
-    <DatePickerInput date={date} setDate={setDate} />
-
-    <FormInput
-      label="키 (cm)"
-      value={height}
-      onChange={heightChangeHandler}
-      placeholder="예: 175.5"
-      error={errors.height}
-      icon={<FaRulerVertical />}
-      min="0"
-      max="300"
-      unit="cm"
-    />
-
-    <FormInput
-      label="체중 (kg)"
-      value={weight}
-      onChange={weightChangeHandler}
-      placeholder="예: 65.5"
-      error={errors.bodyWeight}
-      icon={<FaWeight />}
-      min="0"
-      max="500"
-      unit="kg"
-    />
-
-    <FormInput
-      label="골격근량 (kg)"
-      value={muscleMass}
-      onChange={muscleMassChangeHandler}
-      placeholder="예: 30.5"
-      error={errors.muscleMass}
-      icon={<FaDumbbell />}
-      min="0"
-      max="100"
-      unit="kg"
-    />
-
-    <FormInput
-      label="체지방률 (%)"
-      value={bodyFat}
-      onChange={bodyFatChangeHandler}
-      placeholder="예: 15.5"
-      error={errors.bodyFat}
-      icon={<FaPercentage />}
-      min="0"
-      max="100"
-      unit="%"
-    />
-
-    <Button onClick={handleSubmit} disabled={isSubmitting}>
-      {isSubmitting ? (
-        "저장 중..."
-      ) : (
-        <>
-          <FaSave />
-          저장하기
-        </>
+      {errors.general && (
+        <GeneralError>
+          <FaExclamationCircle />
+          {errors.general}
+        </GeneralError>
       )}
-    </Button>
-  </FormWrapper>
-);
 
-// 바디로그 항목 컴포넌트
+      <DatePickerInput date={date} setDate={setDate} />
+
+      <FormInput
+        label="키 (cm)"
+        value={height}
+        onChange={heightChangeHandler}
+        placeholder="예: 175.5"
+        error={errors.height}
+        icon={<FaRulerVertical />}
+        min="0"
+        max="300"
+        unit="cm"
+      />
+
+      <FormInput
+        label="체중 (kg)"
+        value={weight}
+        onChange={weightChangeHandler}
+        placeholder="예: 65.5"
+        error={errors.bodyWeight}
+        icon={<FaWeight />}
+        min="0"
+        max="500"
+        unit="kg"
+      />
+
+      <FormInput
+        label="골격근량 (kg)"
+        value={muscleMass}
+        onChange={muscleMassChangeHandler}
+        placeholder="예: 30.5"
+        error={errors.muscleMass}
+        icon={<FaDumbbell />}
+        min="0"
+        max="100"
+        unit="kg"
+      />
+
+      <FormInput
+        label="체지방률 (%)"
+        value={bodyFat}
+        onChange={bodyFatChangeHandler}
+        placeholder="예: 15.5"
+        error={errors.bodyFat}
+        icon={<FaPercentage />}
+        min="0"
+        max="100"
+        unit="%"
+      />
+
+      <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting}>
+        {isSubmitting ? (
+          "저장 중..."
+        ) : (
+          <>
+            <FaSave />
+            저장하기
+          </>
+        )}
+      </Button>
+    </FormWrapper>
+  )
+);
+BodyLogForm.displayName = "BodyLogForm";
+
+// 바디로그 항목 컴포넌트 (React.memo 적용)
 const BodyLogItem: React.FC<{
   log: BodyLogType;
   onDelete: (id: number) => void;
-}> = ({ log, onDelete }) => {
-  const HistoryItem = styled.div`
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-    transition: all 0.2s;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    }
-  `;
-
-  const HistoryDate = styled.div`
-    font-weight: 600;
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: ${theme.text};
-    font-size: 16px;
-  `;
-
-  const DeleteButton = styled.button`
-    background: none;
-    border: none;
-    color: #e53935;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    transition: all 0.2s;
-
-    &:hover {
-      background-color: rgba(229, 57, 53, 0.1);
-    }
-  `;
-
-  const StatsContainer = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-
-    @media (max-width: 500px) {
-      grid-template-columns: 1fr;
-    }
-  `;
-
-  const StatItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    transition: all 0.2s;
-
-    &:hover {
-      background-color: #f1f3f5;
-    }
-  `;
-
-  const StatIconWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: ${theme.primary};
-    color: white;
-    font-size: 16px;
-  `;
-
-  const StatContent = styled.div`
-    display: flex;
-    flex-direction: column;
-  `;
-
-  const StatLabel = styled.span`
-    color: #757575;
-    font-size: 13px;
-  `;
-
-  const StatValue = styled.span`
-    font-weight: 600;
-    font-size: 16px;
-    color: ${theme.text};
-  `;
-
+}> = React.memo(({ log, onDelete }) => {
   return (
     <HistoryItem>
       <HistoryDate>
@@ -754,54 +774,51 @@ const BodyLogItem: React.FC<{
       </StatsContainer>
     </HistoryItem>
   );
-};
+});
+BodyLogItem.displayName = "BodyLogItem";
 
-// 바디로그 이력 컴포넌트
+// 바디로그 이력 컴포넌트 (React.memo 적용)
 const BodyLogHistory: React.FC<{
   isLoading: boolean;
   bodyLogs: BodyLogType[];
   handleDelete: (id: number) => void;
   selectedMonth: Date;
   onMonthChange: (date: Date) => void;
-}> = ({ isLoading, bodyLogs, handleDelete, selectedMonth, onMonthChange }) => {
-  const HistoryContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    animation: ${fadeIn} 0.3s ease-out;
-  `;
+}> = React.memo(
+  ({ isLoading, bodyLogs, handleDelete, selectedMonth, onMonthChange }) => {
+    if (isLoading) {
+      return <LoadingIndicator>바디로그를 불러오는 중입니다</LoadingIndicator>;
+    }
 
-  if (isLoading) {
-    return <LoadingIndicator>바디로그를 불러오는 중입니다</LoadingIndicator>;
+    return (
+      <>
+        <MonthPicker selectedMonth={selectedMonth} onChange={onMonthChange} />
+
+        {bodyLogs.length === 0 ? (
+          <NoData>
+            <FaInfoCircle />
+            <p>
+              {format(selectedMonth, "yyyy년 MM월", { locale: ko })}에 기록된
+              측정 이력이 없습니다.
+            </p>
+            <p>새로운 바디로그를 등록해보세요!</p>
+          </NoData>
+        ) : (
+          <HistoryContainer>
+            {bodyLogs.map((log) => (
+              <BodyLogItem
+                key={log.bodyLogSeq}
+                log={log}
+                onDelete={handleDelete}
+              />
+            ))}
+          </HistoryContainer>
+        )}
+      </>
+    );
   }
-
-  return (
-    <>
-      <MonthPicker selectedMonth={selectedMonth} onChange={onMonthChange} />
-
-      {bodyLogs.length === 0 ? (
-        <NoData>
-          <FaInfoCircle />
-          <p>
-            {format(selectedMonth, "yyyy년 MM월", { locale: ko })}에 기록된 측정
-            이력이 없습니다.
-          </p>
-          <p>새로운 바디로그를 등록해보세요!</p>
-        </NoData>
-      ) : (
-        <HistoryContainer>
-          {bodyLogs.map((log) => (
-            <BodyLogItem
-              key={log.bodyLogSeq}
-              log={log}
-              onDelete={handleDelete}
-            />
-          ))}
-        </HistoryContainer>
-      )}
-    </>
-  );
-};
+);
+BodyLogHistory.displayName = "BodyLogHistory";
 
 // 메인 컴포넌트
 const BodyLogPage: React.FC = () => {
@@ -818,6 +835,7 @@ const BodyLogPage: React.FC = () => {
   const [bodyFat, setBodyFat] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   // 바디로그 이력
   const [bodyLogs, setBodyLogs] = useState<BodyLogType[]>([]);
@@ -835,6 +853,10 @@ const BodyLogPage: React.FC = () => {
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[field];
+      // Clear general error when any field is modified
+      if (newErrors.general) {
+        delete newErrors.general;
+      }
       return newErrors;
     });
   }, []);
@@ -901,38 +923,38 @@ const BodyLogPage: React.FC = () => {
     }
   }, [userInfo, loadLatestBodyLog, loadBodyLogs]);
 
-  // 입력값 유효성 검사
-  const validateInputs = useCallback(() => {
+  // useEffect for Validation
+  useEffect(() => {
     const newErrors: FormErrors = {};
-    let isValid = true;
+    let isValidForm = true;
 
-    // 모든 필드가 비어있는지 확인
-    if (!height && !weight && !muscleMass && !bodyFat) {
-      newErrors.general = "최소한 하나의 측정값은 입력해야 합니다.";
-      isValid = false;
-    }
-
-    // 키 유효성 검사
-    if (height) {
+    // Height validation
+    if (!height) {
+      isValidForm = false;
+    } else {
       const heightValue = parseFloat(height);
       if (isNaN(heightValue) || heightValue <= 0 || heightValue > 300) {
         newErrors.height = "키는 0보다 크고 300cm 이하의 값이어야 합니다.";
-        isValid = false;
+        isValidForm = false;
       }
     }
 
-    // 체중 유효성 검사
-    if (weight) {
+    // Weight validation
+    if (!weight) {
+      isValidForm = false;
+    } else {
       const weightValue = parseFloat(weight);
       if (isNaN(weightValue) || weightValue <= 0 || weightValue > 500) {
         newErrors.bodyWeight =
           "체중은 0보다 크고 500kg 이하의 값이어야 합니다.";
-        isValid = false;
+        isValidForm = false;
       }
     }
 
-    // 골격근량 유효성 검사
-    if (muscleMass) {
+    // Muscle Mass validation
+    if (!muscleMass) {
+      isValidForm = false;
+    } else {
       const muscleMassValue = parseFloat(muscleMass);
       if (
         isNaN(muscleMassValue) ||
@@ -941,37 +963,45 @@ const BodyLogPage: React.FC = () => {
       ) {
         newErrors.muscleMass =
           "골격근량은 0보다 크고 100kg 이하의 값이어야 합니다.";
-        isValid = false;
+        isValidForm = false;
       }
     }
 
-    // 체지방률 유효성 검사
-    if (bodyFat) {
+    // Body Fat validation
+    if (!bodyFat) {
+      isValidForm = false;
+    } else {
       const bodyFatValue = parseFloat(bodyFat);
       if (isNaN(bodyFatValue) || bodyFatValue < 0 || bodyFatValue > 100) {
         newErrors.bodyFat = "체지방률은 0 이상 100% 이하의 값이어야 합니다.";
-        isValid = false;
+        isValidForm = false;
       }
     }
 
     setErrors(newErrors);
-    return isValid;
+    setIsFormValid(isValidForm);
   }, [height, weight, muscleMass, bodyFat]);
 
   // 폼 제출 핸들러
   const handleSubmit = useCallback(async () => {
-    if (!validateInputs()) {
+    // 버튼이 비활성화되어 호출되지 않아야 하지만, 안전을 위해 추가
+    if (!isFormValid) {
+      setErrors((prev) => ({
+        ...prev,
+        general: "모든 값을 올바르게 입력해주세요.",
+      }));
       return;
     }
 
     setIsSubmitting(true);
+    setErrors({}); // 제출 전 에러 클리어
 
     try {
       await saveBodyLogAPI({
-        height: height ? parseFloat(height) : null,
-        bodyWeight: weight ? parseFloat(weight) : null,
-        muscleMass: muscleMass ? parseFloat(muscleMass) : null,
-        bodyFat: bodyFat ? parseFloat(bodyFat) : null,
+        height: parseFloat(height), // All values are assumed valid number strings here
+        bodyWeight: parseFloat(weight),
+        muscleMass: parseFloat(muscleMass),
+        bodyFat: parseFloat(bodyFat),
         recordDate: date.toISOString(),
       });
 
@@ -1014,12 +1044,12 @@ const BodyLogPage: React.FC = () => {
       setIsSubmitting(false);
     }
   }, [
-    validateInputs,
     height,
     weight,
     muscleMass,
     bodyFat,
     date,
+    isFormValid,
     loadBodyLogs,
     selectedMonth,
   ]);
@@ -1107,6 +1137,7 @@ const BodyLogPage: React.FC = () => {
           bodyFat={bodyFat}
           errors={errors}
           isSubmitting={isSubmitting}
+          isFormValid={isFormValid}
           heightChangeHandler={heightChangeHandler}
           weightChangeHandler={weightChangeHandler}
           muscleMassChangeHandler={muscleMassChangeHandler}

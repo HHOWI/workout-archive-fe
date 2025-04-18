@@ -73,14 +73,6 @@ function useInfiniteScroll<T, C = number>({
         const currentCursor = reset ? null : cursor;
         const response = await fetchData(currentCursor);
 
-        console.log("무한 스크롤 데이터 로드:", {
-          currentCursor,
-          responseData: response.data,
-          responseNextCursor: response.nextCursor,
-          currentDataLength: data.length,
-          newDataLength: response.data.length,
-        });
-
         setData((prevData) => {
           const newData = reset
             ? response.data
@@ -95,7 +87,6 @@ function useInfiniteScroll<T, C = number>({
           setInitialLoad(false);
         }
       } catch (error) {
-        console.error("데이터 로드 중 오류 발생:", error);
         setHasMore(false);
       } finally {
         // 지연 시간을 짧게 조정하여 UX 개선
@@ -123,11 +114,6 @@ function useInfiniteScroll<T, C = number>({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loadingRef.current) {
-          console.log("인터섹션 감지됨, 데이터 로드 시도:", {
-            hasMore,
-            loading: loadingRef.current,
-          });
-          // 지연 시간 축소
           setTimeout(() => {
             loadData();
           }, 50);

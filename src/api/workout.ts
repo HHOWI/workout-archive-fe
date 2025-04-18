@@ -11,17 +11,10 @@ import { isLoggedIn } from "../utils/authUtils";
 // 운동 기록 저장하기 (FormData 또는 JSON 지원)
 export const saveWorkoutRecordAPI = async (data: FormData): Promise<any> => {
   try {
-    console.log("API 요청 데이터:", {
-      workoutData: data.get("workoutData"),
-      placeInfo: data.get("placeInfo"),
-      image: data.get("image"),
-    });
-
     const response = await authAPI.post("/workouts/workout-records", data, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    console.log("API 응답:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("API 오류:", {

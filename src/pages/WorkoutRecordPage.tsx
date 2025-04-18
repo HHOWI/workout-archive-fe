@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Container } from "../styles/WorkoutRecordStyles";
-import DateExerciseSection from "../components/workout/DateExerciseSection";
-import PhotoDiarySection from "../components/workout/PhotoDiarySection";
-import ExerciseListSection from "../components/workout/ExerciseListSection";
-import SaveButtonSection from "../components/workout/SaveButtonSection";
-import ExerciseSelectorModal from "../components/workout/ExerciseSelectorModal";
-import LocationSelectorModal from "../components/workout/LocationSelectorModal";
-import RecentWorkoutsModal from "../components/workout/RecentWorkoutsModal";
+import DateExerciseSection from "../components/workout-record/DateExerciseSection";
+import PhotoDiarySection from "../components/workout-record/PhotoDiarySection";
+import ExerciseListSection from "../components/workout-record/ExerciseListSection";
+import SaveButtonSection from "../components/workout-record/SaveButtonSection";
+import ExerciseSelectorModal from "../components/common/ExerciseSelectorModal";
+import LocationSelectorModal from "../components/workout-record/LocationSelectorModal";
+import RecentWorkoutsModal from "../components/workout-record/RecentWorkoutsModal";
 import { useWorkoutForm } from "../hooks/useWorkoutForm";
 import {
   saveWorkoutRecordAPI,
@@ -17,7 +17,7 @@ import {
 } from "../api/workout";
 import { v4 as uuidv4 } from "uuid";
 import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
-import { ExerciseWithSets } from "../components/workout/ExerciseSelectorModal";
+import { ExerciseWithSets } from "../components/common/ExerciseSelectorModal";
 
 const WorkoutRecordPage: React.FC = () => {
   const navigate = useNavigate();

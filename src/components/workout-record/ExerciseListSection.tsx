@@ -10,7 +10,7 @@ import {
   Message,
 } from "../../styles/WorkoutRecordStyles";
 import { ExerciseRecordDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
-import ExerciseSetForm from "../ExerciseSetForm";
+import ExerciseSetForm from "./ExerciseSetForm";
 
 // 메모이제이션된 컴포넌트를 파일 스코프로 이동
 const MemoizedExerciseSetForm = React.memo(ExerciseSetForm);

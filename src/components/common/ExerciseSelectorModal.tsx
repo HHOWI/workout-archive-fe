@@ -7,7 +7,7 @@ import {
   CloseButton,
   ModalBody,
 } from "../../styles/WorkoutRecordStyles";
-import ExerciseSelector from "../ExerciseSelector";
+import ExerciseSelector from "./ExerciseSelector";
 import { ExerciseDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
 
 // 타입 분리로 재사용성 향상

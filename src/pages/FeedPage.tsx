@@ -3,7 +3,7 @@ import styled from "@emotion/styled";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FeedItemDTO } from "../dtos/FeedDTO";
-import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutDetailModal from "../components/workout-of-the-day-modal/WorkoutOfTheDayModal";
 import { getImageUrl } from "../utils/imageUtils";
 import useInfiniteScroll from "../hooks/useInfiniteScroll";
 import { getFeedAPI } from "../api/feed";
@@ -274,6 +274,7 @@ const FeedPage: React.FC = () => {
     loading,
     hasMore,
     observerTarget,
+    resetData,
   } = useInfiniteScroll<FeedItemDTO, number>({
     fetchData: fetchFeedsFunction,
     isItemEqual: (a, b) => a.workoutOfTheDaySeq === b.workoutOfTheDaySeq,
@@ -446,6 +447,10 @@ const FeedPage: React.FC = () => {
         <WorkoutDetailModal
           workoutOfTheDaySeq={selectedWorkoutSeq}
           onClose={handleCloseModal}
+          onDelete={() => {
+            // 운동 기록 삭제 후 피드 목록 새로고침
+            resetData();
+          }}
         />
       )}
     </Container>

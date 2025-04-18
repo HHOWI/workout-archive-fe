@@ -15,11 +15,11 @@ import {
   getRepliesAPI,
   createCommentAPI,
   RepliesResponse,
-} from "../../../api/comment";
-import { getImageUrl } from "../../../utils/imageUtils";
-import { formatDisplayDate } from "../../../utils/dateUtils";
-import { useCommentActions } from "../../../hooks/useCommentActions";
-import { useCommentLike } from "../../../hooks/useCommentLike";
+} from "../../../../api/comment";
+import { getImageUrl } from "../../../../utils/imageUtils";
+import { formatDisplayDate } from "../../../../utils/dateUtils";
+import { useCommentActions } from "../../../../hooks/useCommentActions";
+import { useCommentLike } from "../../../../hooks/useCommentLike";
 import CommentForm from "./CommentForm";
 import ReplySection from "./ReplySection";
 import {

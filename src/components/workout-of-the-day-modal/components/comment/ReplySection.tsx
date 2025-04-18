@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useEffect } from "react";
 import { Box, CircularProgress } from "@mui/material";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
-import { Comment } from "../../../api/comment";
+import { Comment } from "../../../../api/comment";
 import ReplyItem from "./ReplyItem";
 import {
   RepliesToggleButton,

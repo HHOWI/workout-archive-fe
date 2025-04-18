@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Map, MapMarker } from "react-kakao-maps-sdk";
 import styled from "@emotion/styled";
-import initKakaoMap from "../utils/kakaoMapInit";
-import { fetchRecentWorkoutPlacesAPI } from "../api/workoutPlace";
-import { WorkoutPlaceDTO } from "../dtos/WorkoutDTO";
+import initKakaoMap from "../../utils/kakaoMapInit";
+import { fetchRecentWorkoutPlacesAPI } from "../../api/workoutPlace";
+import { WorkoutPlaceDTO } from "../../dtos/WorkoutDTO";
 
 interface Place {
   id: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import styled from "@emotion/styled";
-import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
+import { WorkoutDetailDTO, WorkoutOfTheDayDTO } from "../../dtos/WorkoutDTO";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import {
@@ -8,11 +8,11 @@ import {
   deleteWorkoutRecordAPI,
   updateWorkoutRecordAPI,
   toggleWorkoutLikeAPI,
-} from "../api/workout";
-import { getImageUrl } from "../utils/imageUtils";
+} from "../../api/workout";
+import { getImageUrl } from "../../utils/imageUtils";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import ActionMenu from "./common/ActionMenu";
+import ActionMenu from "../common/ActionMenu";
 import {
   Avatar,
   TextField,
@@ -33,8 +33,8 @@ import {
   LocationOn,
   CalendarToday,
 } from "@mui/icons-material";
-import CommentSection from "./workout/CommentSection";
-import ExerciseList from "./workout/ExerciseList";
+import CommentSection from "./components/CommentSection";
+import ExerciseList from "./components/ExerciseList";
 
 // =============== 스타일 컴포넌트 ===============
 

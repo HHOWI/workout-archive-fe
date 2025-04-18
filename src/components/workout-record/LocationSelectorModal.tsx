@@ -7,7 +7,7 @@ import {
   CloseButton,
   ModalBody,
 } from "../../styles/WorkoutRecordStyles";
-import KakaoMapPlaceSelector from "../KakaoMapPlaceSelector";
+import KakaoMapPlaceSelector from "./KakaoMapPlaceSelector";
 
 interface LocationSelectorModalProps {
   onPlaceSelect: (place: any) => void;

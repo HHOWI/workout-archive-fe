@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled from "@emotion/styled";
-import { ExerciseDTO, RecordDetailDTO } from "../dtos/WorkoutDTO";
+import { ExerciseDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
 
 // 색상 테마
 const COLORS = {
@@ -43,7 +43,7 @@ const BORDER_RADIUS = {
 const Container = styled.div`
   border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
-  padding: ${SPACING.md};
+  padding: ${SPACING.sm} ${SPACING.md} ${SPACING.md};
   background-color: ${COLORS.cardBackground};
   box-shadow: 0 1px 3px ${COLORS.shadowLight};
   transition: all 0.2s ease;
@@ -54,7 +54,7 @@ const ExerciseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${SPACING.sm};
+  margin-bottom: ${SPACING.xs};
   padding-bottom: ${SPACING.xs};
   border-bottom: 1px solid ${COLORS.border};
 `;
@@ -258,17 +258,70 @@ const Tooltip = styled.div`
   }
 `;
 
+// 새로운 스타일 컴포넌트 추가
+const SetControlGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+`;
+
+const SetControlButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: ${COLORS.secondary};
+  color: ${COLORS.text};
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.sm};
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  &:hover {
+    background-color: ${COLORS.secondaryHover};
+    border-color: ${COLORS.borderDark};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: ${COLORS.secondary};
+  }
+`;
+
+const SetCountText = styled.span`
+  font-size: 13px;
+  color: ${COLORS.textSecondary};
+  min-width: 30px;
+  text-align: center;
+`;
+
 interface ExerciseSetFormProps {
   exercise: ExerciseDTO;
   onRemove: () => void;
   onChange: (sets: RecordDetailDTO[]) => void;
   setCount?: number;
   initialSets?: RecordDetailDTO[];
+  onSetCountChange?: (count: number) => void;
 }
 
 const ExerciseSetForm: React.FC<ExerciseSetFormProps> = React.memo(
-  ({ exercise, onRemove, onChange, setCount = 4, initialSets }) => {
+  ({
+    exercise,
+    onRemove,
+    onChange,
+    setCount = 4,
+    initialSets,
+    onSetCountChange,
+  }) => {
     const isCardio = exercise.exerciseType === "유산소";
+    const initialSetCount = initialSets?.length || setCount;
+    const [localSetCount, setLocalSetCount] = useState(initialSetCount);
 
     // 기본 세트 생성 함수
     const getDefaultSet = useCallback(
@@ -293,10 +346,58 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = React.memo(
       }
       return isCardio
         ? [getDefaultSet()]
-        : Array(setCount)
+        : Array(initialSetCount)
             .fill(0)
             .map(() => getDefaultSet());
     });
+
+    // 세트 추가 함수
+    const handleAddSet = useCallback(() => {
+      if (isCardio) return;
+
+      const newSetCount = localSetCount + 1;
+      setLocalSetCount(newSetCount);
+
+      const newSets = [...sets, getDefaultSet()];
+      setSets(newSets);
+      onChange(newSets);
+
+      // 부모 컴포넌트에게 세트 수 변경 알림
+      if (onSetCountChange) {
+        onSetCountChange(newSetCount);
+      }
+
+      // 새 세트에 대한 입력 값 초기화
+      setInputValues((prev) => ({
+        ...prev,
+        [`weight-${newSetCount - 1}`]: "",
+        [`reps-${newSetCount - 1}`]: "",
+      }));
+    }, [
+      isCardio,
+      localSetCount,
+      sets,
+      getDefaultSet,
+      onChange,
+      onSetCountChange,
+    ]);
+
+    // 세트 삭제 함수
+    const handleRemoveSet = useCallback(() => {
+      if (isCardio || localSetCount <= 1) return;
+
+      const newSetCount = localSetCount - 1;
+      setLocalSetCount(newSetCount);
+
+      const newSets = sets.slice(0, -1);
+      setSets(newSets);
+      onChange(newSets);
+
+      // 부모 컴포넌트에게 세트 수 변경 알림
+      if (onSetCountChange) {
+        onSetCountChange(newSetCount);
+      }
+    }, [isCardio, localSetCount, sets, onChange, onSetCountChange]);
 
     // 입력 필드 값 관리
     const [inputValues, setInputValues] = useState<Record<string, string>>(() =>
@@ -381,10 +482,17 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = React.memo(
       });
     }, []);
 
-    // 세트 수 변경 시 세트 업데이트
+    // 초기 세트 수 또는 initialSets가 변경될 때만 한 번 localSetCount 업데이트
     useEffect(() => {
-      if (!isCardio && setCount !== sets.length) {
-        const newSets = Array(setCount)
+      if (initialSets?.length) {
+        setLocalSetCount(initialSets.length);
+      }
+    }, [initialSets]);
+
+    // localSetCount 변경 시 세트 업데이트 - 단, 세트 개수가 실제로 변경된 경우에만
+    useEffect(() => {
+      if (!isCardio && localSetCount !== sets.length) {
+        const newSets = Array(localSetCount)
           .fill(0)
           .map((_, i) => (i < sets.length ? sets[i] : getDefaultSet()));
 
@@ -400,7 +508,7 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = React.memo(
         setSets(newSets);
         onChange(newSets);
       }
-    }, [setCount, isCardio, onChange, sets.length, getDefaultSet]);
+    }, [localSetCount, isCardio, onChange, sets, getDefaultSet]);
 
     // 시간 포맷팅 함수
     const formatTime = useCallback((totalSeconds: number): string => {
@@ -419,7 +527,24 @@ const ExerciseSetForm: React.FC<ExerciseSetFormProps> = React.memo(
             <ExerciseName>{exercise.exerciseName}</ExerciseName>
             <ExerciseType>({exercise.exerciseType})</ExerciseType>
           </ExerciseInfoContainer>
-          <RemoveButton onClick={onRemove}>삭제</RemoveButton>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {!isCardio && (
+              <SetControlGroup>
+                <SetControlButton
+                  onClick={handleRemoveSet}
+                  disabled={localSetCount <= 1}
+                  title="세트 삭제"
+                >
+                  -
+                </SetControlButton>
+                <SetCountText>{localSetCount}세트</SetCountText>
+                <SetControlButton onClick={handleAddSet} title="세트 추가">
+                  +
+                </SetControlButton>
+              </SetControlGroup>
+            )}
+            <RemoveButton onClick={onRemove}>삭제</RemoveButton>
+          </div>
         </ExerciseHeader>
 
         {isCardio ? (

@@ -6,5 +6,5 @@ export const fetchRecentWorkoutPlacesAPI = async (): Promise<
   WorkoutPlaceDTO[]
 > => {
   const response = await authAPI.get("/workout-places/recent");
-  return response.data;
+  return response.data.places;
 };

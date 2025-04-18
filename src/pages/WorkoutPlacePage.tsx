@@ -17,7 +17,7 @@ import usePlaceFollow from "../hooks/usePlaceFollow";
 import useWorkoutDetail from "../hooks/useWorkoutDetail";
 
 // 컴포넌트 임포트
-import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutDetailModal from "../components/workout-of-the-day-modal/WorkoutOfTheDayModal";
 import KakaoMap from "../components/place/KakaoMap";
 import PlaceInfo from "../components/place/PlaceInfo";
 import WorkoutList from "../components/place/WorkoutList";
@@ -38,7 +38,7 @@ const WorkoutPlacePage: React.FC = () => {
   // 커스텀 훅 사용
   const { placeInfo, totalWorkoutCount, initialLoading } =
     usePlaceData(placeSeq);
-  const { workoutOfTheDays, loading, hasMore, observerTarget } =
+  const { workoutOfTheDays, loading, hasMore, observerTarget, resetData } =
     usePlaceWorkoutData(placeSeq);
   const { isFollowing, isFollowingLoading, followerCount, toggleFollow } =
     usePlaceFollow(placeSeq, userInfo);
@@ -132,6 +132,10 @@ const WorkoutPlacePage: React.FC = () => {
         <WorkoutDetailModal
           workoutOfTheDaySeq={selectedWorkoutSeq}
           onClose={handleCloseModal}
+          onDelete={() => {
+            // 운동 기록 삭제 후 목록 새로고침
+            resetData();
+          }}
         />
       )}
     </Container>

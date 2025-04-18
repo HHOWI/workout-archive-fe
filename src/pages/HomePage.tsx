@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutDetailModal from "../components/workout-of-the-day-modal/WorkoutOfTheDayModal";
 import {
   FiActivity,
   FiCamera,

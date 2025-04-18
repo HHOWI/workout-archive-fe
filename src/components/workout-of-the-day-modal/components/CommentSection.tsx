@@ -11,7 +11,7 @@ import {
   CommentListResponse,
   CommentCreateResponse,
   RepliesResponse,
-} from "../../api/comment";
+} from "../../../api/comment";
 import { useSelector } from "react-redux";
 import CommentItem from "./comment/CommentItem";
 import CommentForm from "./comment/CommentForm";
@@ -140,6 +140,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       );
       setComments([parentWithReplies, ...filteredComments]);
 
+      // 부모 댓글에 대댓글이 있으면 자동으로 확장
       if (
         parentWithReplies.childComments &&
         parentWithReplies.childComments.length > 0
@@ -151,7 +152,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             isLoading: false,
             replies: parentWithReplies.childComments || [],
             nextCursor: null,
-            hasMore: false,
+            // 모든 대댓글을 가져왔다면 더 불러올 것이 없음
+            hasMore:
+              parentWithReplies.childCommentsCount !== undefined
+                ? parentWithReplies.childCommentsCount >
+                  (parentWithReplies.childComments?.length || 0)
+                : false,
           },
         }));
       }
@@ -162,6 +168,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         commentsResponse.comments.length < commentsResponse.totalCount
       );
     } catch (error) {
+      console.error("부모 댓글과 대댓글 조회 중 오류 발생:", error);
       await fetchComments(true);
     } finally {
       setLoading(false);
@@ -187,12 +194,31 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         setComments(commentsResponse.comments);
       }
 
+      // 타겟 댓글에 대댓글이 있으면 자동으로 확장
+      if (comment.childComments && comment.childComments.length > 0) {
+        setReplyStates((prev) => ({
+          ...prev,
+          [commentId]: {
+            isExpanded: true,
+            isLoading: false,
+            replies: comment.childComments || [],
+            nextCursor: null,
+            hasMore:
+              comment.childCommentsCount !== undefined
+                ? comment.childCommentsCount >
+                  (comment.childComments?.length || 0)
+                : false,
+          },
+        }));
+      }
+
       setTotalCount(commentsResponse.totalCount);
       setPage(1);
       setHasMore(
         commentsResponse.comments.length < commentsResponse.totalCount
       );
     } catch (error) {
+      console.error("댓글 조회 중 오류 발생:", error);
       await fetchComments(true);
     } finally {
       setLoading(false);

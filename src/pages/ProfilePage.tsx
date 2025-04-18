@@ -4,10 +4,10 @@ import { useSelector } from "react-redux";
 import { updateProfileImageAPI, getProfileInfoAPI } from "../api/user";
 import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { FollowCountDTO } from "../dtos/FollowDTO";
-import WorkoutDetailModal from "../components/WorkoutDetailModal";
+import WorkoutDetailModal from "../components/workout-of-the-day-modal/WorkoutOfTheDayModal";
 import WorkoutCard from "../components/WorkoutCard";
 import FollowModal from "../components/FollowModal";
-import CalendarView from "../components/calendar/CalendarView";
+import CalendarView from "../components/CalendarView";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { RootState } from "../store/store";
 import {
@@ -595,6 +595,7 @@ const ProfilePage: React.FC = () => {
     loading: workoutLoading,
     error,
     observerTarget,
+    resetData,
   } = useWorkoutData("profile", nickname, activeTab);
 
   const {
@@ -756,6 +757,16 @@ const ProfilePage: React.FC = () => {
           workoutOfTheDaySeq={selectedWorkoutSeq}
           commentId={selectedCommentId || undefined}
           onClose={handleCloseModal}
+          onDelete={() => {
+            // 삭제 후 운동 기록 목록 새로고침
+            if (activeTab === "workout") {
+              // useWorkoutData의 resetData 함수 호출로 데이터 초기화
+              resetData();
+
+              // 프로필 정보도 새로고침 (운동 개수 업데이트를 위해)
+              initializeData();
+            }
+          }}
         />
       )}
 

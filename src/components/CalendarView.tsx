@@ -3,12 +3,12 @@ import styled from "@emotion/styled";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaDumbbell, FaFire, FaTrophy, FaCheck } from "react-icons/fa";
-import { getUserMonthlyWorkoutDataAPI } from "../../api/workout";
-import { fadeIn, theme } from "../../styles/theme";
-import { NoDataMessage, SpinnerIcon } from "../../styles/CommonStyles";
+import { getUserMonthlyWorkoutDataAPI } from "../api/workout";
+import { fadeIn, theme } from "../styles/theme";
+import { NoDataMessage, SpinnerIcon } from "../styles/CommonStyles";
 import { ko } from "date-fns/locale";
 import { format, isSameDay } from "date-fns";
-import WorkoutDetailModal from "../WorkoutDetailModal";
+import WorkoutDetailModal from "./workout-of-the-day-modal/WorkoutOfTheDayModal";
 
 // 타입 정의
 interface WorkoutData {

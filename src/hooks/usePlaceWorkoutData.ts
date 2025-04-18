@@ -17,18 +17,12 @@ const usePlaceWorkoutData = (placeSeq: string | undefined) => {
       }
 
       try {
-        console.log("장소 운동 기록 가져오기:", { placeSeq, cursor });
         const response = await getWorkoutsByPlaceAPI(placeSeq, 12, cursor);
-        console.log("장소 운동 기록 응답:", {
-          data: response.workouts.length,
-          nextCursor: response.nextCursor,
-        });
         return {
           data: response.workouts || [],
           nextCursor: response.nextCursor,
         };
       } catch (error) {
-        console.error("운동 기록 로드 실패:", error);
         throw error;
       }
     },
@@ -49,7 +43,6 @@ const usePlaceWorkoutData = (placeSeq: string | undefined) => {
 
   // placeSeq가 변경될 때마다 데이터 초기화
   useEffect(() => {
-    console.log("placeSeq 변경됨, 데이터 초기화:", placeSeq);
     resetData();
   }, [placeSeq, resetData]);
 
