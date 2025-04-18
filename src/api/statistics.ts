@@ -124,7 +124,7 @@ export const getCardioStatsAPI = async (params?: {
  */
 export const getBodyPartVolumeStatsAPI = async (params?: {
   period?: "3months" | "6months" | "1year" | "2years" | "all";
-  interval?: "1week" | "2weeks" | "1month" | "3months";
+  interval?: "1week" | "2weeks" | "1month" | "3months" | "all";
   bodyPart?:
     | "chest"
     | "back"

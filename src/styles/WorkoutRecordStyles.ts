@@ -248,20 +248,33 @@ export const AddExerciseButton = styled.button`
 export const DraggableExercise = styled.div<{ isDragging?: boolean }>`
   margin-bottom: ${SPACING.md};
   opacity: ${(props) => (props.isDragging ? "0.5" : "1")};
-  cursor: grab;
-  border-radius: ${BORDER_RADIUS.md};
-  overflow: hidden;
-  box-shadow: 0 2px 6px ${COLORS.shadowLight};
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: ${(props) => (props.isDragging ? "grabbing" : "grab")};
+  user-select: none;
 
+  /* 스타일 통합 */
+  border: 1px solid ${COLORS.border};
+  border-radius: ${BORDER_RADIUS.md};
+  background-color: ${COLORS.cardBackground};
+  box-shadow: 0 1px 3px ${COLORS.shadowLight};
+  overflow: hidden;
+  padding: ${SPACING.sm};
+
+  /* 호버 효과 추가 */
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${COLORS.shadow};
+    box-shadow: 0 4px 8px ${COLORS.shadow};
+    border-color: ${COLORS.borderDark};
   }
 
-  &:active {
-    cursor: grabbing;
-  }
+  /* 드래그 중 스타일 */
+  ${(props) =>
+    props.isDragging &&
+    `
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: ${COLORS.primary};
+    transform: translateY(-1px);
+  `}
 `;
 
 // 사진 및 일기 관련 스타일
@@ -426,30 +439,12 @@ export const ModalContent = styled.div`
   width: 90%;
   max-width: 900px;
   max-height: 85vh;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 
   @media (max-width: ${minimumFormsWidth}) {
     width: 100%;
     max-height: 90vh;
-  }
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background-color: ${COLORS.secondary};
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #c1c9d6;
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: #a8b2c1;
   }
 `;
 
@@ -488,6 +483,31 @@ export const CloseButton = styled.button`
 
 export const ModalBody = styled.div`
   padding: ${SPACING.lg};
+  max-height: calc(85vh - 70px);
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: ${COLORS.secondary};
+    border-radius: 4px;
+    margin: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #c1c9d6;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #a8b2c1;
+  }
+
+  @media (max-width: ${minimumFormsWidth}) {
+    max-height: calc(90vh - 70px);
+  }
 `;
 
 // DatePicker 스타일용
@@ -589,6 +609,16 @@ export const RecentWorkoutItem = styled.div`
     transform: translateY(-2px);
     box-shadow: 0 4px 12px ${COLORS.shadowLight};
   }
+`;
+
+// 가로 정렬을 위한 스타일 컴포넌트 (RecentWorkoutsModal)
+export const WorkoutHeaderRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${SPACING.md}; // 간격 조정
+  margin-bottom: ${SPACING.sm};
+  flex-wrap: wrap;
 `;
 
 export const WorkoutDate = styled.div`

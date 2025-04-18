@@ -24,3 +24,15 @@ export const formatDisplayDate = (dateString?: string): string => {
     return "유효하지 않은 날짜";
   }
 };
+
+/**
+ * Date 객체를 로컬 시간대 기준으로 'YYYY-MM-DD' 형식 문자열로 변환합니다.
+ * @param date 변환할 Date 객체
+ * @returns 'YYYY-MM-DD' 형식 문자열
+ */
+export const formatDateToYYYYMMDDLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0"); // getMonth()는 0부터 시작
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};

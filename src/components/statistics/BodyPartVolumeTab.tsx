@@ -40,7 +40,7 @@ ChartJS.register(
 
 // ===== 타입 정의 =====
 type PeriodOption = "3months" | "6months" | "1year" | "2years" | "all";
-type IntervalOption = "1week" | "2weeks" | "1month" | "3months";
+type IntervalOption = "1week" | "2weeks" | "1month" | "3months" | "all";
 type BodyPartOption =
   | "chest"
   | "back"
@@ -168,6 +168,7 @@ const INTERVAL_OPTIONS: { value: IntervalOption; label: string }[] = [
   { value: "2weeks", label: "2주" },
   { value: "1month", label: "1개월" },
   { value: "3months", label: "3개월" },
+  { value: "all", label: "전체 보기" },
 ];
 
 // 기간 옵션

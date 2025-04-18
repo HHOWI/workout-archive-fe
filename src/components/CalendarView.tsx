@@ -146,14 +146,14 @@ const CalendarDatePickerWrapper = styled(ContentBox)`
   .react-datepicker__header {
     background-color: transparent;
     border-bottom: none;
-    padding: 0 0 15px;
+    padding: 0 0 8px;
   }
 
   .react-datepicker__day-names {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
 
   .react-datepicker__day-name {
@@ -163,7 +163,7 @@ const CalendarDatePickerWrapper = styled(ContentBox)`
     color: ${theme.textLight};
     font-size: 0.85rem;
     text-align: center;
-    padding: 5px 0;
+    padding: 2px 0;
   }
 
   .react-datepicker__day {
@@ -196,8 +196,16 @@ const CalendarDatePickerWrapper = styled(ContentBox)`
 
   .react-datepicker__day:hover:not(.react-datepicker__day--disabled):not(
       .workout-day
-    ) {
+    ):not(.react-datepicker__day--outside-month) {
     background-color: ${theme.secondary};
+    transform: none;
+    box-shadow: none;
+  }
+
+  .react-datepicker__day--selected:hover:not(.workout-day):not(
+      .react-datepicker__day--outside-month
+    ) {
+    background-color: ${theme.secondary} !important;
     transform: none;
     box-shadow: none;
   }
@@ -461,8 +469,6 @@ const CalendarView = React.memo(({ nickname }: CalendarViewProps) => {
     const workout = monthlyWorkoutData.find((wd) => isSameDay(wd.date, date));
     if (workout) {
       setSelectedWorkoutSeq(workout.workoutSeq);
-    } else {
-      setSelectedDate(date);
     }
   };
 

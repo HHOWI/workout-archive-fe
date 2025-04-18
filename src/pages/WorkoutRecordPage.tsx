@@ -18,6 +18,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { WorkoutOfTheDayDTO } from "../dtos/WorkoutDTO";
 import { ExerciseWithSets } from "../components/common/ExerciseSelectorModal";
+import { formatDateToYYYYMMDDLocal } from "../utils/dateUtils";
 
 const WorkoutRecordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -200,9 +201,12 @@ const WorkoutRecordPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      // 로컬 시간대 기준으로 YYYY-MM-DD 형식 문자열 생성 (유틸 함수 사용)
+      const formattedDate = formatDateToYYYYMMDDLocal(date);
+
       // 워크아웃 데이터 구성
       const workoutData = {
-        date: date.toISOString().split("T")[0],
+        date: formattedDate, // 유틸 함수 결과 사용
         exerciseRecords: exerciseRecords.map((record) => ({
           exercise: {
             exerciseSeq: record.exercise.exerciseSeq,

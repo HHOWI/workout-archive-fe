@@ -12,9 +12,6 @@ import {
 import { ExerciseRecordDTO, RecordDetailDTO } from "../../dtos/WorkoutDTO";
 import ExerciseSetForm from "./ExerciseSetForm";
 
-// 메모이제이션된 컴포넌트를 파일 스코프로 이동
-const MemoizedExerciseSetForm = React.memo(ExerciseSetForm);
-
 // SVG 컴포넌트 분리
 const CalendarIcon = () => (
   <svg
@@ -77,7 +74,7 @@ const ExerciseListSection: React.FC<ExerciseListSectionProps> = ({
 
         {exerciseRecords.map((record, index) => (
           <DraggableExercise
-            key={record.id}
+            key={`draggable-${record.id}`}
             draggable
             onDragStart={() => onDragStart(index)}
             onDragOver={onDragOver}
@@ -85,10 +82,11 @@ const ExerciseListSection: React.FC<ExerciseListSectionProps> = ({
             onDragEnd={onDragEnd}
             isDragging={index === draggedIndex}
           >
-            <MemoizedExerciseSetForm
+            <ExerciseSetForm
+              key={`exercise-${record.id}-${index}`}
               exercise={record.exercise}
               onRemove={() => onRemoveExercise(index)}
-              onChange={(sets) => onSetsChange(index, sets)}
+              onChange={(sets: RecordDetailDTO[]) => onSetsChange(index, sets)}
               setCount={record.setCount}
               initialSets={record.sets}
             />

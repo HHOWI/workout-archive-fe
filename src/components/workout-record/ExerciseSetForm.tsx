@@ -41,21 +41,17 @@ const BORDER_RADIUS = {
 };
 
 const Container = styled.div`
-  border: 1px solid ${COLORS.border};
   border-radius: ${BORDER_RADIUS.md};
-  padding: ${SPACING.sm} ${SPACING.md} ${SPACING.md};
   background-color: ${COLORS.cardBackground};
-  box-shadow: 0 1px 3px ${COLORS.shadowLight};
   transition: all 0.2s ease;
-  margin-bottom: ${SPACING.md};
 `;
 
 const ExerciseHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${SPACING.xs};
-  padding-bottom: ${SPACING.xs};
+  margin-bottom: 2px;
+  padding-bottom: 4px;
   border-bottom: 1px solid ${COLORS.border};
 `;
 

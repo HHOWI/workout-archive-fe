@@ -10,6 +10,7 @@ import {
   Message,
   RecentWorkoutsList,
   RecentWorkoutItem,
+  WorkoutHeaderRow,
   WorkoutDate,
   WorkoutInfo,
   WorkoutIcon,
@@ -85,27 +86,29 @@ const WorkoutItem: React.FC<WorkoutItemProps> = React.memo(
         key={workout.workoutOfTheDaySeq}
         onClick={handleSelect}
       >
-        <WorkoutDate>
-          {format(new Date(workout.recordDate), "yyyy년 MM월 dd일")}
-        </WorkoutDate>
+        <WorkoutHeaderRow>
+          <WorkoutDate>
+            {format(new Date(workout.recordDate), "yyyy년 MM월 dd일")}
+          </WorkoutDate>
 
-        {workout.workoutPlace && (
-          <WorkoutInfo>
-            <WorkoutIcon>
-              <LocationIcon />
-            </WorkoutIcon>
-            {workout.workoutPlace.placeName}
-          </WorkoutInfo>
-        )}
+          {workout.workoutPlace && (
+            <WorkoutInfo>
+              <WorkoutIcon>
+                <LocationIcon />
+              </WorkoutIcon>
+              {workout.workoutPlace.placeName}
+            </WorkoutInfo>
+          )}
 
-        {workout.mainExerciseType && (
-          <WorkoutInfo>
-            <WorkoutIcon>
-              <ExerciseTypeIcon />
-            </WorkoutIcon>
-            {workout.mainExerciseType}
-          </WorkoutInfo>
-        )}
+          {workout.mainExerciseType && (
+            <WorkoutInfo>
+              <WorkoutIcon>
+                <ExerciseTypeIcon />
+              </WorkoutIcon>
+              {workout.mainExerciseType}
+            </WorkoutInfo>
+          )}
+        </WorkoutHeaderRow>
 
         {uniqueExercises.length > 0 && (
           <WorkoutExercises>
