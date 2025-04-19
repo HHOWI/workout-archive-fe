@@ -366,7 +366,12 @@ const FeedPage: React.FC = () => {
                 <FeedAvatar
                   url={
                     feed.user.profileImageUrl
-                      ? getImageUrl(feed.user.profileImageUrl)
+                      ? getImageUrl(feed.user.profileImageUrl, "profile", {
+                          width: 50,
+                          height: 50,
+                          quality: 75,
+                          format: "webp",
+                        })
                       : null
                   }
                   onClick={() => handleProfileClick(feed.user.userNickname)}
@@ -398,7 +403,7 @@ const FeedPage: React.FC = () => {
 
               {feed.workoutPhoto && (
                 <FeedPhoto
-                  url={getImageUrl(feed.workoutPhoto)}
+                  url={getImageUrl(feed.workoutPhoto, "workout")}
                   onClick={() => handleWorkoutClick(feed.workoutOfTheDaySeq)}
                 />
               )}

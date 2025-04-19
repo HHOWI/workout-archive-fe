@@ -302,7 +302,12 @@ const CommentItem = forwardRef<HTMLDivElement, CommentItemProps>(
           <Box display="flex" justifyContent="space-between">
             <CommentMeta>
               <AuthorAvatar
-                src={getImageUrl(likedComment.user.profileImageUrl)}
+                src={getImageUrl(likedComment.user.profileImageUrl, "profile", {
+                  width: 50,
+                  height: 50,
+                  quality: 75,
+                  format: "webp",
+                })}
                 alt={likedComment.user.userNickname}
                 onClick={() =>
                   handleUserProfileClick(likedComment.user.userNickname)

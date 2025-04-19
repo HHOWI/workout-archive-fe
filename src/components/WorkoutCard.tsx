@@ -132,7 +132,22 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, onClick }) => {
   const formattedDate = format(new Date(recordDate), "yyyy년 MM월 dd일", {
     locale: ko,
   });
-  const imageUrl = getImageUrl(workoutPhoto || null, "workout");
+
+  // 썸네일 크기와 품질 지정 (예: 너비 300px, 높이 300px, 품질 75, 포맷 webp)
+  // const thumbnailUrlOptions = "width=300&height=300&quality=75&format=webp";
+
+  // getImageUrl 결과에 쿼리 파라미터 추가 -> 옵션 객체 전달 방식으로 변경
+  // const baseImageUrl = getImageUrl(workoutPhoto || null, "workout");
+  // const imageUrl = baseImageUrl
+  //   ? `${baseImageUrl}?${thumbnailUrlOptions}`
+  //   : null;
+
+  const imageUrl = getImageUrl(workoutPhoto || null, "workout", {
+    width: 300,
+    height: 300,
+    quality: 75,
+    format: "webp",
+  });
 
   return (
     <Card onClick={() => onClick(workoutOfTheDaySeq)}>

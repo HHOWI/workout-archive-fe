@@ -78,6 +78,17 @@ const ExerciseTypeChip = styled.span`
   box-shadow: 0 2px 4px rgba(74, 144, 226, 0.15);
 `;
 
+const SetCountChip = styled.span`
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background-color: #f0f0f0;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: 8px;
+`;
+
 const ExerciseSets = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -190,6 +201,7 @@ const ExerciseItem = React.memo(
             )}
             {exercise}
             <ExerciseTypeChip>{type}</ExerciseTypeChip>
+            <SetCountChip>{sets.length}세트</SetCountChip>
           </ExerciseTitle>
           <IconButton size="small">
             {expanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}

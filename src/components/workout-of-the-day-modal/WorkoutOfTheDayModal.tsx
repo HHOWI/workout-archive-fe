@@ -625,7 +625,13 @@ const WorkoutDetailModal: React.FC<WorkoutDetailModalProps> = ({
                       <UserAvatar
                         src={getImageUrl(
                           workout?.user?.profileImageUrl || null,
-                          "profile"
+                          "profile",
+                          {
+                            width: 80,
+                            height: 80,
+                            quality: 75,
+                            format: "webp",
+                          }
                         )}
                         alt={workout?.user?.userNickname || "프로필"}
                       />

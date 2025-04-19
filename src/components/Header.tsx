@@ -116,7 +116,7 @@ const Header: React.FC = () => {
       requiresAuth: true,
     },
     {
-      name: "레코드",
+      name: "통계",
       icon: <BarChartIcon fontSize="small" />,
       path: userInfo ? `/statistics/${userInfo.userNickname}` : "/login",
       requiresAuth: true,

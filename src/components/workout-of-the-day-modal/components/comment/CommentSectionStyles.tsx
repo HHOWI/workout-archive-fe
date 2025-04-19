@@ -154,8 +154,8 @@ export const AuthorAvatar = styled(Avatar)`
 `;
 
 export const ReplyAuthorAvatar = styled(AuthorAvatar)`
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 `;
 
 export const CommentAuthor = styled(Typography)`
