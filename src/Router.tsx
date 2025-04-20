@@ -3,7 +3,7 @@ import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import LoginGuard from "./components/LoginGuard";
+import GuestGuard from "./components/GuestGuard";
 import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import ErrorPage from "./pages/ErrorPage";
@@ -53,7 +53,7 @@ const router = createBrowserRouter([
   },
   // 비로그인 전용 경로 (Layout 제외)
   {
-    element: <LoginGuard />,
+    element: <GuestGuard />,
     children: [
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
