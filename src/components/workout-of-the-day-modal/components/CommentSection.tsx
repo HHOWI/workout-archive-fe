@@ -194,8 +194,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         setComments(commentsResponse.comments);
       }
 
-      // 타겟 댓글에 대댓글이 있으면 자동으로 확장
-      if (comment.childComments && comment.childComments.length > 0) {
+      // 타겟 댓글에 대댓글이 있으면서 isReplyNotification이 true인 경우에만 대댓글을 자동으로 확장
+      if (
+        comment.childComments &&
+        comment.childComments.length > 0 &&
+        isReplyNotification
+      ) {
         setReplyStates((prev) => ({
           ...prev,
           [commentId]: {

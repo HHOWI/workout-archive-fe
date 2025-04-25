@@ -589,6 +589,9 @@ const NotificationDropdown: React.FC = () => {
         <WorkoutDetailModal
           workoutOfTheDaySeq={workoutModalData.workoutId}
           commentId={workoutModalData.commentId}
+          isReplyNotification={workoutModalData.isReplyNotification}
+          parentCommentId={workoutModalData.parentCommentId}
+          replyCommentId={workoutModalData.replyCommentId}
           onClose={closeWorkoutModal}
         />
       )}
